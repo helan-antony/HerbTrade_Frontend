@@ -17,7 +17,6 @@ function Signup() {
     const navigate = useNavigate();
 
   useEffect(() => {
-    // GIS script loading and initialization
     const script = document.createElement('script');
     script.src = 'https://accounts.google.com/gsi/client';
     script.async = true;

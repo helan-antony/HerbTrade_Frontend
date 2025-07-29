@@ -1,40 +1,41 @@
-import { Link, useNavigate } from "react-router-dom";
-import { useEffect, useState } from "react";
-import { FaLeaf, FaBlog, FaHospital, FaUserCircle } from "react-icons/fa";
-import { MdLocalFlorist } from "react-icons/md";
-import { AppBar, Toolbar, Button, Box } from "@mui/material";
+import React, { useState, useEffect } from 'react';
+import { AppBar, Toolbar, Typography, Button, Box, IconButton, Menu, MenuItem, Avatar } from '@mui/material';
+import { Link, useNavigate } from 'react-router-dom';
+import { FaUserCircle, FaLeaf } from 'react-icons/fa';
 
 function Navbar() {
-  const [user, setUser] = useState(() => {
-    const u = localStorage.getItem('user');
-    return u ? JSON.parse(u) : null;
-  });
+  const [user, setUser] = useState(null);
+  const [anchorEl, setAnchorEl] = useState(null);
   const navigate = useNavigate();
 
   useEffect(() => {
-    // Listen for changes in localStorage from other tabs
-    const onStorage = () => {
-      const u = localStorage.getItem('user');
-      setUser(u ? JSON.parse(u) : null);
-    };
-    window.addEventListener('storage', onStorage);
+    const userData = localStorage.getItem('user');
+    if (userData) {
+      setUser(JSON.parse(userData));
+    }
 
-    // Listen for custom event in this tab
-    const onUserChange = () => {
-      const u = localStorage.getItem('user');
-      setUser(u ? JSON.parse(u) : null);
+    const onStorage = () => {
+      const userData = localStorage.getItem('user');
+      setUser(userData ? JSON.parse(userData) : null);
     };
+
+    const onUserChange = () => {
+      const userData = localStorage.getItem('user');
+      setUser(userData ? JSON.parse(userData) : null);
+    };
+
+    window.addEventListener('storage', onStorage);
     window.addEventListener('userChanged', onUserChange);
 
-    // Monkey-patch localStorage.setItem/removeItem to dispatch event
     const origSetItem = localStorage.setItem;
-    const origRemoveItem = localStorage.removeItem;
     localStorage.setItem = function(key, value) {
       origSetItem.apply(this, arguments);
       if (key === 'user') {
         window.dispatchEvent(new Event('userChanged'));
       }
     };
+
+    const origRemoveItem = localStorage.removeItem;
     localStorage.removeItem = function(key) {
       origRemoveItem.apply(this, arguments);
       if (key === 'user') {
@@ -57,32 +58,198 @@ function Navbar() {
     navigate('/login');
   };
 
+  const handleMenuClick = (event) => {
+    setAnchorEl(event.currentTarget);
+  };
+
+  const handleMenuClose = () => {
+    setAnchorEl(null);
+  };
+
   return (
-    <AppBar position="static" sx={{ bgcolor: "#3a4d2d", fontFamily: "serif" }}>
-      <Toolbar>
-        <Box sx={{ flexGrow: 1, display: "flex", alignItems: "center" }}>
-          <MdLocalFlorist size={32} style={{ marginRight: 8, color: "#a67c52" }} />
-          <Link to="/" style={{ color: "#f3e7d4", textDecoration: "none", fontWeight: 700, fontSize: 22, fontFamily: "serif" }}>
-            HerbTrade AI
-          </Link>
+    <AppBar 
+      position="fixed" 
+      sx={{ 
+        background: 'linear-gradient(135deg, #2d5016 0%, #3a4d2d 100%)',
+        boxShadow: '0 2px 10px rgba(0,0,0,0.3)',
+        zIndex: 1201
+      }}
+    >
+      <Toolbar sx={{ justifyContent: 'space-between', px: 3 }}>
+        <Box sx={{ display: 'flex', alignItems: 'center' }}>
+          <FaLeaf size={28} style={{ color: '#4caf50', marginRight: '12px' }} />
+          <Typography 
+            variant="h5" 
+            component={Link} 
+            to="/" 
+            sx={{ 
+              fontWeight: 700, 
+              color: '#FFFFFF',
+              textDecoration: 'none',
+              fontFamily: 'Poppins, sans-serif',
+              '&:hover': { color: '#4caf50' }
+            }}
+          >
+            HerbTrade
+          </Typography>
         </Box>
-        <Button sx={{ color: "#f3e7d4", fontFamily: "serif" }} component={Link} to="/herbs" startIcon={<FaLeaf />}>Herbs</Button>
-        <Button sx={{ color: "#f3e7d4", fontFamily: "serif" }} component={Link} to="/hospitals" startIcon={<FaHospital />}>Hospitals</Button>
-        <Button sx={{ color: "#f3e7d4", fontFamily: "serif" }} component={Link} to="/blog" startIcon={<FaBlog />}>Blog</Button>
-        <Button sx={{ color: "#f3e7d4", fontFamily: "serif" }} component={Link} to="/dashboard" startIcon={<FaUserCircle />}>Dashboard</Button>
-        {user ? (
-          <>
-            <Box sx={{ color: '#f3e7d4', fontFamily: 'serif', mx: 2, fontWeight: 600 }}>
-              {user.name || user.email}
-            </Box>
-            <Button sx={{ color: '#f3e7d4', fontFamily: 'serif', fontWeight: 600 }} onClick={handleLogout}>Logout</Button>
-          </>
-        ) : (
-          <>
-            <Button sx={{ color: "#f3e7d4", fontFamily: "serif" }} component={Link} to="/login">Login</Button>
-            <Button sx={{ color: "#f3e7d4", fontFamily: "serif" }} component={Link} to="/signup">Signup</Button>
-          </>
-        )}
+
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+          {user ? (
+            <>
+              {/* Admin Navigation - Only show Profile */}
+              {user.role === 'admin' ? (
+                <>
+                  <IconButton onClick={handleMenuClick} sx={{ color: '#FFFFFF' }}>
+                    <Avatar src={user.profilePic} sx={{ width: 32, height: 32, bgcolor: '#4caf50' }}>
+                      {user.name?.charAt(0) || 'A'}
+                    </Avatar>
+                  </IconButton>
+                  
+                  <Menu
+                    anchorEl={anchorEl}
+                    open={Boolean(anchorEl)}
+                    onClose={handleMenuClose}
+                    sx={{ mt: 1 }}
+                  >
+                    <MenuItem onClick={() => { handleMenuClose(); navigate('/edit-profile'); }}>
+                      <FaUserCircle style={{ marginRight: '8px' }} />
+                      Profile
+                    </MenuItem>
+                    <MenuItem onClick={() => { handleMenuClose(); handleLogout(); }}>
+                      Logout
+                    </MenuItem>
+                  </Menu>
+
+                  <Typography sx={{ color: '#FFFFFF', fontWeight: 600, ml: 1 }}>
+                    Admin
+                  </Typography>
+                </>
+              ) : (
+                <>
+                  {/* Regular User Navigation */}
+                  <Button 
+                    sx={{ 
+                      color: "#FFFFFF", 
+                      fontWeight: 600, 
+                      '&:hover': { color: '#4caf50' } 
+                    }} 
+                    component={Link} 
+                    to="/herbs"
+                  >
+                    🌿 HERBS
+                  </Button>
+                  <Button 
+                    sx={{ 
+                      color: "#FFFFFF", 
+                      fontWeight: 600, 
+                      '&:hover': { color: '#4caf50' } 
+                    }} 
+                    component={Link} 
+                    to="/hospital-discovery"
+                  >
+                    🏥 HOSPITALS
+                  </Button>
+                  <Button 
+                    sx={{ 
+                      color: "#FFFFFF", 
+                      fontWeight: 600, 
+                      '&:hover': { color: '#4caf50' } 
+                    }} 
+                    component={Link} 
+                    to="/blog"
+                  >
+                    📝 BLOG
+                  </Button>
+
+                  <IconButton onClick={handleMenuClick} sx={{ color: '#FFFFFF' }}>
+                    <Avatar src={user.profilePic} sx={{ width: 32, height: 32, bgcolor: '#4caf50' }}>
+                      {user.name?.charAt(0) || 'U'}
+                    </Avatar>
+                  </IconButton>
+                  
+                  <Menu
+                    anchorEl={anchorEl}
+                    open={Boolean(anchorEl)}
+                    onClose={handleMenuClose}
+                    sx={{ mt: 1 }}
+                  >
+                    <MenuItem onClick={() => { handleMenuClose(); navigate('/profile'); }}>
+                      <FaUserCircle style={{ marginRight: '8px' }} />
+                      Profile
+                    </MenuItem>
+                    <MenuItem onClick={() => { handleMenuClose(); handleLogout(); }}>
+                      Logout
+                    </MenuItem>
+                  </Menu>
+
+                  <Typography sx={{ color: '#FFFFFF', fontWeight: 600, ml: 1 }}>
+                    {user.name || user.email}
+                  </Typography>
+                </>
+              )}
+            </>
+          ) : (
+            <>
+              <Button 
+                sx={{ 
+                  color: "#FFFFFF", 
+                  fontWeight: 600, 
+                  '&:hover': { color: '#4caf50' } 
+                }} 
+                component={Link} 
+                to="/herbs"
+              >
+                🌿 HERBS
+              </Button>
+              <Button 
+                sx={{ 
+                  color: "#FFFFFF", 
+                  fontWeight: 600, 
+                  '&:hover': { color: '#4caf50' } 
+                }} 
+                component={Link} 
+                to="/hospital-discovery"
+              >
+                🏥 HOSPITALS
+              </Button>
+              <Button 
+                sx={{ 
+                  color: "#FFFFFF", 
+                  fontWeight: 600, 
+                  '&:hover': { color: '#4caf50' } 
+                }} 
+                component={Link} 
+                to="/blog"
+              >
+                📝 BLOG
+              </Button>
+              <Button 
+                sx={{ 
+                  color: "#FFFFFF", 
+                  fontWeight: 600, 
+                  '&:hover': { color: '#4caf50' } 
+                }} 
+                component={Link} 
+                to="/login"
+              >
+                Sign In
+              </Button>
+              <Button 
+                sx={{ 
+                  bgcolor: '#4caf50', 
+                  color: '#FFFFFF', 
+                  fontWeight: 600,
+                  '&:hover': { bgcolor: '#45a049' }
+                }} 
+                component={Link} 
+                to="/signup"
+              >
+                Sign Up
+              </Button>
+            </>
+          )}
+        </Box>
       </Toolbar>
     </AppBar>
   );

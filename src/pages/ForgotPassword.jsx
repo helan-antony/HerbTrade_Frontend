@@ -42,7 +42,7 @@ function ForgotPassword() {
   }
 
   return (
-    <Box sx={{ minHeight: "100vh", height: "100vh", width: "100vw", bgcolor: "#f3e7d4", display: "flex", alignItems: "center", justifyContent: "center", fontFamily: "serif", m: 0, p: 0, overflow: "hidden" }}>
+    <Box sx={{ minHeight: "100vh", height: "100vh", width: "100vw", display: "flex", alignItems: "center", justifyContent: "center", fontFamily: "serif", m: 0, p: 0, overflow: "hidden" }}>
       <Box sx={{ width: "100%", maxWidth: 400, p: 4, bgcolor: "white", borderRadius: 2, boxShadow: 3 }}>
         <Typography variant="h4" fontWeight={700} color="#3a4d2d" textAlign="center" mb={2} fontFamily="serif">
           Forgot Password?
