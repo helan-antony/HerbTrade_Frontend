@@ -1,13 +1,9 @@
-import { 
-  Box, Typography, Grid, Card, CardContent, TextField, Button, 
-  Dialog, DialogTitle, DialogContent, DialogActions, IconButton,
-  Avatar, Divider, Collapse, Chip
-} from "@mui/material";
-import { 
-  FaPenFancy, FaCommentDots, FaHeart, FaReply, FaEdit, FaTrash, 
-  FaTimes, FaChevronDown, FaChevronUp 
-} from "react-icons/fa";
 import { useState, useEffect } from "react";
+import { 
+  FaPenFancy, FaCommentDots, FaHeart, FaReply, 
+  FaTimes, FaChevronDown, FaChevronUp, FaPlus, FaSearch,
+  FaCalendar, FaUser, FaEye, FaShare
+} from "react-icons/fa";
 import axios from "axios";
 import { toast, ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
@@ -25,10 +21,22 @@ function Blog() {
   const [newComment, setNewComment] = useState("");
   const [replyTo, setReplyTo] = useState(null);
   const [expandedComments, setExpandedComments] = useState({});
+  const [showCreateForm, setShowCreateForm] = useState(false);
+  const [searchTerm, setSearchTerm] = useState("");
+  const [filteredPosts, setFilteredPosts] = useState([]);
 
   useEffect(() => {
     fetchPosts();
   }, []);
+
+  useEffect(() => {
+    const filtered = posts.filter(post =>
+      post.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      post.content.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      post.author.toLowerCase().includes(searchTerm.toLowerCase())
+    );
+    setFilteredPosts(filtered);
+  }, [posts, searchTerm]);
 
   const fetchPosts = async () => {
     try {
@@ -72,6 +80,7 @@ function Blog() {
         setPosts([data, ...posts]);
         setTitle("");
         setContent("");
+        setShowCreateForm(false);
         setSuccess("Blog post submitted!");
         toast.success("Blog post published successfully!");
       } else {
@@ -83,10 +92,7 @@ function Blog() {
   };
 
   const handleCommentSubmit = async () => {
-    if (!newComment.trim()) {
-      toast.error("Comment cannot be empty");
-      return;
-    }
+    if (!newComment.trim()) return;
 
     try {
       const user = JSON.parse(localStorage.getItem('user'));
@@ -108,7 +114,6 @@ function Blog() {
         }
       );
 
-      // Refresh comments
       await fetchComments(selectedPost._id);
       setNewComment("");
       setReplyTo(null);
@@ -133,7 +138,6 @@ function Blog() {
         { headers: { Authorization: `Bearer ${token}` } }
       );
 
-      // Refresh comments to show updated likes
       await fetchComments(selectedPost._id);
     } catch (error) {
       console.error('Error liking comment:', error);
@@ -173,292 +177,350 @@ function Blog() {
   };
 
   const CommentItem = ({ comment, isReply = false }) => (
-    <Box sx={{ ml: isReply ? 4 : 0, mb: 2 }}>
-      <Card sx={{ bgcolor: isReply ? '#f8f9fa' : 'white', border: '1px solid #e0e0e0' }}>
-        <CardContent sx={{ py: 2 }}>
-          <Box sx={{ display: 'flex', alignItems: 'center', mb: 1 }}>
-            <Avatar sx={{ width: 32, height: 32, mr: 1, bgcolor: '#3a4d2d' }}>
-              {comment.user?.name?.charAt(0) || 'U'}
-            </Avatar>
-            <Box>
-              <Typography variant="body2" fontWeight={600}>
-                {comment.user?.name || 'Anonymous'}
-              </Typography>
-              <Typography variant="caption" color="text.secondary">
-                {formatDate(comment.createdAt)}
-              </Typography>
-            </Box>
-          </Box>
+    <div className={`${isReply ? 'ml-8' : ''} mb-4`}>
+      <div className={`p-4 rounded-lg border ${isReply ? 'bg-gray-50' : 'bg-white'} border-gray-200`}>
+        <div className="flex items-center mb-3">
+          <div className="w-8 h-8 bg-emerald-500 rounded-full flex items-center justify-center text-white font-medium text-sm mr-3">
+            {comment.user?.name?.charAt(0) || 'U'}
+          </div>
+          <div>
+            <p className="font-medium text-gray-900 text-sm">
+              {comment.user?.name || 'Anonymous'}
+            </p>
+            <p className="text-xs text-gray-500">
+              {formatDate(comment.createdAt)}
+            </p>
+          </div>
+        </div>
+        
+        <p className="text-gray-700 mb-3">
+          {comment.content}
+        </p>
+        
+        <div className="flex items-center gap-4">
+          <button
+            onClick={() => handleLikeComment(comment._id)}
+            className={`flex items-center gap-1 transition-all duration-300 hover:scale-110 ${
+              comment.likes?.includes(JSON.parse(localStorage.getItem('user') || '{}')._id) 
+                ? 'text-red-500 hover:text-red-600' 
+                : 'text-gray-400 hover:text-red-500'
+            }`}
+          >
+            <FaHeart className={`text-sm transition-all duration-300 ${
+              comment.likes?.includes(JSON.parse(localStorage.getItem('user') || '{}')._id) 
+                ? 'animate-pulse' 
+                : ''
+            }`} />
+            <span className="text-sm font-medium">{comment.likes?.length || 0}</span>
+          </button>
           
-          <Typography variant="body2" sx={{ mb: 2 }}>
-            {comment.content}
-          </Typography>
-          
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-            <Button
-              size="small"
-              startIcon={<FaHeart />}
-              onClick={() => handleLikeComment(comment._id)}
-              sx={{ color: '#e91e63', minWidth: 'auto' }}
-            >
-              {comment.likes?.length || 0}
-            </Button>
-            
-            <Button
-              size="small"
-              startIcon={<FaReply />}
+          {!isReply && (
+            <button
               onClick={() => setReplyTo(comment._id)}
-              sx={{ color: '#3a4d2d', minWidth: 'auto' }}
+              className="flex items-center gap-1 text-emerald-600 hover:text-emerald-700 transition-colors"
             >
-              Reply
-            </Button>
-          </Box>
-          
-          {comment.replies && comment.replies.length > 0 && (
-            <Box sx={{ mt: 2 }}>
-              <Button
-                size="small"
-                onClick={() => toggleCommentExpansion(comment._id)}
-                startIcon={expandedComments[comment._id] ? <FaChevronUp /> : <FaChevronDown />}
-                sx={{ color: '#3a4d2d' }}
-              >
-                {comment.replies.length} {comment.replies.length === 1 ? 'Reply' : 'Replies'}
-              </Button>
-              
-              <Collapse in={expandedComments[comment._id]}>
-                <Box sx={{ mt: 2 }}>
-                  {comment.replies.map(reply => (
-                    <CommentItem key={reply._id} comment={reply} isReply={true} />
-                  ))}
-                </Box>
-              </Collapse>
-            </Box>
+              <FaReply className="text-sm" />
+              <span className="text-sm">Reply</span>
+            </button>
           )}
-        </CardContent>
-      </Card>
-    </Box>
+        </div>
+        
+        {comment.replies && comment.replies.length > 0 && (
+          <div className="mt-3">
+            <button
+              onClick={() => toggleCommentExpansion(comment._id)}
+              className="flex items-center gap-2 text-emerald-600 hover:text-emerald-700 transition-colors text-sm"
+            >
+              {expandedComments[comment._id] ? <FaChevronUp /> : <FaChevronDown />}
+              {comment.replies.length} {comment.replies.length === 1 ? 'Reply' : 'Replies'}
+            </button>
+            
+            {expandedComments[comment._id] && (
+              <div className="mt-3">
+                {comment.replies.map(reply => (
+                  <CommentItem key={reply._id} comment={reply} isReply={true} />
+                ))}
+              </div>
+            )}
+          </div>
+        )}
+      </div>
+    </div>
   );
 
   return (
-    <Box sx={{ minHeight: "100vh", bgcolor: "#f8f6f0", p: 3 }}>
+    <div className="min-h-screen bg-gray-50 relative pt-20">
+      {/* Background Image */}
+      <div 
+        className="absolute inset-0 bg-cover bg-center bg-no-repeat opacity-5"
+        style={{ backgroundImage: 'url(/assets/bg.png)' }}
+      />
       <ToastContainer position="top-right" autoClose={3000} />
       
-      <Typography variant="h4" fontWeight={700} color="#3a4d2d" mb={3} fontFamily="serif" textAlign="center">
-        Herbal Blog ✍️
-      </Typography>
-
-      {/* Create Post Section */}
-      <Box sx={{ mb: 4, p: 3, bgcolor: "white", borderRadius: 3, boxShadow: '0 4px 12px rgba(0,0,0,0.1)', maxWidth: 800, mx: "auto" }}>
-        <Typography variant="h6" fontWeight={600} mb={2} fontFamily="serif" sx={{ display: 'flex', alignItems: 'center' }}>
-          <FaPenFancy style={{ marginRight: 8 }} /> Share Your Herbal Knowledge
-        </Typography>
-        
-        <TextField 
-          fullWidth 
-          label="Post Title" 
-          value={title} 
-          onChange={e => setTitle(e.target.value)} 
-          sx={{ mb: 2 }}
-          placeholder="e.g., Amazing Benefits of Turmeric for Joint Health"
-        />
-        
-        <TextField 
-          fullWidth 
-          label="Content" 
-          value={content} 
-          onChange={e => setContent(e.target.value)} 
-          multiline 
-          rows={4} 
-          sx={{ mb: 2 }}
-          placeholder="Share your experience, recipe, or knowledge about herbal remedies..."
-        />
-        
-        <Button 
-          variant="contained" 
-          onClick={handleSubmit}
-          sx={{ 
-            bgcolor: "#3a4d2d", 
-            color: "#f3e7d4", 
-            fontFamily: "serif",
-            '&:hover': { bgcolor: "#2d3d22" }
-          }}
-          startIcon={<FaPenFancy />}
-        >
-          Publish Post
-        </Button>
-        
-        {success && <Typography sx={{ color: 'green', fontSize: 14, mt: 1 }}>{success}</Typography>}
-        {error && <Typography sx={{ color: 'red', fontSize: 14, mt: 1 }}>{error}</Typography>}
-      </Box>
-
-      {/* Posts Grid */}
-      {loading ? (
-        <Box sx={{ display: 'flex', justifyContent: 'center', py: 4 }}>
-          <Typography sx={{ color: '#3a4d2d', fontFamily: 'serif' }}>Loading posts...</Typography>
-        </Box>
-      ) : (
-        <Grid container spacing={3} justifyContent="center">
-          {posts.map((post, i) => (
-            <Grid item xs={12} md={6} lg={4} key={post._id || i}>
-              <Card sx={{ 
-                bgcolor: "white", 
-                borderRadius: 3,
-                boxShadow: '0 4px 12px rgba(0,0,0,0.1)',
-                transition: 'all 0.3s ease',
-                '&:hover': {
-                  transform: 'translateY(-4px)',
-                  boxShadow: '0 8px 24px rgba(0,0,0,0.15)'
-                },
-                height: '100%',
-                display: 'flex',
-                flexDirection: 'column'
-              }}>
-                <CardContent sx={{ flexGrow: 1, display: 'flex', flexDirection: 'column' }}>
-                  <Typography variant="h6" fontWeight={600} sx={{ mb: 1, color: '#3a4d2d' }}>
-                    {post.title}
-                  </Typography>
-                  
-                  <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
-                    <Avatar sx={{ width: 24, height: 24, mr: 1, bgcolor: '#3a4d2d' }}>
-                      {post.author?.charAt(0) || 'A'}
-                    </Avatar>
-                    <Typography variant="body2" color="text.secondary">
-                      by {post.author}
-                    </Typography>
-                    <Chip 
-                      label={formatDate(post.createdAt || new Date())} 
-                      size="small" 
-                      sx={{ ml: 'auto', bgcolor: '#f0f0f0' }}
-                    />
-                  </Box>
-                  
-                  <Typography sx={{ mb: 2, flexGrow: 1, color: '#555' }}>
-                    {post.content.length > 150 ? `${post.content.substring(0, 150)}...` : post.content}
-                  </Typography>
-                  
-                  <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mt: 'auto' }}>
-                    <Button 
-                      variant="outlined" 
-                      size="small"
-                      onClick={() => openCommentsDialog(post)}
-                      startIcon={<FaCommentDots />}
-                      sx={{ 
-                        color: "#3a4d2d", 
-                        borderColor: "#3a4d2d",
-                        '&:hover': { 
-                          bgcolor: "#3a4d2d", 
-                          color: 'white' 
-                        }
-                      }}
-                    >
-                      Comments
-                    </Button>
-                    
-                    <Box sx={{ display: 'flex', gap: 1 }}>
-                      <Chip label="Herbal" size="small" color="primary" variant="outlined" />
-                      <Chip label="Health" size="small" color="secondary" variant="outlined" />
-                    </Box>
-                  </Box>
-                </CardContent>
-              </Card>
-            </Grid>
-          ))}
-        </Grid>
-      )}
-
-      {/* Comments Dialog */}
-      <Dialog 
-        open={commentsDialog} 
-        onClose={closeCommentsDialog}
-        maxWidth="md"
-        fullWidth
-        PaperProps={{
-          sx: { borderRadius: 3, maxHeight: '80vh' }
-        }}
-      >
-        <DialogTitle sx={{ 
-          display: 'flex', 
-          justifyContent: 'space-between', 
-          alignItems: 'center',
-          bgcolor: '#3a4d2d',
-          color: 'white'
-        }}>
-          <Typography variant="h6" fontWeight={600}>
-            {selectedPost?.title}
-          </Typography>
-          <IconButton onClick={closeCommentsDialog} sx={{ color: 'white' }}>
-            <FaTimes />
-          </IconButton>
-        </DialogTitle>
-        
-        <DialogContent sx={{ p: 3 }}>
-          {/* Post Content */}
-          <Box sx={{ mb: 3, p: 2, bgcolor: '#f8f9fa', borderRadius: 2 }}>
-            <Typography variant="body1" sx={{ mb: 2 }}>
-              {selectedPost?.content}
-            </Typography>
-            <Typography variant="body2" color="text.secondary">
-              by {selectedPost?.author} • {formatDate(selectedPost?.createdAt || new Date())}
-            </Typography>
-          </Box>
-
-          {/* Add Comment Section */}
-          <Box sx={{ mb: 3 }}>
-            {replyTo && (
-              <Box sx={{ mb: 2, p: 2, bgcolor: '#e3f2fd', borderRadius: 2, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <Typography variant="body2">
-                  Replying to comment...
-                </Typography>
-                <IconButton size="small" onClick={() => setReplyTo(null)}>
-                  <FaTimes />
-                </IconButton>
-              </Box>
-            )}
-            
-            <TextField
-              fullWidth
-              multiline
-              rows={3}
-              placeholder={replyTo ? "Write your reply..." : "Share your thoughts..."}
-              value={newComment}
-              onChange={(e) => setNewComment(e.target.value)}
-              sx={{ mb: 2 }}
-            />
-            
-            <Button
-              variant="contained"
-              onClick={handleCommentSubmit}
-              startIcon={replyTo ? <FaReply /> : <FaCommentDots />}
-              sx={{ 
-                bgcolor: '#3a4d2d',
-                '&:hover': { bgcolor: '#2d3d22' }
-              }}
-            >
-              {replyTo ? 'Post Reply' : 'Post Comment'}
-            </Button>
-          </Box>
-
-          <Divider sx={{ mb: 3 }} />
-
-          {/* Comments List */}
-          <Typography variant="h6" sx={{ mb: 2, color: '#3a4d2d' }}>
-            Comments ({comments.length})
-          </Typography>
+      {/* Header Section */}
+      <div className="bg-white shadow-sm border-b border-gray-200">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+          <div className="text-center">
+            <h1 className="text-4xl font-bold text-gray-900 mb-2">
+              Herbal Knowledge Hub
+            </h1>
+            <p className="text-lg text-gray-600 max-w-2xl mx-auto">
+              Discover, share, and learn about the power of herbal remedies from our community of experts and enthusiasts.
+            </p>
+          </div>
           
-          {comments.length === 0 ? (
-            <Typography color="text.secondary" textAlign="center" sx={{ py: 4 }}>
-              No comments yet. Be the first to share your thoughts!
-            </Typography>
-          ) : (
-            <Box>
-              {comments.map(comment => (
-                <CommentItem key={comment._id} comment={comment} />
-              ))}
-            </Box>
-          )}
-        </DialogContent>
-      </Dialog>
-    </Box>
+          {/* Action Bar */}
+          <div className="mt-8 flex flex-col sm:flex-row gap-4 items-center justify-between">
+            <div className="relative flex-1 max-w-md">
+              <FaSearch className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
+              <input
+                type="text"
+                placeholder="Search articles, authors, topics..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none"
+              />
+            </div>
+            
+            <button
+              onClick={() => setShowCreateForm(!showCreateForm)}
+              className="bg-emerald-600 hover:bg-emerald-700 text-white px-6 py-3 rounded-lg font-medium transition-colors flex items-center gap-2"
+            >
+              <FaPlus />
+              Write Article
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        {/* Create Post Form */}
+        {showCreateForm && (
+          <div className="bg-white rounded-xl shadow-lg p-6 mb-8 border border-gray-200">
+            <div className="flex items-center justify-between mb-6">
+              <h2 className="text-xl font-semibold text-gray-900 flex items-center gap-2">
+                <FaPenFancy className="text-emerald-600" />
+                Share Your Knowledge
+              </h2>
+              <button
+                onClick={() => setShowCreateForm(false)}
+                className="text-gray-400 hover:text-gray-600 transition-colors"
+              >
+                <FaTimes />
+              </button>
+            </div>
+            
+            <div className="space-y-4">
+              <input
+                type="text"
+                placeholder="Article title..."
+                value={title}
+                onChange={(e) => setTitle(e.target.value)}
+                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none text-lg"
+              />
+              
+              <textarea
+                placeholder="Share your herbal knowledge, experiences, or recipes..."
+                value={content}
+                onChange={(e) => setContent(e.target.value)}
+                rows={6}
+                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none resize-none"
+              />
+              
+              <div className="flex gap-3">
+                <button
+                  onClick={handleSubmit}
+                  className="bg-emerald-600 hover:bg-emerald-700 text-white px-6 py-3 rounded-lg font-medium transition-colors flex items-center gap-2"
+                >
+                  <FaPenFancy />
+                  Publish Article
+                </button>
+                <button
+                  onClick={() => {
+                    setTitle("");
+                    setContent("");
+                    setShowCreateForm(false);
+                  }}
+                  className="bg-gray-100 hover:bg-gray-200 text-gray-700 px-6 py-3 rounded-lg font-medium transition-colors"
+                >
+                  Cancel
+                </button>
+              </div>
+              
+              {success && <p className="text-green-600 text-sm">{success}</p>}
+              {error && <p className="text-red-600 text-sm">{error}</p>}
+            </div>
+          </div>
+        )}
+
+        {/* Posts Grid */}
+        {loading ? (
+          <div className="flex justify-center py-12">
+            <div className="text-center">
+              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-emerald-600 mx-auto mb-4"></div>
+              <p className="text-gray-600">Loading articles...</p>
+            </div>
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {filteredPosts.map((post, i) => (
+              <article
+                key={post._id || i}
+                className="bg-white rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 hover:-translate-y-1 border border-gray-200 overflow-hidden"
+              >
+                <div className="p-6">
+                  <div className="flex items-center justify-between mb-4">
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 bg-emerald-500 rounded-full flex items-center justify-center text-white font-medium">
+                        {post.author?.charAt(0) || 'A'}
+                      </div>
+                      <div>
+                        <p className="font-medium text-gray-900">{post.author}</p>
+                        <p className="text-sm text-gray-500 flex items-center gap-1">
+                          <FaCalendar className="text-xs" />
+                          {formatDate(post.createdAt || new Date())}
+                        </p>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <span className="bg-emerald-100 text-emerald-800 text-xs px-2 py-1 rounded-full">Herbal</span>
+                    </div>
+                  </div>
+
+                  <h3 className="text-xl font-semibold text-gray-900 mb-3 line-clamp-2">
+                    {post.title}
+                  </h3>
+
+                  <p className="text-gray-600 mb-4 line-clamp-3">
+                    {post.content.length > 150 ? `${post.content.substring(0, 150)}...` : post.content}
+                  </p>
+
+                  <div className="flex items-center justify-between pt-4 border-t border-gray-100">
+                    <button
+                      onClick={() => openCommentsDialog(post)}
+                      className="flex items-center gap-2 text-emerald-600 hover:text-emerald-700 transition-colors font-medium"
+                    >
+                      <FaCommentDots />
+                      <span>Discuss</span>
+                    </button>
+
+                    <div className="flex items-center gap-3 text-gray-500">
+                      <span className="flex items-center gap-1 text-sm">
+                        <FaEye className="text-xs" />
+                        {Math.floor(Math.random() * 100) + 10}
+                      </span>
+                      <button className="hover:text-emerald-600 transition-colors">
+                        <FaShare className="text-sm" />
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              </article>
+            ))}
+          </div>
+        )}
+
+        {/* Empty State */}
+        {!loading && filteredPosts.length === 0 && (
+          <div className="text-center py-12">
+            <div className="w-24 h-24 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
+              <FaPenFancy className="text-gray-400 text-2xl" />
+            </div>
+            <h3 className="text-xl font-medium text-gray-900 mb-2">No articles found</h3>
+            <p className="text-gray-600 mb-6">
+              {searchTerm ? 'Try adjusting your search terms' : 'Be the first to share your herbal knowledge!'}
+            </p>
+            {!searchTerm && (
+              <button
+                onClick={() => setShowCreateForm(true)}
+                className="bg-emerald-600 hover:bg-emerald-700 text-white px-6 py-3 rounded-lg font-medium transition-colors"
+              >
+                Write First Article
+              </button>
+            )}
+          </div>
+        )}
+
+        {/* Comments Dialog */}
+        {commentsDialog && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+            <div className="bg-white rounded-xl max-w-4xl w-full max-h-[90vh] overflow-hidden">
+              {/* Dialog Header */}
+              <div className="bg-emerald-600 text-white p-6 flex items-center justify-between">
+                <h2 className="text-xl font-semibold">{selectedPost?.title}</h2>
+                <button
+                  onClick={closeCommentsDialog}
+                  className="text-white hover:text-gray-200 transition-colors"
+                >
+                  <FaTimes className="text-xl" />
+                </button>
+              </div>
+
+              {/* Dialog Content */}
+              <div className="p-6 overflow-y-auto max-h-[calc(90vh-120px)]">
+                {/* Post Content */}
+                <div className="bg-gray-50 rounded-lg p-4 mb-6">
+                  <p className="text-gray-800 mb-3">{selectedPost?.content}</p>
+                  <p className="text-sm text-gray-600">
+                    by {selectedPost?.author} • {formatDate(selectedPost?.createdAt || new Date())}
+                  </p>
+                </div>
+
+                {/* Add Comment Section */}
+                <div className="mb-6">
+                  {replyTo && (
+                    <div className="bg-blue-50 rounded-lg p-3 mb-4 flex items-center justify-between">
+                      <p className="text-sm text-blue-800">Replying to comment...</p>
+                      <button
+                        onClick={() => setReplyTo(null)}
+                        className="text-blue-600 hover:text-blue-800 transition-colors"
+                      >
+                        <FaTimes />
+                      </button>
+                    </div>
+                  )}
+
+                  <textarea
+                    placeholder={replyTo ? "Write your reply..." : "Share your thoughts..."}
+                    value={newComment}
+                    onChange={(e) => setNewComment(e.target.value)}
+                    rows={3}
+                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none resize-none mb-4"
+                  />
+
+                  <button
+                    onClick={handleCommentSubmit}
+                    className="bg-emerald-600 hover:bg-emerald-700 text-white px-6 py-3 rounded-lg font-medium transition-colors flex items-center gap-2"
+                  >
+                    {replyTo ? <FaReply /> : <FaCommentDots />}
+                    {replyTo ? 'Post Reply' : 'Post Comment'}
+                  </button>
+                </div>
+
+                <hr className="mb-6" />
+
+                {/* Comments List */}
+                <h3 className="text-lg font-semibold text-gray-900 mb-4">
+                  Comments ({comments.length})
+                </h3>
+
+                {comments.length === 0 ? (
+                  <div className="text-center py-8">
+                    <p className="text-gray-600">No comments yet. Be the first to share your thoughts!</p>
+                  </div>
+                ) : (
+                  <div className="space-y-4">
+                    {comments.map(comment => (
+                      <CommentItem key={comment._id} comment={comment} />
+                    ))}
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
+    </div>
   );
 }
 

@@ -1,64 +1,74 @@
-import { useState, useEffect } from 'react';
-import {
-  Box, Typography, Container, Grid, Card, CardContent, CardMedia,
-  Button, IconButton, TextField, Paper, Alert, Dialog, DialogTitle,
-  DialogContent, DialogActions, CircularProgress, Divider, Chip
-} from '@mui/material';
-import { 
-  FaShoppingCart, FaTrash, FaCreditCard, FaPlus, FaMinus,
-  FaHeart, FaShoppingBag, FaSync, FaArrowRight
-} from 'react-icons/fa';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { toast } from 'react-toastify';
+import axios from 'axios';
+import { 
+  FaShoppingCart, 
+  FaTrash, 
+  FaPlus, 
+  FaMinus, 
+  FaArrowLeft,
+  FaShoppingBag,
+  FaHeart,
+  FaLeaf,
+  FaShieldAlt
+} from 'react-icons/fa';
+
+// Auth utility functions (inline for now to avoid import issues)
+const getAuthToken = () => localStorage.getItem('token');
+const getAuthHeaders = () => {
+  const token = getAuthToken();
+  return {
+    'Content-Type': 'application/json',
+    ...(token && { 'Authorization': `Bearer ${token}` })
+  };
+};
+const isAuthenticated = () => !!(getAuthToken() && localStorage.getItem('user'));
+const logout = () => {
+  localStorage.removeItem('token');
+  localStorage.removeItem('user');
+  localStorage.removeItem('cartItems');
+  localStorage.removeItem('wishlistItems');
+  window.location.href = '/login';
+};
 
 function EnhancedCart() {
   const [cartItems, setCartItems] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [actionLoading, setActionLoading] = useState(false);
-  const [checkoutDialog, setCheckoutDialog] = useState(false);
-  const [paymentMethod, setPaymentMethod] = useState('card');
-  const [shippingAddress, setShippingAddress] = useState('');
+  const [error, setError] = useState('');
   const navigate = useNavigate();
 
   useEffect(() => {
+    if (!isAuthenticated()) {
+      navigate('/login');
+      return;
+    }
     fetchCartItems();
-  }, []);
+  }, [navigate]);
 
   const fetchCartItems = async () => {
     try {
       setLoading(true);
-      const token = localStorage.getItem('token');
-      if (!token) {
-        navigate('/login');
-        return;
-      }
-
-      const response = await fetch('http://localhost:5000/api/cart', {
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
-        }
+      setError('');
+      
+      const response = await axios.get('http://localhost:5000/api/cart', {
+        headers: getAuthHeaders()
       });
-
-      if (response.ok) {
-        const data = await response.json();
-        setCartItems(data.data.items || []);
-      } else {
-        throw new Error('Failed to fetch cart');
-      }
+      
+      setCartItems(response.data.items || []);
     } catch (error) {
       console.error('Error fetching cart:', error);
-      toast.error('Failed to load cart items');
-      // Fallback to localStorage for demo
-      const savedCart = JSON.parse(localStorage.getItem('cartItems') || '[]');
-      setCartItems(savedCart.map(item => ({
-        productId: { _id: item._id, ...item },
-        quantity: item.quantity || 1,
-        price: item.price,
-        productName: item.name,
-        productImage: item.image,
-        productCategory: item.category
-      })));
+      if (error.response?.status === 401) {
+        logout();
+        return;
+      }
+      
+      // Fallback to localStorage for demo purposes
+      try {
+        const localCart = JSON.parse(localStorage.getItem('cartItems') || '[]');
+        setCartItems(localCart);
+      } catch (e) {
+        setError('Failed to load cart items');
+      }
     } finally {
       setLoading(false);
     }
@@ -66,522 +76,282 @@ function EnhancedCart() {
 
   const updateQuantity = async (productId, newQuantity) => {
     if (newQuantity < 1) return;
-
+    
     try {
-      setActionLoading(true);
-      const token = localStorage.getItem('token');
+      await axios.put(`http://localhost:5000/api/cart/${productId}`, 
+        { quantity: newQuantity },
+        { headers: getAuthHeaders() }
+      );
       
-      const response = await fetch(`http://localhost:5000/api/cart/update/${productId}`, {
-        method: 'PUT',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({ quantity: newQuantity })
-      });
-
-      if (response.ok) {
-        setCartItems(prev => prev.map(item => 
-          item.productId._id === productId 
+      setCartItems(items => 
+        items.map(item => 
+          item.product._id === productId 
             ? { ...item, quantity: newQuantity }
             : item
-        ));
-      } else {
-        throw new Error('Failed to update quantity');
-      }
+        )
+      );
     } catch (error) {
       console.error('Error updating quantity:', error);
-      // Fallback to localStorage
-      setCartItems(prev => prev.map(item => 
-        item.productId._id === productId 
-          ? { ...item, quantity: newQuantity }
-          : item
-      ));
-      const updatedCart = cartItems.map(item => 
-        item.productId._id === productId 
-          ? { ...item.productId, quantity: newQuantity }
-          : { ...item.productId, quantity: item.quantity }
+      if (error.response?.status === 401) {
+        logout();
+        return;
+      }
+      
+      // Fallback to local update
+      setCartItems(items => 
+        items.map(item => 
+          item.product?._id === productId || item._id === productId
+            ? { ...item, quantity: newQuantity }
+            : item
+        )
       );
-      localStorage.setItem('cartItems', JSON.stringify(updatedCart));
-    } finally {
-      setActionLoading(false);
     }
   };
 
   const removeFromCart = async (productId) => {
     try {
-      setActionLoading(true);
-      const token = localStorage.getItem('token');
-      
-      const response = await fetch(`http://localhost:5000/api/cart/remove/${productId}`, {
-        method: 'DELETE',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
-        }
+      await axios.delete(`http://localhost:5000/api/cart/${productId}`, {
+        headers: getAuthHeaders()
       });
-
-      if (response.ok) {
-        setCartItems(prev => prev.filter(item => item.productId._id !== productId));
-        toast.success('Item removed from cart');
-      } else {
-        throw new Error('Failed to remove item');
-      }
+      
+      setCartItems(items => items.filter(item => item.product._id !== productId));
     } catch (error) {
       console.error('Error removing from cart:', error);
-      // Fallback to localStorage
-      const updatedCart = cartItems.filter(item => item.productId._id !== productId);
-      setCartItems(updatedCart);
-      const localCart = updatedCart.map(item => ({ ...item.productId, quantity: item.quantity }));
-      localStorage.setItem('cartItems', JSON.stringify(localCart));
-      toast.success('Item removed from cart');
-    } finally {
-      setActionLoading(false);
-    }
-  };
-
-  const moveToWishlist = async (item) => {
-    try {
-      setActionLoading(true);
-      const token = localStorage.getItem('token');
-      
-      const response = await fetch('http://localhost:5000/api/wishlist/add', {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({ productId: item.productId._id })
-      });
-
-      if (response.ok) {
-        await removeFromCart(item.productId._id);
-        toast.success('Item moved to wishlist');
-      } else {
-        throw new Error('Failed to move to wishlist');
-      }
-    } catch (error) {
-      console.error('Error moving to wishlist:', error);
-      // Fallback to localStorage
-      const wishlist = JSON.parse(localStorage.getItem('wishlistItems') || '[]');
-      const existingItem = wishlist.find(w => w._id === item.productId._id);
-      
-      if (!existingItem) {
-        wishlist.push(item.productId);
-        localStorage.setItem('wishlistItems', JSON.stringify(wishlist));
-      }
-      
-      removeFromCart(item.productId._id);
-      toast.success('Item moved to wishlist');
-    } finally {
-      setActionLoading(false);
-    }
-  };
-
-  const clearCart = async () => {
-    try {
-      setActionLoading(true);
-      const token = localStorage.getItem('token');
-      
-      const response = await fetch('http://localhost:5000/api/cart/clear', {
-        method: 'DELETE',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
-        }
-      });
-
-      if (response.ok) {
-        setCartItems([]);
-        toast.success('Cart cleared');
-      } else {
-        throw new Error('Failed to clear cart');
-      }
-    } catch (error) {
-      console.error('Error clearing cart:', error);
-      // Fallback to localStorage
-      setCartItems([]);
-      localStorage.setItem('cartItems', JSON.stringify([]));
-      toast.success('Cart cleared');
-    } finally {
-      setActionLoading(false);
-    }
-  };
-
-  const calculateTotal = () => {
-    return cartItems.reduce((total, item) => total + (item.price * item.quantity), 0);
-  };
-
-  const calculateTotalItems = () => {
-    return cartItems.reduce((total, item) => total + item.quantity, 0);
-  };
-
-  const handleCheckout = async () => {
-    try {
-      setActionLoading(true);
-      const token = localStorage.getItem('token');
-      if (!token) {
-        toast.error('Please login to proceed');
-        navigate('/login');
+      if (error.response?.status === 401) {
+        logout();
         return;
       }
-
-      if (cartItems.length === 0) {
-        toast.error('Your cart is empty');
-        return;
-      }
-
-      if (!shippingAddress.trim()) {
-        toast.error('Please enter shipping address');
-        return;
-      }
-
-      // Demo checkout processing
-      await new Promise(resolve => setTimeout(resolve, 2000));
-      toast.success('🎉 Order placed successfully! This is a demo transaction.');
       
-      // Clear cart after successful checkout
-      await clearCart();
-      setCheckoutDialog(false);
-      
-      // Redirect to orders page
-      setTimeout(() => {
-        navigate('/profile');
-      }, 2000);
-      
-    } catch (error) {
-      console.error('Checkout error:', error);
-      toast.error('Checkout failed. Please try again.');
-    } finally {
-      setActionLoading(false);
+      // Fallback to local removal
+      setCartItems(items => items.filter(item => 
+        item.product?._id !== productId && item._id !== productId
+      ));
     }
   };
+
+  const getTotalPrice = () => {
+    return cartItems.reduce((total, item) => {
+      const price = item.product?.price || item.price || 0;
+      const quantity = item.quantity || 1;
+      return total + (price * quantity);
+    }, 0);
+  };
+
+
 
   if (loading) {
     return (
-      <Container maxWidth="lg" sx={{ py: 4, textAlign: 'center' }}>
-        <CircularProgress size={60} sx={{ color: '#2d5016' }} />
-        <Typography variant="h6" sx={{ mt: 2 }}>Loading your cart...</Typography>
-      </Container>
+      <div className="min-h-screen bg-gradient-to-br from-emerald-50 via-white to-teal-50 flex items-center justify-center">
+        {/* Floating decorative elements */}
+        <div className="absolute top-20 left-10 w-72 h-72 bg-emerald-200/30 rounded-full blur-3xl animate-pulse" />
+        <div className="absolute bottom-20 right-10 w-96 h-96 bg-teal-200/20 rounded-full blur-3xl animate-pulse" style={{ animationDelay: '2s' }} />
+        
+        <div className="text-center relative z-10">
+          <div className="relative mb-8">
+            <div className="animate-spin rounded-full h-20 w-20 border-4 border-emerald-200 border-t-emerald-600 mx-auto"></div>
+            <div className="absolute inset-0 rounded-full bg-gradient-to-r from-emerald-400 to-emerald-600 opacity-20 animate-pulse"></div>
+          </div>
+          <h2 className="text-2xl font-playfair font-bold text-slate-900 mb-2">Loading your cart...</h2>
+          <p className="text-slate-600">Please wait while we fetch your items</p>
+        </div>
+      </div>
     );
   }
 
   return (
-    <Container maxWidth="lg" sx={{ py: 4 }}>
-      {/* Header */}
-      <Box sx={{ mb: 4, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-        <Box>
-          <Typography variant="h3" fontWeight={700} color="#2d5016" gutterBottom>
-            <FaShoppingCart style={{ marginRight: 16, color: '#2d5016' }} />
-            Shopping Cart
-          </Typography>
-          <Typography variant="h6" color="text.secondary">
-            {calculateTotalItems()} item{calculateTotalItems() !== 1 ? 's' : ''} in your cart
-          </Typography>
-        </Box>
-        
-        <Box sx={{ display: 'flex', gap: 2 }}>
-          <Button
-            variant="outlined"
-            startIcon={<FaSync />}
-            onClick={fetchCartItems}
-            disabled={loading}
-            sx={{ color: '#2d5016', borderColor: '#2d5016' }}
-          >
-            Refresh
-          </Button>
-          
-          {cartItems.length > 0 && (
-            <Button
-              variant="outlined"
-              startIcon={<FaTrash />}
-              onClick={clearCart}
-              disabled={actionLoading}
-              sx={{ color: '#f44336', borderColor: '#f44336' }}
+    <div className="min-h-screen bg-gradient-to-br from-emerald-50 via-white to-teal-50 py-8 pt-24 relative">
+      {/* Background Image */}
+      <div 
+        className="absolute inset-0 bg-cover bg-center bg-no-repeat opacity-5"
+        style={{ backgroundImage: 'url(/assets/bg.png)' }}
+      />
+      {/* Floating decorative elements */}
+      <div className="absolute top-20 left-10 w-72 h-72 bg-emerald-200/30 rounded-full blur-3xl animate-float" />
+      <div className="absolute bottom-20 right-10 w-96 h-96 bg-teal-200/20 rounded-full blur-3xl animate-float" style={{ animationDelay: '2s' }} />
+      <div className="absolute top-1/2 left-1/3 w-64 h-64 bg-cyan-200/20 rounded-full blur-3xl animate-float" style={{ animationDelay: '4s' }} />
+
+      <div className="container mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
+        {/* Header */}
+        <div className="flex items-center justify-between mb-12">
+          <div className="flex items-center space-x-4">
+            <button 
+              onClick={() => navigate('/herbs')}
+              className="group flex items-center text-slate-600 hover:text-emerald-600 transition-all duration-300 bg-white/80 backdrop-blur-sm px-6 py-3 rounded-2xl shadow-lg hover:shadow-xl border border-white/50"
             >
-              Clear Cart
-            </Button>
-          )}
-        </Box>
-      </Box>
+              <FaArrowLeft className="mr-3 group-hover:-translate-x-1 transition-transform duration-300" />
+              <span className="font-semibold">Continue Shopping</span>
+            </button>
+          </div>
+          <div className="text-center">
+            <h1 className="text-4xl md:text-5xl font-playfair font-bold text-slate-900 flex items-center justify-center mb-2">
+              <FaShoppingCart className="mr-4 text-emerald-600" />
+              Shopping Cart
+            </h1>
+            <p className="text-slate-600 font-medium">Your herbal wellness journey</p>
+          </div>
+          <div className="w-48"></div> {/* Spacer for centering */}
+        </div>
 
-      {cartItems.length === 0 ? (
-        <Paper sx={{ p: 6, textAlign: 'center' }}>
-          <FaShoppingBag size={64} color="#ccc" />
-          <Typography variant="h5" color="text.secondary" mt={2} mb={2}>
-            Your cart is empty
-          </Typography>
-          <Typography color="text.secondary" mb={4}>
-            Add some herbs to get started
-          </Typography>
-          <Button
-            variant="contained"
-            size="large"
-            onClick={() => navigate('/herbs')}
-            sx={{ 
-              bgcolor: '#2d5016', 
-              '&:hover': { bgcolor: '#3a4d2d' },
-              px: 4,
-              py: 2
-            }}
-          >
-            Browse Herbs
-          </Button>
-        </Paper>
-      ) : (
-        <Grid container spacing={4}>
-          {/* Cart Items */}
-          <Grid item xs={12} md={8}>
-            <Paper sx={{ p: 3 }}>
-              <Typography variant="h5" fontWeight={600} mb={3}>
-                Cart Items ({cartItems.length})
-              </Typography>
-              
-              {cartItems.map((item) => (
-                <Box key={item.productId._id} sx={{ mb: 3 }}>
-                  <Card sx={{ display: 'flex', alignItems: 'center', p: 2 }}>
-                    <CardMedia
-                      component="img"
-                      sx={{ width: 120, height: 120, borderRadius: 2 }}
-                      image={item.productImage || '/api/placeholder/120/120'}
-                      alt={item.productName}
-                    />
-                    
-                    <CardContent sx={{ flex: 1, ml: 2 }}>
-                      <Typography variant="h6" fontWeight={600} color="#2d5016" mb={1}>
-                        {item.productName}
-                      </Typography>
-                      
-                      <Chip 
-                        label={item.productCategory} 
-                        size="small" 
-                        sx={{ bgcolor: '#e8f5e8', color: '#2e7d32', mb: 2 }}
-                      />
-                      
-                      <Typography variant="h6" fontWeight={700} color="#2d5016" mb={2}>
-                        ₹{item.price} each
-                      </Typography>
-                      
-                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                          <IconButton
-                            size="small"
-                            onClick={() => updateQuantity(item.productId._id, item.quantity - 1)}
-                            disabled={item.quantity <= 1 || actionLoading}
-                            sx={{ bgcolor: '#f5f5f5' }}
-                          >
-                            <FaMinus size={12} />
-                          </IconButton>
-                          
-                          <TextField
-                            size="small"
-                            value={item.quantity}
-                            onChange={(e) => {
-                              const newQuantity = parseInt(e.target.value) || 1;
-                              updateQuantity(item.productId._id, newQuantity);
-                            }}
-                            sx={{ width: 60 }}
-                            inputProps={{ min: 1, style: { textAlign: 'center' } }}
-                          />
-                          
-                          <IconButton
-                            size="small"
-                            onClick={() => updateQuantity(item.productId._id, item.quantity + 1)}
-                            disabled={actionLoading}
-                            sx={{ bgcolor: '#f5f5f5' }}
-                          >
-                            <FaPlus size={12} />
-                          </IconButton>
-                        </Box>
-                        
-                        <Typography variant="body2" color="text.secondary">
-                          Subtotal: ₹{(item.price * item.quantity).toFixed(2)}
-                        </Typography>
-                      </Box>
-                    </CardContent>
-                    
-                    <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1, ml: 2 }}>
-                      <IconButton
-                        onClick={() => moveToWishlist(item)}
-                        disabled={actionLoading}
-                        sx={{ color: '#e91e63' }}
-                      >
-                        <FaHeart />
-                      </IconButton>
-                      
-                      <IconButton
-                        onClick={() => removeFromCart(item.productId._id)}
-                        disabled={actionLoading}
-                        sx={{ color: '#f44336' }}
-                      >
-                        <FaTrash />
-                      </IconButton>
-                    </Box>
-                  </Card>
-                </Box>
-              ))}
-            </Paper>
-          </Grid>
-          
-          {/* Order Summary */}
-          <Grid item xs={12} md={4}>
-            <Paper sx={{ p: 3, position: 'sticky', top: 20 }}>
-              <Typography variant="h5" fontWeight={600} mb={3}>
-                Order Summary
-              </Typography>
-              
-              <Box sx={{ mb: 3 }}>
-                <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 1 }}>
-                  <Typography>Items ({calculateTotalItems()})</Typography>
-                  <Typography>₹{calculateTotal().toFixed(2)}</Typography>
-                </Box>
-                
-                <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 1 }}>
-                  <Typography>Shipping</Typography>
-                  <Typography color="green">FREE</Typography>
-                </Box>
-                
-                <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 1 }}>
-                  <Typography>Tax</Typography>
-                  <Typography>₹{(calculateTotal() * 0.18).toFixed(2)}</Typography>
-                </Box>
-                
-                <Divider sx={{ my: 2 }} />
-                
-                <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 3 }}>
-                  <Typography variant="h6" fontWeight={600}>Total</Typography>
-                  <Typography variant="h6" fontWeight={600} color="#2d5016">
-                    ₹{(calculateTotal() * 1.18).toFixed(2)}
-                  </Typography>
-                </Box>
-              </Box>
-              
-              <Button
-                variant="contained"
-                fullWidth
-                size="large"
-                startIcon={<FaCreditCard />}
-                onClick={() => setCheckoutDialog(true)}
-                disabled={actionLoading}
-                sx={{ 
-                  bgcolor: '#2d5016', 
-                  '&:hover': { bgcolor: '#3a4d2d' },
-                  py: 2,
-                  mb: 2
-                }}
-              >
-                Proceed to Checkout
-              </Button>
-              
-              <Button
-                variant="outlined"
-                fullWidth
-                onClick={() => navigate('/herbs')}
-                sx={{ color: '#2d5016', borderColor: '#2d5016' }}
-              >
-                Continue Shopping
-              </Button>
-            </Paper>
-          </Grid>
-        </Grid>
-      )}
+        {error && (
+          <div className="bg-gradient-to-r from-red-50 to-red-100 border border-red-200 rounded-3xl p-6 mb-8 shadow-lg">
+            <div className="flex items-center justify-center">
+              <FaShieldAlt className="text-red-500 mr-3" />
+              <p className="text-red-700 font-semibold text-center">{error}</p>
+            </div>
+          </div>
+        )}
 
-      {/* Checkout Dialog */}
-      <Dialog open={checkoutDialog} onClose={() => setCheckoutDialog(false)} maxWidth="md" fullWidth>
-        <DialogTitle>
-          <Typography variant="h5" fontWeight={600}>
-            Checkout
-          </Typography>
-        </DialogTitle>
-        
-        <DialogContent>
-          <Alert severity="warning" sx={{ mb: 3 }}>
-            <Typography variant="body2">
-              <strong>Demo Checkout System:</strong> This is a demonstration. No real money will be charged.
-            </Typography>
-          </Alert>
-          
-          <Grid container spacing={3}>
-            <Grid item xs={12} md={6}>
-              <Typography variant="h6" mb={2}>Order Summary</Typography>
-              <Box sx={{ bgcolor: '#f5f5f5', p: 2, borderRadius: 2 }}>
-                <Typography variant="body2" mb={1}>
-                  Items: {calculateTotalItems()}
-                </Typography>
-                <Typography variant="body2" mb={1}>
-                  Subtotal: ₹{calculateTotal().toFixed(2)}
-                </Typography>
-                <Typography variant="body2" mb={1}>
-                  Tax (18%): ₹{(calculateTotal() * 0.18).toFixed(2)}
-                </Typography>
-                <Divider sx={{ my: 1 }} />
-                <Typography variant="h6" fontWeight={600}>
-                  Total: ₹{(calculateTotal() * 1.18).toFixed(2)}
-                </Typography>
-              </Box>
-            </Grid>
+        {cartItems.length === 0 ? (
+          <div className="text-center py-20">
+            <div className="relative inline-block mb-8">
+              <FaShoppingBag className="text-8xl text-slate-300 mx-auto" />
+              <div className="absolute -top-2 -right-2 w-6 h-6 bg-emerald-500 rounded-full flex items-center justify-center">
+                <FaLeaf className="text-white text-sm" />
+              </div>
+            </div>
             
-            <Grid item xs={12} md={6}>
-              <Typography variant="h6" mb={2}>Payment & Shipping</Typography>
-              
-              <Typography variant="body1" mb={2}>Payment Method:</Typography>
-              <Box sx={{ display: 'flex', gap: 1, mb: 3, flexWrap: 'wrap' }}>
-                <Button
-                  variant={paymentMethod === 'card' ? 'contained' : 'outlined'}
-                  onClick={() => setPaymentMethod('card')}
-                  size="small"
-                >
-                  Credit Card
-                </Button>
-                <Button
-                  variant={paymentMethod === 'upi' ? 'contained' : 'outlined'}
-                  onClick={() => setPaymentMethod('upi')}
-                  size="small"
-                >
-                  UPI
-                </Button>
-                <Button
-                  variant={paymentMethod === 'cod' ? 'contained' : 'outlined'}
-                  onClick={() => setPaymentMethod('cod')}
-                  size="small"
-                >
-                  Cash on Delivery
-                </Button>
-              </Box>
-              
-              <TextField
-                fullWidth
-                multiline
-                rows={3}
-                label="Shipping Address"
-                value={shippingAddress}
-                onChange={(e) => setShippingAddress(e.target.value)}
-                placeholder="Enter your complete shipping address..."
-                required
-              />
-            </Grid>
-          </Grid>
-        </DialogContent>
-        
-        <DialogActions sx={{ p: 3 }}>
-          <Button 
-            onClick={() => setCheckoutDialog(false)}
-            disabled={actionLoading}
-          >
-            Cancel
-          </Button>
-          <Button 
-            variant="contained" 
-            onClick={handleCheckout}
-            disabled={actionLoading || !shippingAddress.trim()}
-            startIcon={actionLoading ? <CircularProgress size={20} color="inherit" /> : <FaArrowRight />}
-            sx={{ bgcolor: '#2d5016', '&:hover': { bgcolor: '#3a4d2d' } }}
-          >
-            {actionLoading ? 'Processing...' : 'Place Order'}
-          </Button>
-        </DialogActions>
-      </Dialog>
-    </Container>
+            <h2 className="text-3xl md:text-4xl font-playfair font-bold text-slate-900 mb-4">
+              Your cart is empty
+            </h2>
+            <p className="text-xl text-slate-600 mb-12 max-w-2xl mx-auto leading-relaxed">
+              Discover our amazing collection of premium herbal products and start your wellness journey today!
+            </p>
+            
+            <div className="flex flex-col sm:flex-row gap-6 justify-center items-center">
+              <button 
+                onClick={() => navigate('/herbs')}
+                className="group bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white font-bold px-10 py-5 rounded-2xl shadow-xl hover:shadow-2xl transform hover:-translate-y-1 transition-all duration-300 flex items-center text-lg"
+              >
+                <FaShoppingBag className="mr-3 group-hover:scale-110 transition-transform duration-300" />
+                Start Shopping
+              </button>
+
+            </div>
+          </div>
+        ) : (
+          <div className="grid lg:grid-cols-3 gap-12">
+            {/* Cart Items */}
+            <div className="lg:col-span-2 space-y-6">
+              {cartItems.map((item) => {
+                const product = item.product || item;
+                return (
+                  <div key={product._id} className="group bg-white/80 backdrop-blur-sm rounded-3xl shadow-lg hover:shadow-2xl transition-all duration-500 p-8 border border-white/50 hover:border-emerald-200/50">
+                    <div className="flex items-center space-x-8">
+                      <div className="relative">
+                        <img 
+                          src={product.image} 
+                          alt={product.name}
+                          className="w-32 h-32 object-cover rounded-3xl shadow-lg group-hover:scale-105 transition-transform duration-300"
+                        />
+                        <div className="absolute -top-2 -right-2 w-8 h-8 bg-emerald-500 rounded-full flex items-center justify-center shadow-lg">
+                          <FaLeaf className="text-white text-sm" />
+                        </div>
+                      </div>
+                      
+                      <div className="flex-1">
+                        <h3 className="text-2xl font-playfair font-bold text-slate-900 mb-3">{product.name}</h3>
+                        <p className="text-slate-600 mb-4 leading-relaxed">{product.description}</p>
+                        <div className="flex items-center space-x-3">
+                          <span className="bg-gradient-to-r from-emerald-100 to-emerald-50 text-emerald-700 px-4 py-2 rounded-full text-sm font-bold border border-emerald-200/50">
+                            {product.category}
+                          </span>
+                          <span className="bg-gradient-to-r from-blue-100 to-blue-50 text-blue-700 px-4 py-2 rounded-full text-sm font-bold border border-blue-200/50">
+                            {product.quality}
+                          </span>
+                        </div>
+                      </div>
+
+                      <div className="flex items-center space-x-6">
+                        {/* Quantity Controls */}
+                        <div className="flex items-center space-x-3 bg-slate-50 rounded-2xl p-2">
+                          <button 
+                            onClick={() => updateQuantity(product._id, item.quantity - 1)}
+                            className="w-12 h-12 bg-white hover:bg-slate-100 rounded-xl flex items-center justify-center transition-all duration-300 shadow-md hover:shadow-lg group/btn"
+                          >
+                            <FaMinus className="text-slate-600 group-hover/btn:scale-110 transition-transform duration-300" />
+                          </button>
+                          <span className="w-16 text-center font-bold text-xl text-slate-900">{item.quantity}</span>
+                          <button 
+                            onClick={() => updateQuantity(product._id, item.quantity + 1)}
+                            className="w-12 h-12 bg-emerald-500 hover:bg-emerald-600 rounded-xl flex items-center justify-center transition-all duration-300 shadow-md hover:shadow-lg group/btn"
+                          >
+                            <FaPlus className="text-white group-hover/btn:scale-110 transition-transform duration-300" />
+                          </button>
+                        </div>
+
+                        {/* Price */}
+                        <div className="text-right">
+                          <div className="text-3xl font-bold bg-gradient-to-r from-emerald-600 to-teal-600 bg-clip-text text-transparent">
+                            ₹{(product.price * item.quantity).toFixed(2)}
+                          </div>
+                          <div className="text-sm text-slate-500 font-medium">
+                            ₹{product.price} each
+                          </div>
+                        </div>
+
+                        {/* Remove Button */}
+                        <button 
+                          onClick={() => removeFromCart(product._id)}
+                          className="w-12 h-12 bg-red-50 hover:bg-red-100 rounded-xl flex items-center justify-center transition-all duration-300 group/btn border border-red-200/50 hover:border-red-300"
+                        >
+                          <FaTrash className="text-red-500 group-hover/btn:scale-110 transition-transform duration-300" />
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+
+            {/* Order Summary */}
+            <div className="lg:col-span-1">
+              <div className="bg-white/80 backdrop-blur-sm rounded-3xl shadow-xl p-8 sticky top-8 border border-white/50">
+                <h2 className="text-2xl font-playfair font-bold text-slate-900 mb-8 flex items-center">
+                  <FaShieldAlt className="mr-3 text-emerald-600" />
+                  Order Summary
+                </h2>
+                
+                <div className="space-y-6 mb-8">
+                  <div className="flex justify-between items-center py-2">
+                    <span className="text-slate-600 font-medium">Subtotal ({cartItems.length} items)</span>
+                    <span className="font-bold text-slate-900">₹{getTotalPrice().toFixed(2)}</span>
+                  </div>
+                  <div className="flex justify-between items-center py-2">
+                    <span className="text-slate-600 font-medium">Shipping</span>
+                    <span className="font-bold text-emerald-600">Free</span>
+                  </div>
+                  <div className="flex justify-between items-center py-2">
+                    <span className="text-slate-600 font-medium">Tax (18%)</span>
+                    <span className="font-bold text-slate-900">₹{(getTotalPrice() * 0.18).toFixed(2)}</span>
+                  </div>
+                  <hr className="border-slate-200" />
+                  <div className="flex justify-between items-center text-2xl font-bold py-2">
+                    <span className="text-slate-900">Total</span>
+                    <span className="bg-gradient-to-r from-emerald-600 to-teal-600 bg-clip-text text-transparent">
+                      ₹{(getTotalPrice() * 1.18).toFixed(2)}
+                    </span>
+                  </div>
+                </div>
+
+                <button className="w-full bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white font-bold py-5 rounded-2xl shadow-xl hover:shadow-2xl transform hover:-translate-y-1 transition-all duration-300 text-lg mb-6">
+                  Proceed to Checkout
+                </button>
+
+                <div className="text-center">
+                  <button 
+                    onClick={() => navigate('/wishlist')}
+                    className="group text-emerald-600 hover:text-emerald-700 font-bold flex items-center justify-center w-full py-3 rounded-2xl hover:bg-emerald-50 transition-all duration-300"
+                  >
+                    <FaHeart className="mr-2 group-hover:scale-110 transition-transform duration-300" />
+                    View Wishlist
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
+    </div>
   );
 }
 

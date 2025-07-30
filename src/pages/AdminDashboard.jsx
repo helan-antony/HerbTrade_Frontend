@@ -1,491 +1,647 @@
 import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import {
-  Box, Container, Typography, Grid, Card, CardContent, Paper,
-  Table, TableBody, TableCell, TableContainer, TableHead, TableRow,
-  Button, Chip, Avatar, IconButton, Drawer, List, ListItem, ListItemIcon,
-  ListItemText, Toolbar, AppBar, Badge, Divider, LinearProgress
-} from '@mui/material';
-import {
-  Dashboard as DashboardIcon, People, Business, PersonAdd, Receipt,
-  BarChart, TrendingUp, ShoppingCart, Visibility, Delete, Edit,
-  Download, Refresh, NotificationsActive
-} from '@mui/icons-material';
-import { FaUsers, FaChartLine, FaHospital, FaShoppingBag } from 'react-icons/fa';
+  Users,
+  ShoppingCart,
+  Package,
+  TrendingUp,
+  Eye,
+  Edit,
+  Trash2,
+  UserCheck,
+  UserX,
+  Plus,
+  Download,
+  RefreshCw,
+  Heart,
+  Calendar,
+  Bell,
+  Search,
+  Filter,
+  MoreVertical,
+  Activity,
+  DollarSign,
+  Star,
+  AlertCircle,
+  CheckCircle,
+  Clock,
+  MapPin,
+  Phone,
+  Mail,
+  Shield,
+  Settings,
+  LogOut,
+  X
+} from 'lucide-react';
+import { toast, ToastContainer } from 'react-toastify';
+import 'react-toastify/dist/ReactToastify.css';
 
-const AdminDashboard = () => {
+function AdminDashboard() {
+  const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState('overview');
-  const [stats, setStats] = useState({});
   const [users, setUsers] = useState([]);
-  const [employees, setEmployees] = useState([]);
+  const [orders, setOrders] = useState([]);
+  const [products, setProducts] = useState([]);
+  const [appointments, setAppointments] = useState([]);
+  const [stats, setStats] = useState({
+    totalUsers: 0,
+    totalOrders: 0,
+    totalProducts: 0,
+    totalRevenue: 0,
+    pendingOrders: 0,
+    activeUsers: 0
+  });
   const [loading, setLoading] = useState(true);
-
-  const drawerWidth = 280;
+  const [searchTerm, setSearchTerm] = useState('');
+  const [selectedUser, setSelectedUser] = useState(null);
+  const [showUserModal, setShowUserModal] = useState(false);
 
   useEffect(() => {
+    // Check if user is admin
+    const user = JSON.parse(localStorage.getItem('user') || '{}');
+    if (user.role !== 'admin') {
+      navigate('/login');
+      return;
+    }
+    
     fetchDashboardData();
-  }, []);
+  }, [navigate]);
 
   const fetchDashboardData = async () => {
-    setLoading(true);
     try {
-      // Fetch stats, users, employees data
-      // Mock data for now
-      setStats({
-        totalUsers: 1247,
-        totalRevenue: '₹2,45,000',
-        ordersToday: 67,
-        hospitalBookings: 23
-      });
-      setUsers([
-        { id: 1, name: 'Teena Ram', email: 'teena@gmail.com', status: 'Active', joinDate: '2024-01-15' },
-        { id: 2, name: 'Anmaria Tom', email: 'ann@gmail.com', status: 'Active', joinDate: '2024-02-10' }
+      setLoading(true);
+      const token = localStorage.getItem('token');
+      
+      // Fetch all data in parallel
+      const [usersRes, ordersRes, productsRes, appointmentsRes] = await Promise.all([
+        fetch('http://localhost:5000/api/admin/users', {
+          headers: { 'Authorization': `Bearer ${token}` }
+        }),
+        fetch('http://localhost:5000/api/admin/orders', {
+          headers: { 'Authorization': `Bearer ${token}` }
+        }),
+        fetch('http://localhost:5000/api/products', {
+          headers: { 'Authorization': `Bearer ${token}` }
+        }),
+        fetch('http://localhost:5000/api/admin/appointments', {
+          headers: { 'Authorization': `Bearer ${token}` }
+        })
       ]);
+
+      if (usersRes.ok) {
+        const usersData = await usersRes.json();
+        setUsers(usersData);
+      }
+
+      if (ordersRes.ok) {
+        const ordersData = await ordersRes.json();
+        setOrders(ordersData);
+      }
+
+      if (productsRes.ok) {
+        const productsData = await productsRes.json();
+        setProducts(productsData);
+      }
+
+      if (appointmentsRes.ok) {
+        const appointmentsData = await appointmentsRes.json();
+        setAppointments(appointmentsData);
+      }
+
+      // Calculate stats
+      const totalRevenue = orders.reduce((sum, order) => sum + (order.total || 0), 0);
+      const pendingOrders = orders.filter(order => order.status === 'pending').length;
+      const activeUsers = users.filter(user => user.isActive !== false).length;
+
+      setStats({
+        totalUsers: users.length,
+        totalOrders: orders.length,
+        totalProducts: products.length,
+        totalRevenue,
+        pendingOrders,
+        activeUsers
+      });
+
     } catch (error) {
-      console.error('Error fetching data:', error);
+      console.error('Error fetching dashboard data:', error);
+      toast.error('Failed to load dashboard data');
     } finally {
       setLoading(false);
     }
   };
 
-  const StatCard = ({ title, value, change, icon, color, bgColor }) => (
-    <Card sx={{ 
-      height: '100%',
-      background: `linear-gradient(135deg, ${bgColor} 0%, ${bgColor}dd 100%)`,
-      border: 'none',
-      borderRadius: 3,
-      position: 'relative',
-      overflow: 'hidden',
-      transition: 'all 0.3s ease',
-      '&:hover': {
-        transform: 'translateY(-4px)',
-        boxShadow: `0 12px 40px ${color}40`
+  const handleUserAction = async (userId, action) => {
+    try {
+      const token = localStorage.getItem('token');
+      const response = await fetch(`http://localhost:5000/api/admin/users/${userId}/${action}`, {
+        method: 'PUT',
+        headers: { 
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        }
+      });
+
+      if (response.ok) {
+        toast.success(`User ${action} successfully`);
+        fetchDashboardData();
+      } else {
+        throw new Error(`Failed to ${action} user`);
       }
-    }}>
-      <CardContent sx={{ p: 3, color: 'white', position: 'relative', zIndex: 2 }}>
-        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-          <Box>
-            <Typography variant="body2" sx={{ opacity: 0.9, fontWeight: 500 }}>
-              {title}
-            </Typography>
-            <Typography variant="h3" fontWeight={700} sx={{ my: 1 }}>
-              {value}
-            </Typography>
-            <Typography variant="body2" sx={{ opacity: 0.8 }}>
-              {change}
-            </Typography>
-          </Box>
-          <Box sx={{
-            width: 60, height: 60, borderRadius: '50%',
-            display: 'flex', alignItems: 'center', justifyContent: 'center',
-            bgcolor: 'rgba(255,255,255,0.2)',
-            backdropFilter: 'blur(10px)'
-          }}>
-            {icon}
-          </Box>
-        </Box>
-      </CardContent>
-      <Box sx={{
-        position: 'absolute',
-        top: 0, right: 0,
-        width: 100, height: 100,
-        borderRadius: '50%',
-        bgcolor: 'rgba(255,255,255,0.1)',
-        transform: 'translate(30px, -30px)'
-      }} />
-    </Card>
-  );
-
-  const Sidebar = () => (
-    <Box sx={{ width: drawerWidth, height: '100%', bgcolor: '#1a1a2e', color: 'white' }}>
-      <Box sx={{ p: 3, borderBottom: '1px solid rgba(255,255,255,0.1)' }}>
-        <Typography variant="h5" fontWeight={700} color="#4caf50">
-          🌿 Admin Panel
-        </Typography>
-        <Typography variant="body2" sx={{ opacity: 0.7, mt: 1 }}>
-          Management Dashboard
-        </Typography>
-      </Box>
-      
-      <List sx={{ p: 2 }}>
-        {[
-          { id: 'overview', label: 'Overview', icon: <DashboardIcon />, badge: null },
-          { id: 'users', label: 'Users', icon: <People />, badge: users.length },
-          { id: 'employees', label: 'Employees', icon: <PersonAdd />, badge: null },
-          { id: 'orders', label: 'Orders', icon: <Receipt />, badge: '12' },
-          { id: 'analytics', label: 'Analytics', icon: <BarChart />, badge: null }
-        ].map((item) => (
-          <ListItem 
-            button 
-            key={item.id}
-            onClick={() => setActiveTab(item.id)}
-            sx={{
-              borderRadius: 2,
-              mb: 1,
-              bgcolor: activeTab === item.id ? 'rgba(76, 175, 80, 0.2)' : 'transparent',
-              border: activeTab === item.id ? '1px solid #4caf50' : '1px solid transparent',
-              transition: 'all 0.3s ease',
-              '&:hover': { 
-                bgcolor: 'rgba(76, 175, 80, 0.1)',
-                transform: 'translateX(4px)'
-              }
-            }}
-          >
-            <ListItemIcon sx={{ 
-              color: activeTab === item.id ? '#4caf50' : 'rgba(255,255,255,0.7)',
-              minWidth: 40
-            }}>
-              {item.badge ? (
-                <Badge badgeContent={item.badge} color="error">
-                  {item.icon}
-                </Badge>
-              ) : item.icon}
-            </ListItemIcon>
-            <ListItemText 
-              primary={item.label}
-              sx={{ 
-                '& .MuiListItemText-primary': { 
-                  fontWeight: activeTab === item.id ? 600 : 400,
-                  color: activeTab === item.id ? '#4caf50' : 'rgba(255,255,255,0.9)'
-                }
-              }}
-            />
-          </ListItem>
-        ))}
-      </List>
-    </Box>
-  );
-
-  const OverviewContent = () => (
-    <Box>
-      {/* Header */}
-      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 4 }}>
-        <Box>
-          <Typography variant="h4" fontWeight={700} color="#1a1a2e">
-            Dashboard Overview
-          </Typography>
-          <Typography variant="body1" color="text.secondary">
-            Welcome back! Here's what's happening with your platform today.
-          </Typography>
-        </Box>
-        <Button
-          variant="outlined"
-          startIcon={<Refresh />}
-          onClick={fetchDashboardData}
-          disabled={loading}
-          sx={{ 
-            borderColor: '#4caf50', 
-            color: '#4caf50',
-            '&:hover': { borderColor: '#45a049', bgcolor: 'rgba(76, 175, 80, 0.05)' }
-          }}
-        >
-          Refresh Data
-        </Button>
-      </Box>
-
-      {/* Stats Cards */}
-      <Grid container spacing={3} sx={{ mb: 4 }}>
-        <Grid item xs={12} sm={6} md={3}>
-          <StatCard
-            title="Total Users"
-            value={stats.totalUsers || 0}
-            change="+12% from last month"
-            icon={<FaUsers size={24} />}
-            color="#2196f3"
-            bgColor="#2196f3"
-          />
-        </Grid>
-        <Grid item xs={12} sm={6} md={3}>
-          <StatCard
-            title="Total Revenue"
-            value={stats.totalRevenue || '₹0'}
-            change="+8% from last month"
-            icon={<FaChartLine size={24} />}
-            color="#4caf50"
-            bgColor="#4caf50"
-          />
-        </Grid>
-        <Grid item xs={12} sm={6} md={3}>
-          <StatCard
-            title="Orders Today"
-            value={stats.ordersToday || 0}
-            change="+23% from yesterday"
-            icon={<FaShoppingBag size={24} />}
-            color="#ff9800"
-            bgColor="#ff9800"
-          />
-        </Grid>
-        <Grid item xs={12} sm={6} md={3}>
-          <StatCard
-            title="Hospital Bookings"
-            value={stats.hospitalBookings || 0}
-            change="+5% from last week"
-            icon={<FaHospital size={24} />}
-            color="#e91e63"
-            bgColor="#e91e63"
-          />
-        </Grid>
-      </Grid>
-
-      {/* Recent Activity */}
-      <Grid container spacing={3}>
-        <Grid item xs={12} md={8}>
-          <Paper sx={{ p: 3, borderRadius: 3, height: 400 }}>
-            <Typography variant="h6" fontWeight={600} mb={2}>
-              Recent Activity
-            </Typography>
-            <Box sx={{ 
-              display: 'flex', 
-              flexDirection: 'column', 
-              alignItems: 'center', 
-              justifyContent: 'center',
-              height: 300,
-              color: 'text.secondary'
-            }}>
-              <ShoppingCart sx={{ fontSize: 64, mb: 2, opacity: 0.5 }} />
-              <Typography variant="h6" gutterBottom>
-                No recent activity
-              </Typography>
-              <Typography variant="body2">
-                Activity will appear here once users start interacting with the platform
-              </Typography>
-            </Box>
-          </Paper>
-        </Grid>
-        
-        <Grid item xs={12} md={4}>
-          <Paper sx={{ p: 3, borderRadius: 3, height: 400 }}>
-            <Typography variant="h6" fontWeight={600} mb={2}>
-              Quick Actions
-            </Typography>
-            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-              <Button 
-                variant="contained" 
-                startIcon={<PersonAdd />}
-                fullWidth
-                sx={{ 
-                  bgcolor: '#4caf50', 
-                  py: 1.5,
-                  borderRadius: 2,
-                  textTransform: 'none',
-                  fontWeight: 600
-                }}
-              >
-                Add New Employee
-              </Button>
-              <Button 
-                variant="outlined" 
-                startIcon={<Business />}
-                fullWidth
-                sx={{ 
-                  borderColor: '#2196f3',
-                  color: '#2196f3',
-                  py: 1.5,
-                  borderRadius: 2,
-                  textTransform: 'none',
-                  fontWeight: 600
-                }}
-              >
-                Manage Sellers
-              </Button>
-              <Button 
-                variant="outlined" 
-                startIcon={<Download />}
-                fullWidth
-                sx={{ 
-                  borderColor: '#ff9800',
-                  color: '#ff9800',
-                  py: 1.5,
-                  borderRadius: 2,
-                  textTransform: 'none',
-                  fontWeight: 600
-                }}
-              >
-                Export Reports
-              </Button>
-            </Box>
-          </Paper>
-        </Grid>
-      </Grid>
-    </Box>
-  );
-
-  const UsersContent = () => (
-    <Box>
-      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
-        <Typography variant="h5" fontWeight={600}>
-          Registered Users ({users.length})
-        </Typography>
-        <Button
-          variant="contained"
-          startIcon={<Download />}
-          sx={{ 
-            bgcolor: '#4caf50',
-            textTransform: 'none',
-            borderRadius: 2
-          }}
-        >
-          Export Users
-        </Button>
-      </Box>
-
-      <TableContainer component={Paper} sx={{ borderRadius: 3, overflow: 'hidden' }}>
-        <Table>
-          <TableHead sx={{ bgcolor: '#f8f9fa' }}>
-            <TableRow>
-              <TableCell sx={{ fontWeight: 700, color: '#1a1a2e' }}>User</TableCell>
-              <TableCell sx={{ fontWeight: 700, color: '#1a1a2e' }}>Contact</TableCell>
-              <TableCell sx={{ fontWeight: 700, color: '#1a1a2e' }}>Join Date</TableCell>
-              <TableCell sx={{ fontWeight: 700, color: '#1a1a2e' }}>Status</TableCell>
-              <TableCell sx={{ fontWeight: 700, color: '#1a1a2e' }}>Actions</TableCell>
-            </TableRow>
-          </TableHead>
-          <TableBody>
-            {users.map((user) => (
-              <TableRow key={user.id} sx={{ '&:hover': { bgcolor: '#f8f9fa' } }}>
-                <TableCell>
-                  <Box sx={{ display: 'flex', alignItems: 'center' }}>
-                    <Avatar sx={{ bgcolor: '#4caf50', mr: 2, width: 40, height: 40 }}>
-                      {user.name.charAt(0)}
-                    </Avatar>
-                    <Box>
-                      <Typography variant="body1" fontWeight={600}>
-                        {user.name}
-                      </Typography>
-                      <Typography variant="body2" color="text.secondary">
-                        ID: {user.id}
-                      </Typography>
-                    </Box>
-                  </Box>
-                </TableCell>
-                <TableCell>
-                  <Typography variant="body2">{user.email}</Typography>
-                </TableCell>
-                <TableCell>
-                  <Typography variant="body2">{user.joinDate}</Typography>
-                </TableCell>
-                <TableCell>
-                  <Chip 
-                    label={user.status} 
-                    size="small" 
-                    sx={{ 
-                      bgcolor: user.status === 'Active' ? '#e8f5e9' : '#ffebee',
-                      color: user.status === 'Active' ? '#2e7d32' : '#c62828',
-                      fontWeight: 600
-                    }}
-                  />
-                </TableCell>
-                <TableCell>
-                  <Box sx={{ display: 'flex', gap: 1 }}>
-                    <IconButton size="small" sx={{ color: '#2196f3' }}>
-                      <Visibility fontSize="small" />
-                    </IconButton>
-                    <IconButton size="small" sx={{ color: '#ff9800' }}>
-                      <Edit fontSize="small" />
-                    </IconButton>
-                    <IconButton size="small" sx={{ color: '#f44336' }}>
-                      <Delete fontSize="small" />
-                    </IconButton>
-                  </Box>
-                </TableCell>
-              </TableRow>
-            ))}
-          </TableBody>
-        </Table>
-      </TableContainer>
-    </Box>
-  );
-
-  const renderContent = () => {
-    if (loading) {
-      return (
-        <Box sx={{ width: '100%', mt: 2 }}>
-          <LinearProgress sx={{ borderRadius: 1, height: 6 }} />
-          <Typography variant="body2" color="text.secondary" sx={{ mt: 2, textAlign: 'center' }}>
-            Loading dashboard data...
-          </Typography>
-        </Box>
-      );
-    }
-
-    switch (activeTab) {
-      case 'overview': return <OverviewContent />;
-      case 'users': return <UsersContent />;
-      default: return <OverviewContent />;
+    } catch (error) {
+      console.error(`Error ${action} user:`, error);
+      toast.error(`Failed to ${action} user`);
     }
   };
 
-  return (
-    <Box sx={{ display: 'flex', minHeight: '100vh', bgcolor: '#f5f7fa' }}>
-      <Drawer
-        variant="permanent"
-        sx={{
-          width: drawerWidth,
-          flexShrink: 0,
-          '& .MuiDrawer-paper': {
-            width: drawerWidth,
-            boxSizing: 'border-box',
-            border: 'none',
-            boxShadow: '4px 0 20px rgba(0,0,0,0.1)'
-          },
-        }}
-      >
-        <Sidebar />
-      </Drawer>
-      
-      <Box component="main" sx={{ flexGrow: 1, display: 'flex', flexDirection: 'column' }}>
-        {/* Top Navigation Bar */}
-        <AppBar 
-          position="static" 
-          elevation={0}
-          sx={{ 
-            bgcolor: 'white', 
-            borderBottom: '1px solid #e0e0e0',
-            boxShadow: '0 2px 10px rgba(0,0,0,0.05)'
-          }}
-        >
-          <Toolbar sx={{ justifyContent: 'space-between', py: 1 }}>
-            <Box>
-              <Typography variant="h5" fontWeight={700} color="#1a1a2e" sx={{ fontFamily: 'Poppins' }}>
-                🌿 HerbTrade AI - Admin Dashboard
-              </Typography>
-              <Typography variant="body2" color="text.secondary">
-                Comprehensive platform management and analytics
-              </Typography>
-            </Box>
-            
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-              <IconButton 
-                sx={{ 
-                  bgcolor: '#f5f5f5',
-                  '&:hover': { bgcolor: '#e0e0e0' }
-                }}
-              >
-                <Badge badgeContent={3} color="error">
-                  <NotificationsActive color="action" />
-                </Badge>
-              </IconButton>
-              
-              <Avatar 
-                sx={{ 
-                  bgcolor: '#4caf50',
-                  width: 40,
-                  height: 40,
-                  fontWeight: 700
-                }}
-              >
-                A
-              </Avatar>
-            </Box>
-          </Toolbar>
-        </AppBar>
-        
-        {/* Main Content */}
-        <Box sx={{ flexGrow: 1, p: 4, overflow: 'auto' }}>
-          {renderContent()}
-        </Box>
-      </Box>
-    </Box>
+  const StatCard = ({ title, value, icon: Icon, color, change }) => (
+    <div className="bg-white/80 backdrop-blur-sm rounded-3xl shadow-xl border border-white/50 p-6 hover:shadow-2xl transition-all duration-500 hover:-translate-y-1 group">
+      <div className="flex items-center justify-between">
+        <div>
+          <p className="text-slate-600 text-sm font-medium mb-2">{title}</p>
+          <p className="text-3xl font-bold text-slate-900 mb-1">{value}</p>
+          {change && (
+            <p className={`text-sm font-medium flex items-center ${change > 0 ? 'text-green-600' : 'text-red-600'}`}>
+              <TrendingUp className="w-4 h-4 mr-1" />
+              {change > 0 ? '+' : ''}{change}%
+            </p>
+          )}
+        </div>
+        <div className={`p-4 rounded-2xl ${color} group-hover:scale-110 transition-transform duration-300`}>
+          <Icon className="w-8 h-8 text-white" />
+        </div>
+      </div>
+    </div>
   );
-};
 
-export default AdminDashboard; 
+  const TabButton = ({ id, label, icon: Icon, isActive, onClick }) => (
+    <button
+      onClick={() => onClick(id)}
+      className={`flex items-center space-x-3 px-6 py-4 rounded-2xl font-semibold transition-all duration-300 ${
+        isActive
+          ? 'bg-gradient-to-r from-emerald-500 to-teal-500 text-white shadow-lg'
+          : 'text-slate-600 hover:bg-emerald-50 hover:text-emerald-600'
+      }`}
+    >
+      <Icon className="w-5 h-5" />
+      <span>{label}</span>
+    </button>
+  );
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-emerald-50 via-white to-teal-50 flex items-center justify-center pt-24">
+        <div className="text-center space-y-4">
+          <div className="animate-spin rounded-full h-16 w-16 border-b-4 border-emerald-600 mx-auto"></div>
+          <p className="text-xl text-slate-600 font-medium">Loading Admin Dashboard...</p>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="min-h-screen bg-gradient-to-br from-emerald-50 via-white to-teal-50 pt-24 pb-12 relative">
+      <ToastContainer position="top-right" autoClose={3000} />
+      
+      {/* Background Image */}
+      <div 
+        className="absolute inset-0 bg-cover bg-center bg-no-repeat opacity-5"
+        style={{ backgroundImage: 'url(/assets/bg.png)' }}
+      />
+
+      {/* Floating decorative elements */}
+      <div className="absolute top-20 left-10 w-72 h-72 bg-emerald-200/30 rounded-full blur-3xl animate-float" />
+      <div className="absolute bottom-20 right-10 w-96 h-96 bg-teal-200/20 rounded-full blur-3xl animate-float" style={{ animationDelay: '2s' }} />
+
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
+        {/* Header */}
+        <div className="flex justify-between items-center mb-8">
+          <div className="space-y-2">
+            <h1 className="text-4xl md:text-5xl font-playfair font-bold text-slate-900 tracking-tight">
+              Admin Dashboard
+            </h1>
+            <p className="text-lg text-slate-600 font-medium">
+              🛡️ Manage your HerbTrade platform
+            </p>
+          </div>
+          <div className="flex items-center space-x-4">
+            <button
+              onClick={fetchDashboardData}
+              className="p-3 bg-white/80 backdrop-blur-sm rounded-2xl shadow-lg hover:shadow-xl border border-white/50 transition-all duration-300 hover:-translate-y-1 group"
+            >
+              <RefreshCw className="w-6 h-6 text-emerald-600 group-hover:rotate-180 transition-transform duration-500" />
+            </button>
+            <div className="relative p-3 bg-white/80 backdrop-blur-sm rounded-2xl shadow-lg border border-white/50">
+              <Bell className="w-6 h-6 text-slate-600" />
+              <span className="absolute -top-2 -right-2 bg-red-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center">
+                {stats.pendingOrders}
+              </span>
+            </div>
+            <button
+              onClick={() => {
+                localStorage.clear();
+                navigate('/login');
+                window.location.reload();
+              }}
+              className="flex items-center space-x-2 px-4 py-3 bg-red-500 hover:bg-red-600 text-white rounded-2xl shadow-lg hover:shadow-xl transition-all duration-300 hover:-translate-y-1"
+            >
+              <LogOut className="w-5 h-5" />
+              <span className="font-medium">Logout</span>
+            </button>
+          </div>
+        </div>
+
+        {/* Stats Cards */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+          <StatCard
+            title="Total Users"
+            value={stats.totalUsers}
+            icon={Users}
+            color="bg-gradient-to-r from-blue-500 to-blue-600"
+            change={12}
+          />
+          <StatCard
+            title="Total Orders"
+            value={stats.totalOrders}
+            icon={ShoppingCart}
+            color="bg-gradient-to-r from-emerald-500 to-emerald-600"
+            change={8}
+          />
+          <StatCard
+            title="Products"
+            value={stats.totalProducts}
+            icon={Package}
+            color="bg-gradient-to-r from-purple-500 to-purple-600"
+            change={-2}
+          />
+          <StatCard
+            title="Revenue"
+            value={`₹${stats.totalRevenue.toLocaleString()}`}
+            icon={DollarSign}
+            color="bg-gradient-to-r from-orange-500 to-orange-600"
+            change={15}
+          />
+        </div>
+
+        {/* Navigation Tabs */}
+        <div className="bg-white/80 backdrop-blur-sm rounded-3xl shadow-xl border border-white/50 p-6 mb-8">
+          <div className="flex flex-wrap gap-4">
+            <TabButton
+              id="overview"
+              label="Overview"
+              icon={Activity}
+              isActive={activeTab === 'overview'}
+              onClick={setActiveTab}
+            />
+            <TabButton
+              id="users"
+              label="Users"
+              icon={Users}
+              isActive={activeTab === 'users'}
+              onClick={setActiveTab}
+            />
+            <TabButton
+              id="orders"
+              label="Orders"
+              icon={ShoppingCart}
+              isActive={activeTab === 'orders'}
+              onClick={setActiveTab}
+            />
+            <TabButton
+              id="products"
+              label="Products"
+              icon={Package}
+              isActive={activeTab === 'products'}
+              onClick={setActiveTab}
+            />
+            <TabButton
+              id="appointments"
+              label="Appointments"
+              icon={Calendar}
+              isActive={activeTab === 'appointments'}
+              onClick={setActiveTab}
+            />
+          </div>
+        </div>
+
+        {/* Tab Content */}
+        <div className="bg-white/80 backdrop-blur-sm rounded-3xl shadow-xl border border-white/50 p-8">
+          {activeTab === 'overview' && (
+            <div className="space-y-8">
+              <h2 className="text-2xl font-playfair font-bold text-slate-900 mb-6">Platform Overview</h2>
+              
+              {/* Quick Stats */}
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <div className="p-6 bg-gradient-to-r from-emerald-50 to-teal-50 rounded-2xl border border-emerald-200">
+                  <div className="flex items-center space-x-4">
+                    <div className="p-3 bg-emerald-500 rounded-xl">
+                      <UserCheck className="w-6 h-6 text-white" />
+                    </div>
+                    <div>
+                      <p className="text-emerald-600 font-semibold">Active Users</p>
+                      <p className="text-2xl font-bold text-slate-900">{stats.activeUsers}</p>
+                    </div>
+                  </div>
+                </div>
+                
+                <div className="p-6 bg-gradient-to-r from-orange-50 to-red-50 rounded-2xl border border-orange-200">
+                  <div className="flex items-center space-x-4">
+                    <div className="p-3 bg-orange-500 rounded-xl">
+                      <Clock className="w-6 h-6 text-white" />
+                    </div>
+                    <div>
+                      <p className="text-orange-600 font-semibold">Pending Orders</p>
+                      <p className="text-2xl font-bold text-slate-900">{stats.pendingOrders}</p>
+                    </div>
+                  </div>
+                </div>
+                
+                <div className="p-6 bg-gradient-to-r from-purple-50 to-pink-50 rounded-2xl border border-purple-200">
+                  <div className="flex items-center space-x-4">
+                    <div className="p-3 bg-purple-500 rounded-xl">
+                      <Calendar className="w-6 h-6 text-white" />
+                    </div>
+                    <div>
+                      <p className="text-purple-600 font-semibold">Appointments</p>
+                      <p className="text-2xl font-bold text-slate-900">{appointments.length}</p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Recent Activity */}
+              <div>
+                <h3 className="text-xl font-playfair font-bold text-slate-900 mb-4">Recent Activity</h3>
+                <div className="space-y-4">
+                  {orders.slice(0, 5).map((order, index) => (
+                    <div key={index} className="flex items-center justify-between p-4 bg-slate-50 rounded-xl">
+                      <div className="flex items-center space-x-4">
+                        <div className="w-10 h-10 bg-emerald-500 rounded-full flex items-center justify-center">
+                          <ShoppingCart className="w-5 h-5 text-white" />
+                        </div>
+                        <div>
+                          <p className="font-semibold text-slate-900">New Order #{order.id || index + 1}</p>
+                          <p className="text-sm text-slate-600">₹{order.total || 0}</p>
+                        </div>
+                      </div>
+                      <span className={`px-3 py-1 rounded-full text-xs font-semibold ${
+                        order.status === 'completed' ? 'bg-green-100 text-green-700' :
+                        order.status === 'pending' ? 'bg-yellow-100 text-yellow-700' :
+                        'bg-blue-100 text-blue-700'
+                      }`}>
+                        {order.status || 'pending'}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+          )}
+
+          {activeTab === 'users' && (
+            <div className="space-y-6">
+              <div className="flex justify-between items-center">
+                <h2 className="text-2xl font-playfair font-bold text-slate-900">User Management</h2>
+                <div className="flex items-center space-x-4">
+                  <div className="relative">
+                    <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-slate-400 w-5 h-5" />
+                    <input
+                      type="text"
+                      placeholder="Search users..."
+                      value={searchTerm}
+                      onChange={(e) => setSearchTerm(e.target.value)}
+                      className="pl-10 pr-4 py-3 border border-slate-200 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              <div className="overflow-x-auto">
+                <table className="w-full">
+                  <thead>
+                    <tr className="border-b border-slate-200">
+                      <th className="text-left py-4 px-4 font-semibold text-slate-700">User</th>
+                      <th className="text-left py-4 px-4 font-semibold text-slate-700">Email</th>
+                      <th className="text-left py-4 px-4 font-semibold text-slate-700">Role</th>
+                      <th className="text-left py-4 px-4 font-semibold text-slate-700">Status</th>
+                      <th className="text-left py-4 px-4 font-semibold text-slate-700">Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {users.filter(user => 
+                      user.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                      user.email?.toLowerCase().includes(searchTerm.toLowerCase())
+                    ).map((user, index) => (
+                      <tr key={user._id || index} className="border-b border-slate-100 hover:bg-slate-50">
+                        <td className="py-4 px-4">
+                          <div className="flex items-center space-x-3">
+                            <div className="w-10 h-10 bg-emerald-500 rounded-full flex items-center justify-center text-white font-semibold">
+                              {user.name?.charAt(0) || 'U'}
+                            </div>
+                            <div>
+                              <p className="font-semibold text-slate-900">{user.name || 'Unknown'}</p>
+                              <p className="text-sm text-slate-600">ID: {user._id?.slice(-6) || 'N/A'}</p>
+                            </div>
+                          </div>
+                        </td>
+                        <td className="py-4 px-4 text-slate-600">{user.email || 'N/A'}</td>
+                        <td className="py-4 px-4">
+                          <span className={`px-3 py-1 rounded-full text-xs font-semibold ${
+                            user.role === 'admin' ? 'bg-purple-100 text-purple-700' :
+                            user.role === 'seller' ? 'bg-blue-100 text-blue-700' :
+                            'bg-green-100 text-green-700'
+                          }`}>
+                            {user.role || 'user'}
+                          </span>
+                        </td>
+                        <td className="py-4 px-4">
+                          <span className={`px-3 py-1 rounded-full text-xs font-semibold ${
+                            user.isActive !== false ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'
+                          }`}>
+                            {user.isActive !== false ? 'Active' : 'Inactive'}
+                          </span>
+                        </td>
+                        <td className="py-4 px-4">
+                          <div className="flex items-center space-x-2">
+                            <button
+                              onClick={() => {
+                                setSelectedUser(user);
+                                setShowUserModal(true);
+                              }}
+                              className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
+                            >
+                              <Eye className="w-4 h-4" />
+                            </button>
+                            <button
+                              onClick={() => handleUserAction(user._id, user.isActive !== false ? 'deactivate' : 'activate')}
+                              className={`p-2 rounded-lg transition-colors ${
+                                user.isActive !== false 
+                                  ? 'text-red-600 hover:bg-red-50' 
+                                  : 'text-green-600 hover:bg-green-50'
+                              }`}
+                            >
+                              {user.isActive !== false ? <UserX className="w-4 h-4" /> : <UserCheck className="w-4 h-4" />}
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          )}
+
+          {activeTab === 'orders' && (
+            <div className="space-y-6">
+              <h2 className="text-2xl font-playfair font-bold text-slate-900">Order Management</h2>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                {orders.map((order, index) => (
+                  <div key={order._id || index} className="p-6 bg-slate-50 rounded-2xl border border-slate-200">
+                    <div className="flex justify-between items-start mb-4">
+                      <div>
+                        <p className="font-semibold text-slate-900">Order #{order.id || index + 1}</p>
+                        <p className="text-sm text-slate-600">{order.date || 'Recent'}</p>
+                      </div>
+                      <span className={`px-3 py-1 rounded-full text-xs font-semibold ${
+                        order.status === 'completed' ? 'bg-green-100 text-green-700' :
+                        order.status === 'pending' ? 'bg-yellow-100 text-yellow-700' :
+                        'bg-blue-100 text-blue-700'
+                      }`}>
+                        {order.status || 'pending'}
+                      </span>
+                    </div>
+                    <div className="space-y-2">
+                      <p className="text-slate-600">Customer: {order.customerName || 'N/A'}</p>
+                      <p className="text-slate-600">Items: {order.items?.length || 0}</p>
+                      <p className="font-semibold text-slate-900">Total: ₹{order.total || 0}</p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {activeTab === 'products' && (
+            <div className="space-y-6">
+              <div className="flex justify-between items-center">
+                <h2 className="text-2xl font-playfair font-bold text-slate-900">Product Management</h2>
+                <button className="flex items-center space-x-2 px-6 py-3 bg-emerald-600 text-white rounded-xl hover:bg-emerald-700 transition-colors">
+                  <Plus className="w-5 h-5" />
+                  <span>Add Product</span>
+                </button>
+              </div>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                {products.map((product, index) => (
+                  <div key={product._id || index} className="bg-slate-50 rounded-2xl border border-slate-200 overflow-hidden">
+                    <img 
+                      src={product.image || '/api/placeholder/300/200'} 
+                      alt={product.name}
+                      className="w-full h-48 object-cover"
+                    />
+                    <div className="p-6">
+                      <h3 className="font-semibold text-slate-900 mb-2">{product.name || 'Unnamed Product'}</h3>
+                      <p className="text-slate-600 text-sm mb-4">{product.description || 'No description'}</p>
+                      <div className="flex justify-between items-center">
+                        <p className="font-bold text-emerald-600">₹{product.price || 0}</p>
+                        <div className="flex items-center space-x-2">
+                          <button className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg">
+                            <Edit className="w-4 h-4" />
+                          </button>
+                          <button className="p-2 text-red-600 hover:bg-red-50 rounded-lg">
+                            <Trash2 className="w-4 h-4" />
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {activeTab === 'appointments' && (
+            <div className="space-y-6">
+              <h2 className="text-2xl font-playfair font-bold text-slate-900">Appointment Management</h2>
+              <div className="space-y-4">
+                {appointments.map((appointment, index) => (
+                  <div key={appointment._id || index} className="p-6 bg-slate-50 rounded-2xl border border-slate-200">
+                    <div className="flex justify-between items-start">
+                      <div className="space-y-2">
+                        <p className="font-semibold text-slate-900">{appointment.patientName || 'Unknown Patient'}</p>
+                        <p className="text-slate-600">Doctor: {appointment.doctorName || 'N/A'}</p>
+                        <p className="text-slate-600">Hospital: {appointment.hospitalName || 'N/A'}</p>
+                        <p className="text-slate-600">Date: {appointment.date || 'N/A'} at {appointment.time || 'N/A'}</p>
+                        <p className="text-slate-600">Reason: {appointment.reason || 'N/A'}</p>
+                      </div>
+                      <span className={`px-3 py-1 rounded-full text-xs font-semibold ${
+                        appointment.status === 'confirmed' ? 'bg-green-100 text-green-700' :
+                        appointment.status === 'pending' ? 'bg-yellow-100 text-yellow-700' :
+                        'bg-red-100 text-red-700'
+                      }`}>
+                        {appointment.status || 'pending'}
+                      </span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* User Details Modal */}
+      {showUserModal && selectedUser && (
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-3xl shadow-2xl max-w-md w-full p-8">
+            <div className="flex justify-between items-center mb-6">
+              <h3 className="text-2xl font-playfair font-bold text-slate-900">User Details</h3>
+              <button
+                onClick={() => setShowUserModal(false)}
+                className="p-2 text-slate-400 hover:text-slate-600 rounded-lg"
+              >
+                <X className="w-6 h-6" />
+              </button>
+            </div>
+            
+            <div className="space-y-4">
+              <div className="flex items-center space-x-4 mb-6">
+                <div className="w-16 h-16 bg-emerald-500 rounded-full flex items-center justify-center text-white text-2xl font-bold">
+                  {selectedUser.name?.charAt(0) || 'U'}
+                </div>
+                <div>
+                  <p className="text-xl font-semibold text-slate-900">{selectedUser.name || 'Unknown'}</p>
+                  <p className="text-slate-600">{selectedUser.email || 'N/A'}</p>
+                </div>
+              </div>
+              
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <p className="text-sm text-slate-600 mb-1">Role</p>
+                  <p className="font-semibold text-slate-900">{selectedUser.role || 'user'}</p>
+                </div>
+                <div>
+                  <p className="text-sm text-slate-600 mb-1">Status</p>
+                  <p className="font-semibold text-slate-900">
+                    {selectedUser.isActive !== false ? 'Active' : 'Inactive'}
+                  </p>
+                </div>
+                <div>
+                  <p className="text-sm text-slate-600 mb-1">Phone</p>
+                  <p className="font-semibold text-slate-900">{selectedUser.phone || 'N/A'}</p>
+                </div>
+                <div>
+                  <p className="text-sm text-slate-600 mb-1">Joined</p>
+                  <p className="font-semibold text-slate-900">
+                    {selectedUser.createdAt ? new Date(selectedUser.createdAt).toLocaleDateString() : 'N/A'}
+                  </p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+export default AdminDashboard;

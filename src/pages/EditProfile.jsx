@@ -1,17 +1,13 @@
-import React, { useState, useEffect } from 'react';
-import { 
-  Box, Typography, TextField, Button, Avatar, Card, CardContent, 
-  Snackbar, Alert, IconButton 
-} from '@mui/material';
-import { ArrowBack, Dashboard } from '@mui/icons-material';
+import { useState, useEffect } from 'react';
+import { FaArrowLeft, FaUser, FaPhone, FaImage, FaEnvelope, FaSave, FaTimes } from 'react-icons/fa';
 import { useNavigate } from 'react-router-dom';
+import { toast } from 'react-toastify';
 
 function EditProfile() {
   const [name, setName] = useState('');
   const [phone, setPhone] = useState('');
   const [profilePic, setProfilePic] = useState('');
-  const [error, setError] = useState('');
-  const [success, setSuccess] = useState(false);
+  const [loading, setLoading] = useState(false);
   const [user, setUser] = useState({});
   const navigate = useNavigate();
 
@@ -27,8 +23,7 @@ function EditProfile() {
   }, []);
 
   async function handleSave() {
-    setError("");
-    setSuccess(false);
+    setLoading(true);
     try {
       const user = JSON.parse(localStorage.getItem('user'));
       const res = await fetch('http://localhost:5000/api/auth/profile', {
@@ -39,13 +34,15 @@ function EditProfile() {
       const data = await res.json();
       if (data.user) {
         localStorage.setItem('user', JSON.stringify(data.user));
-        setSuccess(true);
+        toast.success('Profile updated successfully!');
         setTimeout(() => navigate('/profile'), 1500);
       } else {
-        setError(data.error || 'Update failed');
+        toast.error(data.error || 'Update failed');
       }
     } catch (err) {
-      setError('Update failed');
+      toast.error('Update failed');
+    } finally {
+      setLoading(false);
     }
   }
 
@@ -60,150 +57,130 @@ function EditProfile() {
   };
 
   return (
-    <Box sx={{ minHeight: '100vh', bgcolor: '#F7F8F8', pt: 10, px: 3 }}>
-      <Box sx={{ maxWidth: 600, mx: 'auto' }}>
-        {/* Header with Back Button */}
-        <Box sx={{ display: 'flex', alignItems: 'center', mb: 3 }}>
-          <IconButton 
+    <div className="min-h-screen bg-gray-50">
+      <div className="max-w-md mx-auto bg-white min-h-screen">
+        {/* Header */}
+        <div className="flex items-center gap-4 p-6 border-b border-gray-100">
+          <button
             onClick={handleBackToDashboard}
-            sx={{ 
-              mr: 2, 
-              bgcolor: '#FF9900', 
-              color: '#FFF',
-              '&:hover': { bgcolor: '#E68900' }
-            }}
+            className="w-12 h-12 bg-emerald-500 hover:bg-emerald-600 text-white rounded-full flex items-center justify-center transition-colors duration-200"
           >
-            <ArrowBack />
-          </IconButton>
-          <Typography variant="h4" fontWeight={700} sx={{ color: '#232F3E' }}>
-            Edit Profile
-          </Typography>
-        </Box>
+            <FaArrowLeft className="text-lg" />
+          </button>
+          <h1 className="text-2xl font-semibold text-emerald-600">Edit Profile</h1>
+        </div>
 
-        {/* Back to Dashboard Button for Admin */}
-        {user.role === 'admin' && (
-          <Button
-            variant="outlined"
-            startIcon={<Dashboard />}
-            onClick={handleBackToDashboard}
-            sx={{
-              mb: 3,
-              borderColor: '#FF9900',
-              color: '#FF9900',
-              '&:hover': {
-                borderColor: '#E68900',
-                bgcolor: 'rgba(255, 153, 0, 0.1)'
-              }
-            }}
-          >
-            Back to Admin Dashboard
-          </Button>
-        )}
+        <div className="p-6">
+          {/* Profile Avatar */}
+          <div className="text-center mb-8">
+            <div className="relative inline-block">
+              <div className="w-24 h-24 bg-emerald-500 rounded-full flex items-center justify-center mx-auto mb-3">
+                {profilePic ? (
+                  <img
+                    src={profilePic}
+                    alt="Profile"
+                    className="w-full h-full rounded-full object-cover"
+                  />
+                ) : (
+                  <FaUser className="text-white text-2xl" />
+                )}
+              </div>
+              <div className="absolute -bottom-1 -right-1 w-6 h-6 bg-emerald-500 rounded-full border-2 border-white flex items-center justify-center">
+                <div className="w-2 h-2 bg-white rounded-full"></div>
+              </div>
+            </div>
+            <h2 className="text-lg font-medium text-gray-600">User</h2>
+          </div>
 
-        <Card sx={{ boxShadow: '0 4px 12px rgba(0,0,0,0.1)' }}>
-          <CardContent sx={{ p: 4 }}>
-            {/* Profile Avatar */}
-            <Box sx={{ textAlign: 'center', mb: 4 }}>
-              <Avatar 
-                src={profilePic} 
-                sx={{ 
-                  width: 120, 
-                  height: 120, 
-                  mx: 'auto', 
-                  mb: 2,
-                  bgcolor: '#FF9900',
-                  fontSize: '3rem'
-                }}
-              >
-                {name?.charAt(0) || user.name?.charAt(0) || 'U'}
-              </Avatar>
-              <Typography variant="h6" color="text.secondary">
-                {user.role === 'admin' ? 'Administrator' : 
-                 user.role === 'employee' ? 'Employee' :
-                 user.role === 'manager' ? 'Manager' :
-                 user.role === 'supervisor' ? 'Supervisor' : 'User'}
-              </Typography>
-            </Box>
-
-            {/* Form Fields */}
-            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
-              <TextField
-                fullWidth
-                label="Full Name"
+          {/* Form Fields */}
+          <div className="space-y-6">
+            <div>
+              <label className="flex items-center text-sm font-medium text-emerald-600 mb-3">
+                <FaUser className="mr-2" />
+                Full Name
+              </label>
+              <input
+                type="text"
                 value={name}
                 onChange={(e) => setName(e.target.value)}
-                variant="outlined"
+                className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none transition-colors"
+                placeholder="Teena Ram"
               />
-              
-              <TextField
-                fullWidth
-                label="Phone Number"
+            </div>
+
+            <div>
+              <label className="flex items-center text-sm font-medium text-emerald-600 mb-3">
+                <FaPhone className="mr-2" />
+                Phone Number
+              </label>
+              <input
+                type="tel"
                 value={phone}
                 onChange={(e) => setPhone(e.target.value)}
-                variant="outlined"
+                className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none transition-colors"
+                placeholder="Enter your phone number"
               />
-              
-              <TextField
-                fullWidth
-                label="Profile Picture URL"
+            </div>
+
+            <div>
+              <label className="flex items-center text-sm font-medium text-emerald-600 mb-3">
+                <FaImage className="mr-2" />
+                Profile Picture URL
+              </label>
+              <input
+                type="url"
                 value={profilePic}
                 onChange={(e) => setProfilePic(e.target.value)}
-                variant="outlined"
+                className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none transition-colors"
+                placeholder="Enter profile picture URL"
               />
+            </div>
 
-              <TextField
-                fullWidth
-                label="Email"
-                value={user.email}
+            <div>
+              <label className="flex items-center text-sm font-medium text-emerald-600 mb-3">
+                <FaEnvelope className="mr-2" />
+                Email Address
+              </label>
+              <input
+                type="email"
+                value={user.email || ''}
                 disabled
-                variant="outlined"
-                helperText="Email cannot be changed"
+                className="w-full px-4 py-3 border border-gray-200 rounded-lg bg-gray-50 text-gray-500 cursor-not-allowed"
               />
+            </div>
 
-              {/* Action Buttons */}
-              <Box sx={{ display: 'flex', gap: 2, mt: 2 }}>
-                <Button
-                  variant="contained"
-                  onClick={handleSave}
-                  sx={{
-                    flex: 1,
-                    bgcolor: '#FF9900',
-                    '&:hover': { bgcolor: '#E68900' }
-                  }}
-                >
-                  Save Changes
-                </Button>
-                
-                <Button
-                  variant="outlined"
-                  onClick={handleBackToDashboard}
-                  sx={{
-                    flex: 1,
-                    borderColor: '#232F3E',
-                    color: '#232F3E',
-                    '&:hover': {
-                      borderColor: '#232F3E',
-                      bgcolor: 'rgba(35, 47, 62, 0.1)'
-                    }
-                  }}
-                >
-                  Cancel
-                </Button>
-              </Box>
-            </Box>
-          </CardContent>
-        </Card>
-      </Box>
+            {/* Action Buttons */}
+            <div className="flex gap-4 pt-8">
+              <button
+                onClick={handleSave}
+                disabled={loading}
+                className="flex-1 bg-emerald-500 hover:bg-emerald-600 text-white py-3 px-6 rounded-lg font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+              >
+                {loading ? (
+                  <>
+                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                    Saving...
+                  </>
+                ) : (
+                  <>
+                    <FaSave />
+                    Save Changes
+                  </>
+                )}
+              </button>
 
-      {/* Success/Error Snackbars */}
-      <Snackbar open={success} autoHideDuration={3000}>
-        <Alert severity="success">Profile updated successfully!</Alert>
-      </Snackbar>
-      
-      <Snackbar open={!!error} autoHideDuration={3000} onClose={() => setError('')}>
-        <Alert severity="error">{error}</Alert>
-      </Snackbar>
-    </Box>
+              <button
+                onClick={handleBackToDashboard}
+                className="flex-1 bg-gray-100 hover:bg-gray-200 text-gray-700 py-3 px-6 rounded-lg font-medium transition-colors flex items-center justify-center gap-2"
+              >
+                <FaTimes />
+                Cancel
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
   );
 }
 

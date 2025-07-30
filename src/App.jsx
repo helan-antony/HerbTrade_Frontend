@@ -47,7 +47,6 @@ function ProtectedRoute({ children, adminOnly = false }) {
   
   if (!user || !token) return <Navigate to="/login" />;
   if (adminOnly && user.role !== "admin") return <Navigate to="/herbs" />;
-  // Prevent admin from accessing /herbs
   const currentPath = window.location.pathname;
   if (user.role === "admin" && currentPath === "/herbs") {
     return <Navigate to="/admin-dashboard" />;
@@ -68,6 +67,7 @@ function App() {
             <Route path="/forgot-password" element={<ForgotPassword />} />
             <Route path="/reset-password" element={<ResetPassword />} />
             <Route path="/admin-dashboard" element={<ProtectedRoute adminOnly={true}><EnhancedAdminDashboard /></ProtectedRoute>} />
+            <Route path="/admin" element={<ProtectedRoute adminOnly={true}><AdminDashboard /></ProtectedRoute>} />
             <Route path="/herbs" element={<ProtectedRoute><HerbCatalog /></ProtectedRoute>} />
             <Route path="/profile" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
             <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />

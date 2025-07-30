@@ -1,835 +1,461 @@
-import { 
-  Box, Typography, Button, Grid, Card, CardContent, Container, 
-  Chip, Divider, Paper, Avatar
-} from "@mui/material";
-import { Link } from "react-router-dom";
-import { 
-  FaLeaf, FaShieldAlt, FaRobot, FaUsers, FaStar, FaArrowRight,
-  FaHospital, FaComments, FaShoppingCart, FaUserMd, FaSearch,
-  FaChartLine, FaGlobe, FaLock, FaHeartbeat
-} from "react-icons/fa";
-import { useEffect, useState } from "react";
+import React, { useEffect, useState } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
+import {
+  Leaf,
+  Shield,
+  Truck,
+  Users,
+  Star,
+  ArrowRight,
+  Play,
+  CheckCircle,
+  Heart,
+  Award,
+  Sparkles,
+  Globe,
+  Clock,
+  TrendingUp,
+  Zap,
+  Target,
+  Gift,
+  MessageCircle
+} from 'lucide-react';
 
 function Landing() {
-  const [isVisible, setIsVisible] = useState(false);
+  const [user, setUser] = useState(null);
+  const navigate = useNavigate();
 
   useEffect(() => {
-    setIsVisible(true);
+    const storedUser = localStorage.getItem('user');
+    if (storedUser) {
+      setUser(JSON.parse(storedUser));
+    }
   }, []);
 
+  const features = [
+    {
+      icon: <Leaf className="w-8 h-8 text-emerald-500" />,
+      title: "Premium Quality",
+      description: "Carefully sourced from certified organic farms worldwide",
+      gradient: "from-emerald-500 to-green-600"
+    },
+    {
+      icon: <Shield className="w-8 h-8 text-blue-500" />,
+      title: "100% Authentic",
+      description: "Every product verified for purity and authenticity",
+      gradient: "from-blue-500 to-indigo-600"
+    },
+    {
+      icon: <Truck className="w-8 h-8 text-purple-500" />,
+      title: "Fast Delivery",
+      description: "Quick shipping with real-time tracking",
+      gradient: "from-purple-500 to-pink-600"
+    },
+    {
+      icon: <Users className="w-8 h-8 text-orange-500" />,
+      title: "Expert Support",
+      description: "Professional guidance from herbal specialists",
+      gradient: "from-orange-500 to-red-600"
+    }
+  ];
+
+  const benefits = [
+    "Certified organic herbs",
+    "Lab-tested for purity",
+    "Sustainable sourcing",
+    "Expert consultation",
+    "Money-back guarantee",
+    "Free shipping over $50"
+  ];
+
+  const testimonials = [
+    {
+      name: "Sarah Chen",
+      role: "Wellness Coach",
+      content: "HerbTrade has revolutionized how I approach natural wellness. The quality is unmatched.",
+      rating: 5,
+      avatar: "https://images.unsplash.com/photo-1494790108755-2616b612b786?w=80&h=80&fit=crop&crop=face&auto=format"
+    },
+    {
+      name: "Dr. James Wilson",
+      role: "Naturopathic Doctor",
+      content: "I trust HerbTrade for all my patients. Their commitment to quality is exceptional.",
+      rating: 5,
+      avatar: "https://images.unsplash.com/photo-1612349317150-e413f6a5b16d?w=80&h=80&fit=crop&crop=face&auto=format"
+    },
+    {
+      name: "Maria Rodriguez",
+      role: "Herbalist",
+      content: "The variety and potency of herbs here is incredible. My go-to source for everything.",
+      rating: 5,
+      avatar: "https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=80&h=80&fit=crop&crop=face&auto=format"
+    }
+  ];
+
   return (
-    <Box sx={{ minHeight: '100vh', bgcolor: '#f8f6f0' }}>
+    <div className="min-h-screen bg-slate-50">
+      {/* Hero Section */}
+      <section className="relative min-h-screen flex items-center justify-center overflow-hidden bg-gradient-to-br from-emerald-50 via-white to-teal-50 pt-20">
+        {/* Background Image */}
+        <div 
+          className="absolute inset-0 bg-cover bg-center bg-no-repeat opacity-50"
+          style={{ backgroundImage: 'url(/assets/bg.png)' }}
+        />
+        {/* Enhanced Decorative Elements */}
+        <div className="absolute top-20 left-10 w-72 h-72 bg-emerald-200/30 rounded-full blur-3xl animate-float" />
+        <div className="absolute bottom-20 right-10 w-96 h-96 bg-teal-200/20 rounded-full blur-3xl animate-float" style={{ animationDelay: '2s' }} />
+        <div className="absolute top-1/2 left-1/3 w-64 h-64 bg-cyan-200/20 rounded-full blur-3xl animate-float" style={{ animationDelay: '4s' }} />
 
-      <Box sx={{ 
-        background: 'linear-gradient(135deg, #2d5016 0%, #3a4d2d 50%, #4a6741 100%)',
-        color: 'white',
-        position: 'relative',
-        overflow: 'hidden'
-      }}>
+        {/* Floating Icons */}
+        <div className="absolute top-32 right-20 animate-bounce-slow">
+          <Sparkles className="w-6 h-6 text-emerald-400 opacity-60" />
+        </div>
+        <div className="absolute bottom-32 left-20 animate-pulse-slow">
+          <Leaf className="w-8 h-8 text-teal-400 opacity-50" />
+        </div>
+        <div className="absolute top-1/3 right-1/4 animate-float" style={{ animationDelay: '1s' }}>
+          <Heart className="w-5 h-5 text-pink-400 opacity-70" />
+        </div>
 
-        <Box sx={{
-          position: 'absolute',
-          top: 0,
-          left: 0,
-          right: 0,
-          bottom: 0,
-          backgroundImage: 'url("data:image/svg+xml,%3Csvg width="60" height="60" viewBox="0 0 60 60" xmlns="http://www.w3.org/2000/svg"%3E%3Cg fill="none" fill-rule="evenodd"%3E%3Cg fill="%23ffffff" fill-opacity="0.05"%3E%3Ccircle cx="30" cy="30" r="4"/%3E%3C/g%3E%3C/g%3E%3C/svg%3E")',
-          opacity: 0.3
-        }} />
-        
-        <Container maxWidth="lg" sx={{ position: 'relative', zIndex: 1 }}>
-          <Box sx={{ 
-            textAlign: "center", 
-            py: { xs: 8, md: 12 },
-            px: 2
-          }}>
-            <Chip 
-              label="🚀 Professional System - Experience the Future of Ayurvedic Trade"
-              sx={{ 
-                mb: 4, 
-                bgcolor: 'rgba(255,255,255,0.2)', 
-                color: 'white',
-                fontWeight: 600,
-                fontSize: '1rem',
-                px: 2,
-                py: 1
-              }}
-            />
-            
-            <Typography 
-              variant="h1" 
-              fontWeight={800} 
-              gutterBottom 
-              sx={{ 
-                fontFamily: "Poppins", 
-                mb: 3,
-                fontSize: { xs: '2.5rem', md: '4.5rem', lg: '5rem' },
-                textShadow: '0 4px 20px rgba(0,0,0,0.3)',
-                background: 'linear-gradient(45deg, #ffffff 30%, #e8f5e8 90%)',
-                WebkitBackgroundClip: 'text',
-                WebkitTextFillColor: 'transparent',
-                backgroundClip: 'text'
-              }}
-            >
-              🌿 HerbTrade AI
-            </Typography>
-            
-            <Typography 
-              variant="h4" 
-              gutterBottom 
-              sx={{ 
-                fontFamily: "Poppins", 
-                mb: 6, 
-                maxWidth: 900, 
-                mx: 'auto',
-                fontWeight: 400,
-                lineHeight: 1.4,
-                fontSize: { xs: '1.5rem', md: '2rem' },
-                opacity: 0.95
-              }}
-            >
-              Complete Ayurvedic Ecosystem: Trade Premium Herbs, Consult Expert Doctors, 
-              and Access AI-Powered Health Solutions
-            </Typography>
+        <div className="container-custom relative z-10">
+          <div className="max-w-5xl mx-auto text-center">
+            <div className="animate-fade-in">
+              <div className="inline-flex items-center px-6 py-3 bg-gradient-to-r from-emerald-100 to-teal-100 text-emerald-700 rounded-full text-sm font-semibold mb-8 shadow-lg hover:shadow-xl transition-all duration-300 group">
+                <Award className="w-4 h-4 mr-2 group-hover:rotate-12 transition-transform duration-300" />
+                <span className="bg-gradient-to-r from-emerald-600 to-teal-600 bg-clip-text text-transparent">
+                  Trusted by 10,000+ customers worldwide
+                </span>
+                <Sparkles className="w-4 h-4 ml-2 animate-pulse" />
+              </div>
 
-            <Box sx={{ display: 'flex', gap: 3, justifyContent: 'center', flexWrap: 'wrap', mb: 6 }}>
-              <Button 
-                variant="contained" 
-                size="large"
-                component={Link} 
-                to="/signup"
-                endIcon={<FaArrowRight />}
-                sx={{ 
-                  px: 6, 
-                  py: 3, 
-                  fontSize: '1.2rem',
-                  fontFamily: "Poppins",
-                  fontWeight: 700,
-                  borderRadius: '50px',
-                  textTransform: 'none',
-                  bgcolor: 'white',
-                  color: '#2d5016',
-                  boxShadow: '0 8px 32px rgba(0,0,0,0.2)',
-                  '&:hover': { 
-                    bgcolor: '#f5f5f5', 
-                    transform: 'translateY(-2px)',
-                    boxShadow: '0 12px 40px rgba(0,0,0,0.3)'
-                  }
-                }}
+              <h1 className="text-6xl md:text-7xl lg:text-8xl font-playfair font-bold text-slate-900 mb-8 leading-tight">
+                <span className="block animate-slide-up">Natural Healing</span>
+                <span className="block gradient-text animate-slide-up" style={{ animationDelay: '0.2s' }}>
+                  Made Simple
+                </span>
+              </h1>
+
+              <p className="text-xl md:text-2xl text-slate-600 mb-12 max-w-4xl mx-auto leading-relaxed animate-fade-in" style={{ animationDelay: '0.4s' }}>
+                Discover premium herbal products sourced from trusted farms worldwide.
+                Your wellness journey starts with nature's finest ingredients, backed by science.
+              </p>
+
+              <div className="flex flex-col sm:flex-row gap-6 justify-center items-center mb-16 animate-fade-in" style={{ animationDelay: '0.6s' }}>
+                <Link
+                  to={user ? "/herbs" : "/signup"}
+                  className="group btn-primary text-lg px-10 py-5 flex items-center space-x-3 hover:scale-105 transition-all duration-300"
+                >
+                  <span>Explore Products</span>
+                  <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform duration-300" />
+                </Link>
+
+                <button className="group btn-ghost text-lg px-10 py-5 flex items-center space-x-3 hover:scale-105 transition-all duration-300">
+                  <Play className="w-5 h-5 group-hover:scale-110 transition-transform duration-300" />
+                  <span>Watch Our Story</span>
+                </button>
+              </div>
+
+              {/* Enhanced Trust Indicators */}
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-8 max-w-4xl mx-auto animate-fade-in" style={{ animationDelay: '0.8s' }}>
+                <div className="text-center group hover:scale-105 transition-all duration-300">
+                  <div className="flex justify-center mb-3">
+                    <div className="p-3 bg-gradient-to-r from-emerald-500 to-teal-500 rounded-2xl shadow-lg group-hover:shadow-xl transition-all duration-300">
+                      <Leaf className="w-6 h-6 text-white" />
+                    </div>
+                  </div>
+                  <div className="text-3xl font-bold text-slate-900 mb-2 group-hover:text-emerald-600 transition-colors duration-300">500+</div>
+                  <div className="text-slate-600 text-sm font-medium">Premium Herbs</div>
+                </div>
+                <div className="text-center group hover:scale-105 transition-all duration-300">
+                  <div className="flex justify-center mb-3">
+                    <div className="p-3 bg-gradient-to-r from-blue-500 to-indigo-500 rounded-2xl shadow-lg group-hover:shadow-xl transition-all duration-300">
+                      <Users className="w-6 h-6 text-white" />
+                    </div>
+                  </div>
+                  <div className="text-3xl font-bold text-slate-900 mb-2 group-hover:text-blue-600 transition-colors duration-300">10K+</div>
+                  <div className="text-slate-600 text-sm font-medium">Happy Customers</div>
+                </div>
+                <div className="text-center group hover:scale-105 transition-all duration-300">
+                  <div className="flex justify-center mb-3">
+                    <div className="p-3 bg-gradient-to-r from-purple-500 to-pink-500 rounded-2xl shadow-lg group-hover:shadow-xl transition-all duration-300">
+                      <Target className="w-6 h-6 text-white" />
+                    </div>
+                  </div>
+                  <div className="text-3xl font-bold text-slate-900 mb-2 group-hover:text-purple-600 transition-colors duration-300">99.9%</div>
+                  <div className="text-slate-600 text-sm font-medium">Purity Rate</div>
+                </div>
+                <div className="text-center group hover:scale-105 transition-all duration-300">
+                  <div className="flex justify-center mb-3">
+                    <div className="p-3 bg-gradient-to-r from-orange-500 to-red-500 rounded-2xl shadow-lg group-hover:shadow-xl transition-all duration-300">
+                      <Clock className="w-6 h-6 text-white" />
+                    </div>
+                  </div>
+                  <div className="text-3xl font-bold text-slate-900 mb-2 group-hover:text-orange-600 transition-colors duration-300">24/7</div>
+                  <div className="text-slate-600 text-sm font-medium">Support</div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* Enhanced Features Section */}
+      <section className="section-padding bg-gradient-to-br from-white via-emerald-50/30 to-teal-50/30 relative overflow-hidden">
+        {/* Background Pattern */}
+        <div className="absolute inset-0 opacity-5">
+          <div className="absolute top-20 left-20 w-32 h-32 bg-emerald-500 rounded-full blur-3xl animate-pulse-slow" />
+          <div className="absolute bottom-20 right-20 w-40 h-40 bg-teal-500 rounded-full blur-3xl animate-pulse-slow" style={{ animationDelay: '2s' }} />
+        </div>
+
+        <div className="container-custom relative z-10">
+          <div className="text-center mb-20">
+            <div className="inline-flex items-center px-4 py-2 bg-emerald-100 text-emerald-700 rounded-full text-sm font-semibold mb-6">
+              <Zap className="w-4 h-4 mr-2" />
+              Why Choose Us
+            </div>
+            <h2 className="text-4xl md:text-5xl lg:text-6xl font-playfair font-bold text-slate-900 mb-6">
+              Experience the
+              <span className="block gradient-text">HerbTrade Difference</span>
+            </h2>
+            <p className="text-xl text-slate-600 max-w-3xl mx-auto leading-relaxed">
+              We're committed to delivering the highest quality herbal products with exceptional service,
+              backed by science and trusted by thousands worldwide.
+            </p>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
+            {features.map((feature, index) => (
+              <div
+                key={index}
+                className="group relative"
+                style={{ animationDelay: `${index * 0.1}s` }}
               >
-                Get Started Now
-              </Button>
-              
-              <Button 
-                variant="outlined" 
-                size="large"
-                component={Link} 
-                to="/herbs"
-                sx={{ 
-                  px: 6, 
-                  py: 3, 
-                  fontSize: '1.2rem',
-                  fontFamily: "Poppins",
-                  fontWeight: 700,
-                  borderRadius: '50px',
-                  textTransform: 'none',
-                  borderColor: 'white',
-                  color: 'white',
-                  borderWidth: 2,
-                  '&:hover': { 
-                    borderColor: '#f5f5f5',
-                    bgcolor: 'rgba(255,255,255,0.1)',
-                    transform: 'translateY(-2px)'
-                  }
-                }}
-              >
-                Explore Catalog
-              </Button>
-            </Box>
+                <div className="card-modern p-8 text-center h-full relative overflow-hidden">
+                  {/* Gradient Background on Hover */}
+                  <div className={`absolute inset-0 bg-gradient-to-br ${feature.gradient} opacity-0 group-hover:opacity-10 transition-opacity duration-500 rounded-3xl`} />
 
-
-            <Grid container spacing={4} sx={{ mt: 4 }}>
-              {[
-                { number: "1000+", label: "Premium Herbs" },
-                { number: "50+", label: "Expert Doctors" },
-                { number: "24/7", label: "AI Support" },
-                { number: "100%", label: "Quality Assured" }
-              ].map((stat, index) => (
-                <Grid item xs={6} md={3} key={index}>
-                  <Box sx={{ textAlign: 'center' }}>
-                    <Typography variant="h3" fontWeight={800} sx={{ mb: 1 }}>
-                      {stat.number}
-                    </Typography>
-                    <Typography variant="body1" sx={{ opacity: 0.8 }}>
-                      {stat.label}
-                    </Typography>
-                  </Box>
-                </Grid>
-              ))}
-            </Grid>
-          </Box>
-        </Container>
-      </Box>
-
-
-      <Container maxWidth="lg" sx={{ py: 8 }}>
-        <Box sx={{ textAlign: 'center', mb: 8 }}>
-          <Typography 
-            variant="h2" 
-            fontWeight={700} 
-            color="#2d5016" 
-            gutterBottom
-            sx={{ fontFamily: "Poppins", mb: 2 }}
-          >
-            Complete Ayurvedic Platform
-          </Typography>
-          <Typography 
-            variant="h5" 
-            color="#5c6842" 
-            sx={{ fontFamily: "Poppins", maxWidth: 600, mx: 'auto' }}
-          >
-            Everything you need for Ayurvedic wellness in one integrated platform
-          </Typography>
-        </Box>
-
-        <Grid container spacing={6}>
-          {/* Row 1: E-commerce & Healthcare */}
-          <Grid item xs={12}>
-            <Typography 
-              variant="h4" 
-              fontWeight={600} 
-              color="#2d5016" 
-              gutterBottom
-              sx={{ fontFamily: "Poppins", mb: 4, textAlign: 'center' }}
-            >
-              🛒 E-commerce & Healthcare Services
-            </Typography>
-            <Grid container spacing={4}>
-              <Grid item xs={12} md={6}>
-                <Paper 
-                  elevation={0}
-                  sx={{ 
-                    height: '100%',
-                    p: 4,
-                    borderRadius: 3,
-                    border: '2px solid #e8f5e8',
-                    transition: 'all 0.3s ease',
-                    cursor: 'pointer',
-                    textDecoration: 'none',
-                    color: 'inherit',
-                    '&:hover': {
-                      transform: 'translateY(-8px)',
-                      boxShadow: '0 12px 40px rgba(76, 175, 80, 0.2)',
-                      borderColor: '#4caf50'
-                    }
-                  }}
-                  component={Link}
-                  to="/herbs"
-                >
-                  <Box sx={{ display: 'flex', alignItems: 'center', mb: 3 }}>
-                    <Avatar sx={{ 
-                      bgcolor: '#4caf50', 
-                      color: 'white',
-                      width: 64,
-                      height: 64,
-                      mr: 3
-                    }}>
-                      <FaShoppingCart size={32} />
-                    </Avatar>
-                    <Box>
-                      <Typography 
-                        variant="h5" 
-                        fontWeight={700}
-                        color="#2d5016"
-                        sx={{ fontFamily: "Poppins", mb: 1 }}
-                      >
-                        Herb Marketplace
-                      </Typography>
-                      <Chip 
-                        label="Premium Quality" 
-                        size="small" 
-                        sx={{ bgcolor: '#e8f5e8', color: '#2e7d32', fontWeight: 600 }}
-                      />
-                    </Box>
-                  </Box>
-                  <Typography 
-                    variant="body1" 
-                    color="#5c6842"
-                    sx={{ fontFamily: "Poppins", lineHeight: 1.6, mb: 3 }}
-                  >
-                    Browse and purchase premium Ayurvedic herbs with complete quality assurance and authenticity certificates.
-                  </Typography>
-                  <Box sx={{ display: 'flex', alignItems: 'center', color: '#4caf50', fontWeight: 600 }}>
-                    <Typography variant="body2" sx={{ mr: 1 }}>Shop Now</Typography>
-                    <FaArrowRight size={12} />
-                  </Box>
-                </Paper>
-              </Grid>
-
-              <Grid item xs={12} md={6}>
-                <Paper 
-                  elevation={0}
-                  sx={{ 
-                    height: '100%',
-                    p: 4,
-                    borderRadius: 3,
-                    border: '2px solid #e3f2fd',
-                    transition: 'all 0.3s ease',
-                    cursor: 'pointer',
-                    textDecoration: 'none',
-                    color: 'inherit',
-                    '&:hover': {
-                      transform: 'translateY(-8px)',
-                      boxShadow: '0 12px 40px rgba(33, 150, 243, 0.2)',
-                      borderColor: '#2196f3'
-                    }
-                  }}
-                  component={Link}
-                  to="/hospital-discovery"
-                >
-                  <Box sx={{ display: 'flex', alignItems: 'center', mb: 3 }}>
-                    <Avatar sx={{ 
-                      bgcolor: '#2196f3', 
-                      color: 'white',
-                      width: 64,
-                      height: 64,
-                      mr: 3
-                    }}>
-                      <FaHospital size={32} />
-                    </Avatar>
-                    <Box>
-                      <Typography 
-                        variant="h5" 
-                        fontWeight={700}
-                        color="#2d5016"
-                        sx={{ fontFamily: "Poppins", mb: 1 }}
-                      >
-                        Hospital Discovery
-                      </Typography>
-                      <Chip 
-                        label="Location Based" 
-                        size="small" 
-                        sx={{ bgcolor: '#e3f2fd', color: '#1565c0', fontWeight: 600 }}
-                      />
-                    </Box>
-                  </Box>
-                  <Typography 
-                    variant="body1" 
-                    color="#5c6842"
-                    sx={{ fontFamily: "Poppins", lineHeight: 1.6, mb: 3 }}
-                  >
-                    Find nearby Ayurvedic hospitals and clinics with location-based search and pincode filtering.
-                  </Typography>
-                  <Box sx={{ display: 'flex', alignItems: 'center', color: '#2196f3', fontWeight: 600 }}>
-                    <Typography variant="body2" sx={{ mr: 1 }}>Find Hospitals</Typography>
-                    <FaArrowRight size={12} />
-                  </Box>
-                </Paper>
-              </Grid>
-            </Grid>
-          </Grid>
-
-          {/* Row 2: Professional Services */}
-          <Grid item xs={12}>
-            <Typography 
-              variant="h4" 
-              fontWeight={600} 
-              color="#2d5016" 
-              gutterBottom
-              sx={{ fontFamily: "Poppins", mb: 4, textAlign: 'center' }}
-            >
-              👨‍⚕️ Professional Consultation Services
-            </Typography>
-            <Grid container spacing={4}>
-              <Grid item xs={12} md={6}>
-                <Paper 
-                  elevation={0}
-                  sx={{ 
-                    height: '100%',
-                    p: 4,
-                    borderRadius: 3,
-                    border: '2px solid #fff3e0',
-                    transition: 'all 0.3s ease',
-                    cursor: 'pointer',
-                    textDecoration: 'none',
-                    color: 'inherit',
-                    '&:hover': {
-                      transform: 'translateY(-8px)',
-                      boxShadow: '0 12px 40px rgba(255, 152, 0, 0.2)',
-                      borderColor: '#ff9800'
-                    }
-                  }}
-                  component={Link}
-                  to="/hospital-discovery"
-                >
-                  <Box sx={{ display: 'flex', alignItems: 'center', mb: 3 }}>
-                    <Avatar sx={{ 
-                      bgcolor: '#ff9800', 
-                      color: 'white',
-                      width: 64,
-                      height: 64,
-                      mr: 3
-                    }}>
-                      <FaUserMd size={32} />
-                    </Avatar>
-                    <Box>
-                      <Typography 
-                        variant="h5" 
-                        fontWeight={700}
-                        color="#2d5016"
-                        sx={{ fontFamily: "Poppins", mb: 1 }}
-                      >
-                        Doctor Consultation
-                      </Typography>
-                      <Chip 
-                        label="Certified Experts" 
-                        size="small" 
-                        sx={{ bgcolor: '#fff3e0', color: '#e65100', fontWeight: 600 }}
-                      />
-                    </Box>
-                  </Box>
-                  <Typography 
-                    variant="body1" 
-                    color="#5c6842"
-                    sx={{ fontFamily: "Poppins", lineHeight: 1.6, mb: 3 }}
-                  >
-                    Book appointments with certified Ayurvedic doctors and specialists for personalized treatment.
-                  </Typography>
-                  <Box sx={{ display: 'flex', alignItems: 'center', color: '#ff9800', fontWeight: 600 }}>
-                    <Typography variant="body2" sx={{ mr: 1 }}>Book Appointment</Typography>
-                    <FaArrowRight size={12} />
-                  </Box>
-                </Paper>
-              </Grid>
-
-              <Grid item xs={12} md={6}>
-                <Paper 
-                  elevation={0}
-                  sx={{ 
-                    height: '100%',
-                    p: 4,
-                    borderRadius: 3,
-                    border: '2px solid #f3e5f5',
-                    transition: 'all 0.3s ease',
-                    cursor: 'pointer',
-                    textDecoration: 'none',
-                    color: 'inherit',
-                    '&:hover': {
-                      transform: 'translateY(-8px)',
-                      boxShadow: '0 12px 40px rgba(156, 39, 176, 0.2)',
-                      borderColor: '#9c27b0'
-                    }
-                  }}
-                  component={Link}
-                  to="/chatbot"
-                >
-                  <Box sx={{ display: 'flex', alignItems: 'center', mb: 3 }}>
-                    <Avatar sx={{ 
-                      bgcolor: '#9c27b0', 
-                      color: 'white',
-                      width: 64,
-                      height: 64,
-                      mr: 3
-                    }}>
-                      <FaRobot size={32} />
-                    </Avatar>
-                    <Box>
-                      <Typography 
-                        variant="h5" 
-                        fontWeight={700}
-                        color="#2d5016"
-                        sx={{ fontFamily: "Poppins", mb: 1 }}
-                      >
-                        AI Health Assistant
-                      </Typography>
-                      <Chip 
-                        label="AI Powered" 
-                        size="small" 
-                        sx={{ bgcolor: '#f3e5f5', color: '#6a1b9a', fontWeight: 600 }}
-                      />
-                    </Box>
-                  </Box>
-                  <Typography 
-                    variant="body1" 
-                    color="#5c6842"
-                    sx={{ fontFamily: "Poppins", lineHeight: 1.6, mb: 3 }}
-                  >
-                    Get instant health advice and herb recommendations from our intelligent chatbot system.
-                  </Typography>
-                  <Box sx={{ display: 'flex', alignItems: 'center', color: '#9c27b0', fontWeight: 600 }}>
-                    <Typography variant="body2" sx={{ mr: 1 }}>Chat Now</Typography>
-                    <FaArrowRight size={12} />
-                  </Box>
-                </Paper>
-              </Grid>
-            </Grid>
-          </Grid>
-
-          {/* Row 3: Community & Analytics */}
-          <Grid item xs={12}>
-            <Typography 
-              variant="h4" 
-              fontWeight={600} 
-              color="#2d5016" 
-              gutterBottom
-              sx={{ fontFamily: "Poppins", mb: 4, textAlign: 'center' }}
-            >
-              🌐 Community & Business Tools
-            </Typography>
-            <Grid container spacing={4}>
-              <Grid item xs={12} md={6}>
-                <Paper 
-                  elevation={0}
-                  sx={{ 
-                    height: '100%',
-                    p: 4,
-                    borderRadius: 3,
-                    border: '2px solid #ffebee',
-                    transition: 'all 0.3s ease',
-                    cursor: 'pointer',
-                    textDecoration: 'none',
-                    color: 'inherit',
-                    '&:hover': {
-                      transform: 'translateY(-8px)',
-                      boxShadow: '0 12px 40px rgba(244, 67, 54, 0.2)',
-                      borderColor: '#f44336'
-                    }
-                  }}
-                  component={Link}
-                  to="/blog"
-                >
-                  <Box sx={{ display: 'flex', alignItems: 'center', mb: 3 }}>
-                    <Avatar sx={{ 
-                      bgcolor: '#f44336', 
-                      color: 'white',
-                      width: 64,
-                      height: 64,
-                      mr: 3
-                    }}>
-                      <FaComments size={32} />
-                    </Avatar>
-                    <Box>
-                      <Typography 
-                        variant="h5" 
-                        fontWeight={700}
-                        color="#2d5016"
-                        sx={{ fontFamily: "Poppins", mb: 1 }}
-                      >
-                        Community Blog
-                      </Typography>
-                      <Chip 
-                        label="Interactive" 
-                        size="small" 
-                        sx={{ bgcolor: '#ffebee', color: '#c62828', fontWeight: 600 }}
-                      />
-                    </Box>
-                  </Box>
-                  <Typography 
-                    variant="body1" 
-                    color="#5c6842"
-                    sx={{ fontFamily: "Poppins", lineHeight: 1.6, mb: 3 }}
-                  >
-                    Read expert articles, share experiences, and engage with the Ayurvedic community.
-                  </Typography>
-                  <Box sx={{ display: 'flex', alignItems: 'center', color: '#f44336', fontWeight: 600 }}>
-                    <Typography variant="body2" sx={{ mr: 1 }}>Join Community</Typography>
-                    <FaArrowRight size={12} />
-                  </Box>
-                </Paper>
-              </Grid>
-
-              <Grid item xs={12} md={6}>
-                <Paper 
-                  elevation={0}
-                  sx={{ 
-                    height: '100%',
-                    p: 4,
-                    borderRadius: 3,
-                    border: '2px solid #eceff1',
-                    transition: 'all 0.3s ease',
-                    cursor: 'pointer',
-                    textDecoration: 'none',
-                    color: 'inherit',
-                    '&:hover': {
-                      transform: 'translateY(-8px)',
-                      boxShadow: '0 12px 40px rgba(96, 125, 139, 0.2)',
-                      borderColor: '#607d8b'
-                    }
-                  }}
-                  component={Link}
-                  to="/dashboard"
-                >
-                  <Box sx={{ display: 'flex', alignItems: 'center', mb: 3 }}>
-                    <Avatar sx={{ 
-                      bgcolor: '#607d8b', 
-                      color: 'white',
-                      width: 64,
-                      height: 64,
-                      mr: 3
-                    }}>
-                      <FaChartLine size={32} />
-                    </Avatar>
-                    <Box>
-                      <Typography 
-                        variant="h5" 
-                        fontWeight={700}
-                        color="#2d5016"
-                        sx={{ fontFamily: "Poppins", mb: 1 }}
-                      >
-                        Business Analytics
-                      </Typography>
-                      <Chip 
-                        label="Professional Tools" 
-                        size="small" 
-                        sx={{ bgcolor: '#eceff1', color: '#37474f', fontWeight: 600 }}
-                      />
-                    </Box>
-                  </Box>
-                  <Typography 
-                    variant="body1" 
-                    color="#5c6842"
-                    sx={{ fontFamily: "Poppins", lineHeight: 1.6, mb: 3 }}
-                  >
-                    Track your orders, manage inventory, and analyze market trends with comprehensive dashboards.
-                  </Typography>
-                  <Box sx={{ display: 'flex', alignItems: 'center', color: '#607d8b', fontWeight: 600 }}>
-                    <Typography variant="body2" sx={{ mr: 1 }}>View Analytics</Typography>
-                    <FaArrowRight size={12} />
-                  </Box>
-                </Paper>
-              </Grid>
-            </Grid>
-          </Grid>
-        </Grid>
-      </Container>
-
-
-      <Box sx={{ bgcolor: '#e8f5e8', py: 8 }}>
-        <Container maxWidth="lg">
-          <Box sx={{ textAlign: 'center', mb: 6 }}>
-            <Chip 
-              label="🎯 Platform Features"
-              sx={{ 
-                mb: 3, 
-                bgcolor: '#4caf50', 
-                color: 'white',
-                fontWeight: 600,
-                fontSize: '1rem',
-                px: 3,
-                py: 1
-              }}
-            />
-            <Typography 
-              variant="h3" 
-              fontWeight={700} 
-              color="#2d5016" 
-              gutterBottom
-              sx={{ fontFamily: "Poppins", mb: 2 }}
-            >
-              Comprehensive Platform Features
-            </Typography>
-            <Typography 
-              variant="h6" 
-              color="#5c6842" 
-              sx={{ fontFamily: "Poppins", maxWidth: 700, mx: 'auto' }}
-            >
-              Explore all the powerful features available on our platform
-            </Typography>
-          </Box>
-
-          <Grid container spacing={4}>
-            {[
-              { 
-                icon: <FaShoppingCart />, 
-                title: "E-commerce Platform", 
-                description: "Browse herbs, add to cart, and make secure purchases",
-                status: "Fully Functional"
-              },
-              { 
-                icon: <FaUserMd />, 
-                title: "Appointment Booking", 
-                description: "Book appointments with certified Ayurvedic doctors",
-                status: "Professional System"
-              },
-              { 
-                icon: <FaRobot />, 
-                title: "AI Health Assistant", 
-                description: "Get health advice and personalized herb recommendations",
-                status: "AI Powered"
-              },
-              { 
-                icon: <FaComments />, 
-                title: "Community Features", 
-                description: "Engage with blogs, share experiences, and connect",
-                status: "Interactive"
-              },
-              { 
-                icon: <FaSearch />, 
-                title: "Location Search", 
-                description: "Find hospitals and clinics by location and pincode",
-                status: "Location Based"
-              },
-              { 
-                icon: <FaLock />, 
-                title: "Secure Authentication", 
-                description: "Safe login, registration, and profile management",
-                status: "Secure"
-              }
-            ].map((feature, index) => (
-              <Grid item xs={12} md={6} lg={4} key={index}>
-                <Paper 
-                  elevation={0}
-                  sx={{ 
-                    p: 3,
-                    borderRadius: 2,
-                    border: '1px solid #c8e6c9',
-                    bgcolor: 'white',
-                    height: '100%',
-                    transition: 'all 0.3s ease',
-                    '&:hover': {
-                      transform: 'translateY(-4px)',
-                      boxShadow: '0 8px 25px rgba(0,0,0,0.1)',
-                      borderColor: '#4caf50'
-                    }
-                  }}
-                >
-                  <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
-                    <Avatar sx={{ 
-                      bgcolor: '#4caf50', 
-                      color: 'white',
-                      width: 48,
-                      height: 48,
-                      mr: 2
-                    }}>
-                      {feature.icon}
-                    </Avatar>
-                    <Typography variant="h6" fontWeight={600} color="#2d5016" sx={{ fontFamily: "Poppins" }}>
+                  <div className="relative z-10">
+                    <div className="mb-6 flex justify-center">
+                      <div className={`p-4 bg-gradient-to-br ${feature.gradient} rounded-2xl shadow-lg group-hover:shadow-xl group-hover:scale-110 transition-all duration-300`}>
+                        {React.cloneElement(feature.icon, { className: "w-8 h-8 text-white" })}
+                      </div>
+                    </div>
+                    <h3 className="text-xl font-bold text-slate-900 mb-4 group-hover:text-emerald-600 transition-colors duration-300">
                       {feature.title}
-                    </Typography>
-                  </Box>
-                  <Typography variant="body2" color="#5c6842" sx={{ mb: 2, lineHeight: 1.6 }}>
-                    {feature.description}
-                  </Typography>
-                  <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                    <Typography variant="body2" color="#2d5016" fontWeight={600}>
-                      Status:
-                    </Typography>
-                    <Chip
-                      label={feature.status}
-                      size="small"
-                      sx={{
-                        bgcolor: '#e8f5e8',
-                        color: '#2e7d32',
-                        fontSize: '0.75rem',
-                        fontWeight: 600
-                      }}
-                    />
-                  </Box>
-                </Paper>
-              </Grid>
+                    </h3>
+                    <p className="text-slate-600 leading-relaxed group-hover:text-slate-700 transition-colors duration-300">
+                      {feature.description}
+                    </p>
+                  </div>
+
+                  {/* Decorative Element */}
+                  <div className="absolute -top-2 -right-2 w-20 h-20 bg-gradient-to-br from-emerald-200 to-teal-200 rounded-full opacity-20 group-hover:opacity-40 transition-opacity duration-300" />
+                </div>
+              </div>
             ))}
-          </Grid>
-        </Container>
-      </Box>
+          </div>
+        </div>
+      </section>
 
-      <Box sx={{ 
-        background: 'linear-gradient(135deg, #2d5016 0%, #3a4d2d 100%)',
-        color: 'white',
-        py: 8,
-        position: 'relative',
-        overflow: 'hidden'
-      }}>
-        <Container maxWidth="lg" sx={{ position: 'relative', zIndex: 1 }}>
-          <Box sx={{ textAlign: 'center' }}>
-            <Typography
-              variant="h2"
-              fontWeight={800}
-              mb={3}
-              sx={{
-                fontFamily: "Poppins",
-                fontSize: { xs: '2rem', md: '3rem' }
-              }}
-            >
-              Start Your Journey Today
-            </Typography>
-            <Typography
-              variant="h5"
-              mb={6}
-              sx={{
-                opacity: 0.9,
-                fontFamily: "Poppins",
-                maxWidth: 600,
-                mx: 'auto',
-                fontSize: { xs: '1.2rem', md: '1.5rem' }
-              }}
-            >
-              Experience the future of Ayurvedic trade and healthcare
-            </Typography>
-
-            <Box sx={{ display: 'flex', gap: 3, justifyContent: 'center', flexWrap: 'wrap' }}>
-              <Button
-                variant="contained"
-                size="large"
-                component={Link}
-                to="/signup"
-                endIcon={<FaArrowRight />}
-                sx={{
-                  px: 6,
-                  py: 3,
-                  fontSize: '1.2rem',
-                  fontFamily: "Poppins",
-                  fontWeight: 700,
-                  borderRadius: '50px',
-                  textTransform: 'none',
-                  bgcolor: 'white',
-                  color: '#2d5016',
-                  boxShadow: '0 8px 32px rgba(0,0,0,0.2)',
-                  '&:hover': {
-                    bgcolor: '#f5f5f5',
-                    transform: 'translateY(-2px)',
-                    boxShadow: '0 12px 40px rgba(0,0,0,0.3)'
-                  }
-                }}
-              >
-                Get Started Now
-              </Button>
+      {/* Benefits Section */}
+      <section className="section-padding bg-gradient-to-br from-emerald-50 to-teal-50">
+        <div className="container-custom">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-16 items-center">
+            <div className="animate-fade-in">
+              <h2 className="text-4xl md:text-5xl font-playfair font-bold text-slate-900 mb-6">
+                Premium Quality You Can Trust
+              </h2>
+              <p className="text-xl text-slate-600 mb-8 leading-relaxed">
+                Every product in our collection meets the highest standards of quality, 
+                purity, and sustainability. We work directly with certified organic farms 
+                to bring you nature's best.
+              </p>
               
-              <Button
-                variant="outlined"
-                size="large"
-                component={Link}
-                to="/herbs"
-                sx={{
-                  px: 6,
-                  py: 3,
-                  fontSize: '1.2rem',
-                  fontFamily: "Poppins",
-                  fontWeight: 700,
-                  borderRadius: '50px',
-                  textTransform: 'none',
-                  borderColor: 'white',
-                  color: 'white',
-                  borderWidth: 2,
-                  '&:hover': {
-                    borderColor: '#f5f5f5',
-                    bgcolor: 'rgba(255,255,255,0.1)',
-                    transform: 'translateY(-2px)'
-                  }
-                }}
-              >
-                Explore Products
-              </Button>
-            </Box>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-8">
+                {benefits.map((benefit, index) => (
+                  <div key={index} className="flex items-center space-x-3 group animate-fade-in" style={{ animationDelay: `${index * 0.1}s` }}>
+                    <div className="p-2 bg-emerald-100 rounded-full group-hover:bg-emerald-200 transition-colors duration-300">
+                      <CheckCircle className="w-5 h-5 text-emerald-600 group-hover:scale-110 transition-transform duration-300" />
+                    </div>
+                    <span className="text-slate-700 group-hover:text-slate-900 transition-colors duration-300 font-medium">{benefit}</span>
+                  </div>
+                ))}
+              </div>
 
-            <Box sx={{ mt: 6, pt: 6, borderTop: '1px solid rgba(255,255,255,0.2)' }}>
-              <Typography variant="body1" sx={{ opacity: 0.8, fontFamily: "Poppins" }}>
-                🌿 <strong>HerbTrade AI</strong> - Revolutionizing Ayurvedic Healthcare & Commerce
-              </Typography>
-            </Box>
-          </Box>
-        </Container>
-      </Box>
-    </Box>
+              <Link
+                to={user ? "/herbs" : "/signup"}
+                className="group btn-primary inline-flex items-center space-x-3 hover:scale-105 transition-all duration-300"
+              >
+                <span>Start Shopping</span>
+                <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform duration-300" />
+              </Link>
+            </div>
+
+            <div className="relative animate-scale-in">
+              <div className="glass-card p-8">
+                <img 
+                  src="https://images.unsplash.com/photo-1544947950-fa07a98d237f?w=600&h=400&fit=crop&auto=format" 
+                  alt="Premium herbs"
+                  className="w-full h-80 object-cover rounded-xl mb-6"
+                />
+                <div className="text-center">
+                  <div className="flex justify-center mb-4 space-x-1">
+                    {[...Array(5)].map((_, i) => (
+                      <Star key={i} className="w-5 h-5 text-yellow-400 fill-current hover:scale-110 transition-transform duration-200" />
+                    ))}
+                  </div>
+                  <p className="text-slate-700 font-medium italic">
+                    "The quality exceeded my expectations. Highly recommended!"
+                  </p>
+                  <p className="text-slate-500 text-sm mt-2 font-medium">- Verified Customer</p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* Enhanced Testimonials Section */}
+      <section className="section-padding bg-gradient-to-br from-slate-50 to-emerald-50/30 relative overflow-hidden">
+        {/* Background Elements */}
+        <div className="absolute top-10 right-10 w-64 h-64 bg-emerald-200/20 rounded-full blur-3xl animate-pulse-slow" />
+        <div className="absolute bottom-10 left-10 w-80 h-80 bg-teal-200/15 rounded-full blur-3xl animate-pulse-slow" style={{ animationDelay: '3s' }} />
+
+        <div className="container-custom relative z-10">
+          <div className="text-center mb-20">
+            <div className="inline-flex items-center px-4 py-2 bg-gradient-to-r from-emerald-100 to-teal-100 text-emerald-700 rounded-full text-sm font-semibold mb-6">
+              <MessageCircle className="w-4 h-4 mr-2" />
+              Customer Stories
+            </div>
+            <h2 className="text-4xl md:text-5xl lg:text-6xl font-playfair font-bold text-slate-900 mb-6">
+              Loved by
+              <span className="block gradient-text">Thousands Worldwide</span>
+            </h2>
+            <p className="text-xl text-slate-600 max-w-3xl mx-auto leading-relaxed">
+              Join our community of satisfied customers who have transformed their wellness journey with our premium herbal products
+            </p>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+            {testimonials.map((testimonial, index) => (
+              <div
+                key={index}
+                className="group relative animate-scale-in"
+                style={{ animationDelay: `${index * 0.2}s` }}
+              >
+                <div className="card-modern p-8 h-full relative overflow-hidden">
+                  {/* Gradient overlay on hover */}
+                  <div className="absolute inset-0 bg-gradient-to-br from-emerald-500/5 to-teal-500/5 opacity-0 group-hover:opacity-100 transition-opacity duration-500 rounded-3xl" />
+
+                  <div className="relative z-10">
+                    <div className="flex items-center mb-6 space-x-1">
+                      {[...Array(testimonial.rating)].map((_, i) => (
+                        <Star key={i} className="w-5 h-5 text-yellow-400 fill-current hover:scale-110 transition-transform duration-200" />
+                      ))}
+                    </div>
+                    <blockquote className="text-slate-700 mb-8 leading-relaxed text-lg italic group-hover:text-slate-800 transition-colors duration-300">
+                      "{testimonial.content}"
+                    </blockquote>
+                    <div className="flex items-center">
+                      <div className="relative">
+                        <img
+                          src={testimonial.avatar}
+                          alt={testimonial.name}
+                          className="w-14 h-14 rounded-full mr-4 object-cover ring-4 ring-white shadow-lg group-hover:ring-emerald-100 transition-all duration-300"
+                        />
+                        <div className="absolute -bottom-1 -right-1 w-5 h-5 bg-emerald-500 rounded-full border-2 border-white flex items-center justify-center">
+                          <CheckCircle className="w-3 h-3 text-white" />
+                        </div>
+                      </div>
+                      <div>
+                        <div className="font-bold text-slate-900 group-hover:text-emerald-600 transition-colors duration-300">{testimonial.name}</div>
+                        <div className="text-slate-500 text-sm font-medium">{testimonial.role}</div>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Quote decoration */}
+                  <div className="absolute top-4 right-4 text-6xl text-emerald-200 font-serif opacity-50 group-hover:opacity-70 transition-opacity duration-300">"</div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* Enhanced CTA Section */}
+      <section className="section-padding bg-gradient-to-br from-emerald-600 via-teal-600 to-cyan-600 relative overflow-hidden">
+        {/* Animated Background Elements */}
+        <div className="absolute inset-0">
+          <div className="absolute top-20 left-20 w-96 h-96 bg-white/10 rounded-full blur-3xl animate-float" />
+          <div className="absolute bottom-20 right-20 w-80 h-80 bg-emerald-300/20 rounded-full blur-3xl animate-float" style={{ animationDelay: '2s' }} />
+          <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-64 h-64 bg-teal-300/15 rounded-full blur-3xl animate-pulse-slow" />
+        </div>
+
+        {/* Floating Icons */}
+        <div className="absolute top-32 left-32 animate-bounce-slow">
+          <Sparkles className="w-8 h-8 text-white/30" />
+        </div>
+        <div className="absolute bottom-32 right-32 animate-float" style={{ animationDelay: '1s' }}>
+          <Heart className="w-6 h-6 text-white/40" />
+        </div>
+        <div className="absolute top-1/3 right-1/4 animate-pulse-slow">
+          <Gift className="w-7 h-7 text-white/35" />
+        </div>
+
+        <div className="container-custom relative z-10 text-center">
+          <div className="max-w-4xl mx-auto">
+            <div className="inline-flex items-center px-6 py-3 bg-white/20 backdrop-blur-sm text-white rounded-full text-sm font-semibold mb-8">
+              <TrendingUp className="w-4 h-4 mr-2" />
+              Join the Wellness Revolution
+            </div>
+
+            <h2 className="text-4xl md:text-5xl lg:text-6xl font-playfair font-bold text-white mb-8 leading-tight">
+              Ready to Transform
+              <span className="block text-emerald-100">Your Wellness Journey?</span>
+            </h2>
+
+            <p className="text-xl md:text-2xl text-emerald-100 mb-12 max-w-3xl mx-auto leading-relaxed">
+              Join thousands who have discovered the power of premium herbal products.
+              Start your natural healing journey today with science-backed solutions.
+            </p>
+
+            <div className="flex flex-col sm:flex-row gap-6 justify-center items-center mb-12">
+              <Link
+                to={user ? "/herbs" : "/signup"}
+                className="group bg-white hover:bg-emerald-50 text-emerald-600 font-bold px-10 py-5 rounded-2xl shadow-2xl hover:shadow-3xl transform hover:-translate-y-1 hover:scale-105 transition-all duration-300 flex items-center space-x-3"
+              >
+                <span>Get Started Now</span>
+                <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform duration-300" />
+              </Link>
+              <Link
+                to="/hospital-discovery"
+                className="group bg-transparent hover:bg-white/10 text-white font-bold px-10 py-5 rounded-2xl border-2 border-white/40 hover:border-white/60 backdrop-blur-sm transition-all duration-300 flex items-center space-x-3 hover:scale-105"
+              >
+                <Globe className="w-5 h-5 group-hover:rotate-12 transition-transform duration-300" />
+                <span>Find Hospitals</span>
+              </Link>
+            </div>
+
+            {/* Trust Indicators */}
+            <div className="flex flex-col sm:flex-row items-center justify-center space-y-4 sm:space-y-0 sm:space-x-8 text-white/80">
+              <div className="flex items-center space-x-2">
+                <Shield className="w-5 h-5" />
+                <span className="text-sm font-medium">100% Secure</span>
+              </div>
+              <div className="flex items-center space-x-2">
+                <Truck className="w-5 h-5" />
+                <span className="text-sm font-medium">Free Shipping</span>
+              </div>
+              <div className="flex items-center space-x-2">
+                <Award className="w-5 h-5" />
+                <span className="text-sm font-medium">Money Back Guarantee</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+    </div>
   );
 }
 
