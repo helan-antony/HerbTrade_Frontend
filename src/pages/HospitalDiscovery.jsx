@@ -1,13 +1,14 @@
-import { 
+import {
   Box, Typography, Grid, Card, CardContent, Button, TextField,
   Dialog, DialogTitle, DialogContent, DialogActions, IconButton,
   Chip, Rating, List, ListItem, ListItemText, Divider, Tab, Tabs,
-  FormControl, InputLabel, Select, MenuItem, CircularProgress
+  FormControl, InputLabel, Select, MenuItem, CircularProgress,
+  Alert, Skeleton
 } from "@mui/material";
-import { 
-  FaMapMarkerAlt, FaUserMd, FaPhone, FaEnvelope, FaGlobe, 
+import {
+  FaMapMarkerAlt, FaUserMd, FaPhone, FaEnvelope, FaGlobe,
   FaClock, FaStar, FaDirections, FaSearch, FaTimes, FaHospital,
-  FaStethoscope, FaLeaf, FaFilter
+  FaStethoscope, FaLeaf, FaFilter, FaCalendarCheck, FaInfoCircle
 } from "react-icons/fa";
 import { useState, useEffect } from "react";
 import axios from "axios";
@@ -51,18 +52,40 @@ function HospitalDiscovery() {
   const fetchHospitals = async () => {
     try {
       setLoading(true);
+      console.log('Fetching hospitals from API...');
+
+      // Use the correct hospitals endpoint
       const response = await axios.get('http://localhost:5000/api/hospitals');
-      setHospitals(response.data);
-      setFilteredHospitals(response.data);
-      
+      console.log('Hospitals response:', response.data);
+
+      const hospitalsData = Array.isArray(response.data) ? response.data : [];
+      setHospitals(hospitalsData);
+      setFilteredHospitals(hospitalsData);
+
       // Extract unique specialties and cities
-      const uniqueSpecialties = [...new Set(response.data.flatMap(h => h.specialties))];
-      const uniqueCities = [...new Set(response.data.map(h => h.city))];
+      const uniqueSpecialties = [...new Set(hospitalsData.flatMap(h => h.specialties || []))];
+      const uniqueCities = [...new Set(hospitalsData.map(h => h.city).filter(Boolean))];
       setSpecialties(uniqueSpecialties);
       setCities(uniqueCities);
+
+      if (hospitalsData.length > 0) {
+        toast.success(`Found ${hospitalsData.length} hospitals`);
+      } else {
+        toast.info('No hospitals found. Please run the seed script to add sample hospitals.');
+        console.log('No hospitals found. You may need to seed the database.');
+      }
     } catch (error) {
       console.error('Error fetching hospitals:', error);
-      toast.error('Failed to load hospitals');
+      if (error.response) {
+        console.error('Error response:', error.response.data);
+        toast.error(`Failed to load hospitals: ${error.response.data.error || error.message}`);
+      } else if (error.request) {
+        console.error('No response received:', error.request);
+        toast.error('Cannot connect to server. Please check if the backend is running on port 5000.');
+      } else {
+        console.error('Error setting up request:', error.message);
+        toast.error(`Request error: ${error.message}`);
+      }
     } finally {
       setLoading(false);
     }
@@ -91,21 +114,21 @@ function HospitalDiscovery() {
     // Search query filter
     if (searchQuery) {
       filtered = filtered.filter(hospital =>
-        hospital.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        hospital.specialties.some(spec =>
+        (hospital.name || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
+        (hospital.specialties || []).some(spec =>
           spec.toLowerCase().includes(searchQuery.toLowerCase())
         ) ||
-        hospital.doctors.some(doc =>
-          doc.name.toLowerCase().includes(searchQuery.toLowerCase())
+        (hospital.doctors || []).some(doc =>
+          (doc.name || '').toLowerCase().includes(searchQuery.toLowerCase())
         ) ||
-        hospital.address.toLowerCase().includes(searchQuery.toLowerCase())
+        (hospital.address || '').toLowerCase().includes(searchQuery.toLowerCase())
       );
     }
 
     // Specialty filter
     if (selectedSpecialty) {
       filtered = filtered.filter(hospital =>
-        hospital.specialties.includes(selectedSpecialty)
+        (hospital.specialties || []).includes(selectedSpecialty)
       );
     }
 
@@ -172,7 +195,7 @@ function HospitalDiscovery() {
       }
 
       // Validate required fields
-      if (!appointmentData.date || !appointmentData.time || !appointmentData.reason || 
+      if (!appointmentData.date || !appointmentData.time || !appointmentData.reason ||
           !appointmentData.patientName || !appointmentData.patientPhone || !appointmentData.patientEmail) {
         toast.error('Please fill in all required fields');
         return;
@@ -199,7 +222,18 @@ function HospitalDiscovery() {
       if (response.status === 201) {
         toast.success('Appointment booked successfully!');
         closeAppointmentDialog();
-        
+
+        // Dispatch event for admin notification
+        window.dispatchEvent(new CustomEvent('newAppointmentBooked', {
+          detail: {
+            patientName: appointmentData.patientName,
+            doctorName: selectedDoctor.name,
+            hospitalName: selectedDoctor.hospital.name,
+            date: appointmentData.date,
+            time: appointmentData.time
+          }
+        }));
+
         // Reset form
         setAppointmentData({
           date: '',
@@ -216,27 +250,88 @@ function HospitalDiscovery() {
     }
   };
 
+  // Handle directions functionality
+  const handleDirections = (hospital) => {
+    try {
+      const address = encodeURIComponent(`${hospital.address}, ${hospital.city}`);
+      const googleMapsUrl = `https://www.google.com/maps/search/?api=1&query=${address}`;
+      window.open(googleMapsUrl, '_blank');
+      toast.success('Opening directions in Google Maps...');
+    } catch (error) {
+      console.error('Error opening directions:', error);
+      toast.error('Failed to open directions');
+    }
+  };
+
+  // Handle call functionality
+  const handleCall = (hospital) => {
+    try {
+      if (hospital.phone) {
+        const phoneNumber = (hospital.phone || '').replace(/\s+/g, '').replace(/-/g, '');
+        window.location.href = `tel:${phoneNumber}`;
+        toast.success(`Calling ${hospital.name || 'Hospital'}...`);
+      } else {
+        toast.error('Phone number not available');
+      }
+    } catch (error) {
+      console.error('Error making call:', error);
+      toast.error('Failed to initiate call');
+    }
+  };
+
+  // Handle booking navigation
+  const handleBookAppointment = (hospital) => {
+    try {
+      const token = localStorage.getItem('token');
+      if (!token) {
+        toast.error('Please login to book appointments');
+        navigate('/login');
+        return;
+      }
+
+      // Navigate to hospital booking page
+      navigate(`/hospital-booking/${hospital._id}`);
+      toast.success('Redirecting to booking page...');
+    } catch (error) {
+      console.error('Error booking appointment:', error);
+      toast.error('Failed to navigate to booking page');
+    }
+  };
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50 pt-24 pb-12">
       <ToastContainer position="top-right" autoClose={3000} />
       
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         {/* Header */}
-        <div className="flex justify-between items-center mb-8">
-          <div className="space-y-2">
+        <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center mb-8 gap-6">
+          <div className="space-y-3">
             <h1 className="text-4xl md:text-5xl font-playfair font-bold text-slate-900 tracking-tight">
               Hospital Discovery
             </h1>
             <p className="text-lg text-slate-600 font-medium">
               🏥 Find trusted Ayurvedic hospitals near you
             </p>
+            <div className="flex items-center space-x-4 text-sm text-slate-500">
+              <span className="flex items-center space-x-1">
+                <FaInfoCircle className="text-blue-500" />
+                <span>Real-time availability</span>
+              </span>
+              <span className="flex items-center space-x-1">
+                <FaStethoscope className="text-green-500" />
+                <span>Verified doctors</span>
+              </span>
+            </div>
           </div>
-          <button
-            onClick={() => navigate('/profile')}
-            className="btn-primary text-sm px-6 py-3 hover:scale-105 transition-transform duration-300"
-          >
-            View My Appointments
-          </button>
+          <div className="flex flex-col sm:flex-row gap-3">
+            <button
+              onClick={() => navigate('/view-bookings')}
+              className="bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white font-semibold px-6 py-3 rounded-2xl shadow-lg hover:shadow-xl transition-all duration-300 flex items-center space-x-2"
+            >
+              <FaCalendarCheck />
+              <span>My Bookings</span>
+            </button>
+          </div>
         </div>
 
         {/* Search and Filters */}
@@ -334,22 +429,87 @@ function HospitalDiscovery() {
 
         {loading ? (
           <div className="flex justify-center items-center py-16">
-            <div className="text-center space-y-4">
-              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
-              <p className="text-lg text-slate-600 font-medium">Finding hospitals...</p>
+            <div className="text-center space-y-6">
+              <div className="relative">
+                <div className="animate-spin rounded-full h-16 w-16 border-4 border-blue-200 border-t-blue-600 mx-auto"></div>
+                <div className="absolute inset-0 rounded-full bg-gradient-to-r from-blue-400 to-blue-600 opacity-20 animate-pulse"></div>
+              </div>
+              <div className="space-y-2">
+                <p className="text-xl font-semibold text-slate-700">Finding hospitals...</p>
+                <p className="text-slate-500">Searching for the best Ayurvedic care near you</p>
+              </div>
+              {/* Loading skeleton cards */}
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mt-8">
+                {[1, 2, 3].map((i) => (
+                  <div key={i} className="bg-white/80 backdrop-blur-sm rounded-3xl shadow-xl border border-white/50 p-6">
+                    <div className="flex items-start mb-4">
+                      <Skeleton variant="circular" width={56} height={56} className="mr-4" />
+                      <div className="flex-1">
+                        <Skeleton variant="text" width="80%" height={32} />
+                        <Skeleton variant="text" width="60%" height={24} />
+                      </div>
+                    </div>
+                    <Skeleton variant="text" width="100%" height={20} className="mb-2" />
+                    <Skeleton variant="text" width="70%" height={20} className="mb-4" />
+                    <div className="flex space-x-2 mb-4">
+                      <Skeleton variant="rounded" width={80} height={24} />
+                      <Skeleton variant="rounded" width={100} height={24} />
+                    </div>
+                    <Skeleton variant="rounded" width="100%" height={48} />
+                  </div>
+                ))}
+              </div>
             </div>
           </div>
         ) : (
           <>
             {/* Results Summary */}
-            <div className="mb-8 flex justify-between items-center">
-              <h2 className="text-2xl font-playfair font-bold text-slate-900">
-                Found {filteredHospitals.length} hospitals
-              </h2>
-              {userLocation && (
-                <div className="flex items-center space-x-2 px-4 py-2 bg-green-100 text-green-700 rounded-full border border-green-200">
-                  <FaMapMarkerAlt className="text-sm" />
-                  <span className="text-sm font-medium">Location enabled</span>
+            <div className="mb-8">
+              <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+                <div className="space-y-2">
+                  <h2 className="text-2xl font-playfair font-bold text-slate-900">
+                    Found {filteredHospitals.length} hospital{filteredHospitals.length !== 1 ? 's' : ''}
+                  </h2>
+                  {filteredHospitals.length > 0 && (
+                    <p className="text-slate-600">
+                      Showing results {searchQuery || selectedSpecialty || selectedCity || pincode ? 'for your search' : 'in your area'}
+                    </p>
+                  )}
+                </div>
+                <div className="flex items-center space-x-3">
+                  {userLocation && (
+                    <div className="flex items-center space-x-2 px-4 py-2 bg-green-100 text-green-700 rounded-full border border-green-200">
+                      <FaMapMarkerAlt className="text-sm" />
+                      <span className="text-sm font-medium">Location enabled</span>
+                    </div>
+                  )}
+                  {filteredHospitals.length !== hospitals.length && (
+                    <div className="flex items-center space-x-2 px-4 py-2 bg-blue-100 text-blue-700 rounded-full border border-blue-200">
+                      <FaFilter className="text-sm" />
+                      <span className="text-sm font-medium">Filtered results</span>
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {filteredHospitals.length === 0 && !loading && (
+                <div className="text-center py-16">
+                  <div className="w-32 h-32 bg-gradient-to-br from-slate-100 to-slate-200 rounded-full flex items-center justify-center mx-auto mb-6 shadow-inner">
+                    <FaHospital className="text-4xl text-slate-400" />
+                  </div>
+                  <h3 className="text-2xl font-semibold text-slate-700 mb-2">No hospitals found</h3>
+                  <p className="text-slate-500 mb-6">Try adjusting your search criteria or clearing filters</p>
+                  <button
+                    onClick={() => {
+                      setSearchQuery("");
+                      setSelectedSpecialty("");
+                      setSelectedCity("");
+                      setPincode("");
+                    }}
+                    className="bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white font-semibold px-6 py-3 rounded-2xl shadow-lg hover:shadow-xl transition-all duration-300"
+                  >
+                    Clear All Filters
+                  </button>
                 </div>
               )}
             </div>
@@ -402,7 +562,7 @@ function HospitalDiscovery() {
                         Specialties:
                       </h4>
                       <div className="flex flex-wrap gap-2">
-                        {hospital.specialties.slice(0, 3).map(specialty => (
+                        {(hospital.specialties || []).slice(0, 3).map(specialty => (
                           <span
                             key={specialty}
                             className="px-3 py-1 bg-blue-100 text-blue-700 text-xs font-medium rounded-full border border-blue-200 flex items-center space-x-1"
@@ -411,9 +571,9 @@ function HospitalDiscovery() {
                             <span>{specialty}</span>
                           </span>
                         ))}
-                        {hospital.specialties.length > 3 && (
+                        {(hospital.specialties || []).length > 3 && (
                           <span className="px-3 py-1 bg-slate-100 text-slate-600 text-xs font-medium rounded-full border border-slate-200">
-                            +{hospital.specialties.length - 3} more
+                            +{(hospital.specialties || []).length - 3} more
                           </span>
                         )}
                       </div>
@@ -425,54 +585,110 @@ function HospitalDiscovery() {
                         Doctors:
                       </h4>
                       <div className="space-y-2">
-                        {hospital.doctors.slice(0, 2).map(doctor => (
+                        {(hospital.doctors || []).slice(0, 2).map(doctor => (
                           <div key={doctor.name} className="flex items-center text-sm text-slate-600">
                             <FaUserMd className="text-blue-600 mr-3" />
                             <span>{doctor.name} - {doctor.specialty}</span>
                           </div>
                         ))}
-                        {hospital.doctors.length > 2 && (
+                        {(hospital.doctors || []).length > 2 && (
                           <div className="text-xs text-slate-500">
-                            +{hospital.doctors.length - 2} more doctors
+                            +{(hospital.doctors || []).length - 2} more doctors
+                          </div>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Hospital Contact Info */}
+                    <div className="mb-4 p-3 bg-slate-50 rounded-lg border border-slate-200">
+                      <div className="grid grid-cols-1 gap-2 text-sm">
+                        {hospital.phone && (
+                          <div className="flex items-center text-slate-600">
+                            <FaPhone className="text-blue-500 mr-3 text-xs" />
+                            <span>{hospital.phone}</span>
+                          </div>
+                        )}
+                        {hospital.email && (
+                          <div className="flex items-center text-slate-600">
+                            <FaEnvelope className="text-blue-500 mr-3 text-xs" />
+                            <span className="truncate">{hospital.email}</span>
                           </div>
                         )}
                       </div>
                     </div>
 
                     {/* Action Buttons */}
-                    <div className="mt-auto space-y-3">
+                    <div className="mt-auto space-y-3 relative z-20">
+                      {/* Primary Action - View Details */}
                       <button
-                        onClick={() => openHospitalDialog(hospital)}
-                        className="w-full btn-primary text-sm py-3"
+                        onClick={(e) => {
+                          e.preventDefault();
+                          e.stopPropagation();
+                          openHospitalDialog(hospital);
+                        }}
+                        className="w-full bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white font-semibold py-3 px-4 rounded-xl transition-all duration-300 hover:shadow-lg transform hover:scale-105 cursor-pointer relative z-30 flex items-center justify-center space-x-2"
+                        type="button"
+                        style={{ pointerEvents: 'auto' }}
                       >
-                        View Details
+                        <FaInfoCircle className="text-sm" />
+                        <span>View Details</span>
                       </button>
 
-                      <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
-                        {hospital.doctors && hospital.doctors.length > 0 && (
-                          <button
-                            onClick={() => openAppointmentDialog(hospital.doctors[0], hospital)}
-                            className="flex items-center justify-center space-x-2 px-3 py-2 bg-green-100 hover:bg-green-200 text-green-700 font-semibold rounded-xl transition-all duration-300 text-xs"
-                          >
-                            <FaStethoscope className="text-xs" />
-                            <span>Book</span>
-                          </button>
-                        )}
+                      {/* Secondary Actions */}
+                      <div className="grid grid-cols-3 gap-2">
+                        <button
+                          onClick={(e) => {
+                            e.preventDefault();
+                            e.stopPropagation();
+                            if (hospital.doctors && hospital.doctors.length > 0) {
+                              handleBookAppointment(hospital);
+                            } else {
+                              // Show a message or redirect to general booking
+                              toast.info('General booking available - Contact hospital directly');
+                              handleCall(hospital);
+                            }
+                          }}
+                          className="flex items-center justify-center space-x-1 px-3 py-2.5 bg-gradient-to-r from-emerald-500 to-emerald-600 hover:from-emerald-600 hover:to-emerald-700 text-white font-semibold rounded-lg transition-all duration-300 text-xs hover:shadow-lg transform hover:scale-105 cursor-pointer relative z-30 shadow-md"
+                          type="button"
+                          style={{ pointerEvents: 'auto' }}
+                        >
+                          <FaStethoscope className="text-xs" />
+                          <span>Book</span>
+                        </button>
 
                         <button
-                          className="flex items-center justify-center space-x-2 px-3 py-2 bg-blue-100 hover:bg-blue-200 text-blue-700 font-semibold rounded-xl transition-all duration-300 text-xs"
+                          onClick={(e) => {
+                            e.preventDefault();
+                            e.stopPropagation();
+                            handleDirections(hospital);
+                          }}
+                          className="flex items-center justify-center space-x-1 px-3 py-2.5 bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white font-semibold rounded-lg transition-all duration-300 text-xs hover:shadow-lg transform hover:scale-105 cursor-pointer relative z-30"
+                          type="button"
+                          style={{ pointerEvents: 'auto' }}
                         >
                           <FaDirections className="text-xs" />
                           <span>Directions</span>
                         </button>
 
-                        {hospital.phone && (
+                        {hospital.phone ? (
                           <button
-                            className="flex items-center justify-center space-x-2 px-3 py-2 bg-purple-100 hover:bg-purple-200 text-purple-700 font-semibold rounded-xl transition-all duration-300 text-xs"
+                            onClick={(e) => {
+                              e.preventDefault();
+                              e.stopPropagation();
+                              handleCall(hospital);
+                            }}
+                            className="flex items-center justify-center space-x-1 px-3 py-2.5 bg-gradient-to-r from-purple-600 to-purple-700 hover:from-purple-700 hover:to-purple-800 text-white font-semibold rounded-lg transition-all duration-300 text-xs hover:shadow-lg transform hover:scale-105 cursor-pointer relative z-30 shadow-md"
+                            type="button"
+                            style={{ pointerEvents: 'auto' }}
                           >
                             <FaPhone className="text-xs" />
                             <span>Call</span>
                           </button>
+                        ) : (
+                          <div className="flex items-center justify-center px-3 py-2.5 bg-gradient-to-r from-slate-300 to-slate-400 text-slate-600 font-medium rounded-lg text-xs cursor-not-allowed shadow-sm">
+                            <FaPhone className="text-xs mr-1" />
+                            <span>Call</span>
+                          </div>
                         )}
                       </div>
                     </div>
@@ -484,6 +700,7 @@ function HospitalDiscovery() {
         )}
       </div>
 
+
       {hospitalDialog && selectedHospital && (
         <Dialog
           open={hospitalDialog}
@@ -492,100 +709,156 @@ function HospitalDiscovery() {
           fullWidth
           sx={{
             '& .MuiDialog-paper': {
-              borderRadius: '24px',
-              background: 'linear-gradient(135deg, #ffffff 0%, #f8fafc 100%)',
-              backdropFilter: 'blur(20px)',
-              border: '1px solid rgba(255, 255, 255, 0.2)',
-              boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25)',
+              borderRadius: '16px',
               maxHeight: '90vh'
             }
           }}
         >
-          <div className="bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600 text-white p-8">
-            <div className="flex justify-between items-start">
-              <div>
-                <h2 className="text-3xl font-playfair font-bold mb-3">
-                  {selectedHospital.name}
-                </h2>
-                <div className="flex items-center space-x-4">
-                  <div className="flex items-center">
-                    {[...Array(5)].map((_, i) => (
-                      <FaStar
-                        key={i}
-                        className={`text-lg ${i < (selectedHospital.rating || 0) ? 'text-yellow-300' : 'text-white/30'}`}
-                      />
-                    ))}
-                  </div>
-                  <span className="text-white/90">
-                    ({selectedHospital.rating}/5)
-                  </span>
-                  {selectedHospital.isVerified && (
-                    <span className="px-3 py-1 bg-white/20 backdrop-blur-sm text-white text-sm font-semibold rounded-full border border-white/30">
-                      ✓ Verified
-                    </span>
-                  )}
-                </div>
-              </div>
-              <button
-                onClick={closeHospitalDialog}
-                className="p-2 rounded-full hover:bg-white/20 transition-colors duration-200"
-              >
-                <FaTimes className="text-white" />
-              </button>
+          <DialogTitle sx={{
+            background: 'linear-gradient(135deg, #2563eb 0%, #7c3aed 100%)',
+            color: 'white',
+            fontSize: '1.5rem',
+            fontWeight: 'bold'
+          }}>
+            <div className="flex justify-between items-center">
+              <span>{selectedHospital.name}</span>
+              <IconButton onClick={closeHospitalDialog} sx={{ color: 'white' }}>
+                <FaTimes />
+              </IconButton>
             </div>
-          </div>
+          </DialogTitle>
 
-          <DialogContent sx={{ p: 3 }}>
-            <div className="space-y-6">
-              <div>
-                <h3 className="text-xl font-bold text-slate-900 mb-4">Contact Information</h3>
-                <div className="space-y-3">
-                  <div className="flex items-center">
-                    <FaMapMarkerAlt className="text-blue-600 mr-3" />
-                    <span>{selectedHospital.address}, {selectedHospital.city}</span>
+          <DialogContent sx={{ p: 0 }}>
+            <div className="space-y-0">
+              {/* Hospital Info Header */}
+              <div className="p-6 bg-gradient-to-r from-blue-50 to-indigo-50 border-b border-slate-200">
+                <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                  {/* Contact Information */}
+                  <div className="lg:col-span-2 space-y-4">
+                    <h3 className="text-xl font-bold text-slate-900 mb-4 flex items-center">
+                      <FaHospital className="text-blue-600 mr-3" />
+                      Hospital Information
+                    </h3>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div className="space-y-3">
+                        <div className="flex items-start p-3 bg-white rounded-lg border border-slate-200 shadow-sm">
+                          <FaMapMarkerAlt className="text-blue-600 mr-3 mt-1 flex-shrink-0" />
+                          <div>
+                            <p className="font-medium text-slate-900">Address</p>
+                            <p className="text-slate-600 text-sm">{selectedHospital.address}</p>
+                            <p className="text-slate-600 text-sm">{selectedHospital.city}</p>
+                          </div>
+                        </div>
+                        {selectedHospital.phone && (
+                          <div className="flex items-center p-3 bg-white rounded-lg border border-slate-200 shadow-sm">
+                            <FaPhone className="text-blue-600 mr-3 flex-shrink-0" />
+                            <div>
+                              <p className="font-medium text-slate-900">Phone</p>
+                              <p className="text-slate-600 text-sm">{selectedHospital.phone}</p>
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                      <div className="space-y-3">
+                        {selectedHospital.email && (
+                          <div className="flex items-center p-3 bg-white rounded-lg border border-slate-200 shadow-sm">
+                            <FaEnvelope className="text-blue-600 mr-3 flex-shrink-0" />
+                            <div>
+                              <p className="font-medium text-slate-900">Email</p>
+                              <p className="text-slate-600 text-sm break-all">{selectedHospital.email}</p>
+                            </div>
+                          </div>
+                        )}
+                        {selectedHospital.website && (
+                          <div className="flex items-center p-3 bg-white rounded-lg border border-slate-200 shadow-sm">
+                            <FaGlobe className="text-blue-600 mr-3 flex-shrink-0" />
+                            <div>
+                              <p className="font-medium text-slate-900">Website</p>
+                              <p className="text-slate-600 text-sm break-all">{selectedHospital.website}</p>
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    </div>
                   </div>
-                  {selectedHospital.phone && (
-                    <div className="flex items-center">
-                      <FaPhone className="text-blue-600 mr-3" />
-                      <span>{selectedHospital.phone}</span>
+
+                  {/* Rating and Verification */}
+                  <div className="flex flex-col items-center justify-center p-6 bg-white rounded-xl border border-slate-200 shadow-sm">
+                    <div className="text-center">
+                      <div className="flex items-center justify-center mb-3">
+                        {[...Array(5)].map((_, i) => (
+                          <FaStar
+                            key={i}
+                            className={`text-2xl ${i < (selectedHospital.rating || 0) ? 'text-yellow-400' : 'text-slate-300'}`}
+                          />
+                        ))}
+                      </div>
+                      <p className="text-2xl font-bold text-slate-900 mb-1">
+                        {selectedHospital.rating}/5
+                      </p>
+                      <p className="text-slate-600 text-sm mb-4">Patient Rating</p>
+                      {selectedHospital.isVerified && (
+                        <div className="inline-flex items-center px-4 py-2 bg-green-100 text-green-700 text-sm font-semibold rounded-full border border-green-200">
+                          <FaStethoscope className="mr-2" />
+                          Verified Hospital
+                        </div>
+                      )}
                     </div>
-                  )}
-                  {selectedHospital.email && (
-                    <div className="flex items-center">
-                      <FaEnvelope className="text-blue-600 mr-3" />
-                      <span>{selectedHospital.email}</span>
-                    </div>
-                  )}
+                  </div>
                 </div>
               </div>
 
-              <div>
-                <h3 className="text-xl font-bold text-slate-900 mb-4">Specialties</h3>
-                <div className="flex flex-wrap gap-2">
-                  {selectedHospital.specialties.map(specialty => (
-                    <span
+              {/* Specialties */}
+              <div className="p-6 border-b border-slate-200">
+                <h3 className="text-xl font-bold text-slate-900 mb-4 flex items-center">
+                  <FaLeaf className="text-emerald-600 mr-3" />
+                  Medical Specialties
+                </h3>
+                <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
+                  {selectedHospital.specialties?.map(specialty => (
+                    <div
                       key={specialty}
-                      className="px-3 py-1 bg-blue-100 text-blue-700 text-sm font-medium rounded-full border border-blue-200"
+                      className="flex items-center p-3 bg-gradient-to-r from-blue-50 to-indigo-50 rounded-lg border border-blue-200 hover:shadow-md transition-shadow duration-200"
                     >
-                      {specialty}
-                    </span>
+                      <FaStethoscope className="text-blue-600 mr-2 text-sm" />
+                      <span className="text-blue-800 text-sm font-medium">{specialty}</span>
+                    </div>
                   ))}
                 </div>
               </div>
 
-              <div>
-                <h3 className="text-xl font-bold text-slate-900 mb-4">Medical Team</h3>
+              {/* Doctors */}
+              <div className="p-6">
+                <h3 className="text-xl font-bold text-slate-900 mb-4 flex items-center">
+                  <FaUserMd className="text-purple-600 mr-3" />
+                  Medical Team
+                </h3>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  {selectedHospital.doctors.map((doctor, index) => (
-                    <div key={index} className="p-4 bg-slate-50 rounded-xl border border-slate-200">
-                      <div className="flex items-center mb-2">
-                        <FaUserMd className="text-blue-600 mr-3" />
-                        <span className="font-semibold">{doctor.name}</span>
+                  {selectedHospital.doctors?.map((doctor, index) => (
+                    <div key={index} className="p-4 bg-white rounded-xl border border-slate-200 shadow-sm hover:shadow-md transition-shadow duration-200">
+                      <div className="flex items-start">
+                        <div className="p-3 bg-purple-100 rounded-full mr-4">
+                          <FaUserMd className="text-purple-600 text-lg" />
+                        </div>
+                        <div className="flex-1">
+                          <h4 className="font-semibold text-slate-900 mb-1">{doctor.name}</h4>
+                          <p className="text-purple-600 text-sm font-medium mb-2">{doctor.specialty}</p>
+                          {doctor.experience && (
+                            <div className="flex items-center text-slate-500 text-xs">
+                              <FaClock className="mr-1" />
+                              <span>{doctor.experience} years experience</span>
+                            </div>
+                          )}
+                          <div className="mt-3 flex items-center space-x-2">
+                            <button
+                              onClick={() => openAppointmentDialog(doctor, selectedHospital)}
+                              className="px-3 py-1.5 bg-gradient-to-r from-emerald-600 to-emerald-700 hover:from-emerald-700 hover:to-emerald-800 text-white text-xs font-medium rounded-lg transition-all duration-200 hover:shadow-md"
+                            >
+                              Book Appointment
+                            </button>
+                          </div>
+                        </div>
                       </div>
-                      <p className="text-slate-600 text-sm">{doctor.specialty}</p>
-                      {doctor.experience && (
-                        <p className="text-slate-500 text-xs mt-1">Experience: {doctor.experience} years</p>
-                      )}
                     </div>
                   ))}
                 </div>
@@ -593,34 +866,77 @@ function HospitalDiscovery() {
             </div>
           </DialogContent>
 
-          <DialogActions sx={{ p: 3, bgcolor: '#f8f9fa' }}>
-            <Button
-              variant="outlined"
-              startIcon={<FaDirections />}
-              sx={{
-                color: '#3b82f6',
-                borderColor: '#3b82f6',
-                '&:hover': { bgcolor: '#eff6ff' }
-              }}
-            >
-              Get Directions
-            </Button>
-
-            {selectedHospital.phone && (
+          <DialogActions sx={{ p: 4, bgcolor: 'linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%)', borderTop: '1px solid #e2e8f0' }}>
+            <div className="flex flex-wrap gap-3 w-full justify-center">
               <Button
-                variant="contained"
-                startIcon={<FaPhone />}
+                variant="outlined"
+                startIcon={<FaDirections />}
+                onClick={() => handleDirections(selectedHospital)}
                 sx={{
-                  bgcolor: '#059669',
-                  '&:hover': { bgcolor: '#047857' }
+                  color: '#3b82f6',
+                  borderColor: '#3b82f6',
+                  borderRadius: '12px',
+                  px: 3,
+                  py: 1.5,
+                  fontWeight: 600,
+                  '&:hover': {
+                    bgcolor: '#eff6ff',
+                    borderColor: '#2563eb',
+                    transform: 'translateY(-1px)',
+                    boxShadow: '0 4px 12px rgba(59, 130, 246, 0.15)'
+                  }
                 }}
               >
-                Call Hospital
+                Get Directions
               </Button>
-            )}
+
+              {selectedHospital.phone && (
+                <Button
+                  variant="contained"
+                  startIcon={<FaPhone />}
+                  onClick={() => handleCall(selectedHospital)}
+                  sx={{
+                    bgcolor: '#059669',
+                    borderRadius: '12px',
+                    px: 3,
+                    py: 1.5,
+                    fontWeight: 600,
+                    '&:hover': {
+                      bgcolor: '#047857',
+                      transform: 'translateY(-1px)',
+                      boxShadow: '0 4px 12px rgba(5, 150, 105, 0.25)'
+                    }
+                  }}
+                >
+                  Call Hospital
+                </Button>
+              )}
+
+              <Button
+                variant="contained"
+                startIcon={<FaStethoscope />}
+                onClick={() => handleBookAppointment(selectedHospital)}
+                sx={{
+                  bgcolor: '#2563eb',
+                  borderRadius: '12px',
+                  px: 4,
+                  py: 1.5,
+                  fontWeight: 600,
+                  fontSize: '0.95rem',
+                  '&:hover': {
+                    bgcolor: '#1d4ed8',
+                    transform: 'translateY(-1px)',
+                    boxShadow: '0 4px 12px rgba(37, 99, 235, 0.25)'
+                  }
+                }}
+              >
+                Book Appointment
+              </Button>
+            </div>
           </DialogActions>
         </Dialog>
       )}
+
 
       {appointmentDialog && selectedDoctor && (
         <Dialog
@@ -719,13 +1035,13 @@ function HospitalDiscovery() {
                 />
               </div>
 
-              <div className="p-4 bg-yellow-50 rounded-xl border border-yellow-200">
-                <p className="text-sm text-yellow-800 font-semibold mb-2">
-                  ⚠️ Demo System Notice:
+              <div className="p-4 bg-green-50 rounded-xl border border-green-200">
+                <p className="text-sm text-green-800 font-semibold mb-2">
+                  ✅ Secure Booking System:
                 </p>
                 <p className="text-sm text-slate-600">
-                  This is a demonstration system. No real appointment will be booked with the hospital.
-                  In a real implementation, the hospital would be notified automatically.
+                  Your appointment will be confirmed and the hospital will be notified automatically.
+                  You'll receive a confirmation email with all the details.
                 </p>
               </div>
             </div>
@@ -745,6 +1061,7 @@ function HospitalDiscovery() {
             </Button>
             <Button
               variant="contained"
+              onClick={handleAppointmentSubmit}
               sx={{
                 bgcolor: '#059669',
                 '&:hover': { bgcolor: '#047857' }

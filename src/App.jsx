@@ -8,11 +8,13 @@ import HerbCatalog from "./pages/HerbCatalog";
 import UploadHerb from "./pages/UploadHerb";
 import HospitalDiscovery from "./pages/HospitalDiscovery";
 import Blog from "./pages/Blog";
+import Discussion from "./pages/Discussion";
 import Cart from "./pages/Cart";
 import Wishlist from "./pages/Wishlist";
 import EnhancedWishlist from "./pages/EnhancedWishlist";
 import EnhancedCart from "./pages/EnhancedCart";
 import HospitalBooking from "./pages/HospitalBooking";
+import ViewBookings from "./pages/ViewBookings";
 import EnhancedAdminDashboard from "./pages/EnhancedAdminDashboard";
 import Navbar from "./components/Navbar";
 import Footer from "./components/Footer";
@@ -75,7 +77,9 @@ function App() {
             <Route path="/hospitals" element={<ProtectedRoute><HospitalDiscovery /></ProtectedRoute>} />
             <Route path="/hospital-discovery" element={<ProtectedRoute><HospitalDiscovery /></ProtectedRoute>} />
             <Route path="/hospital-booking/:hospitalId" element={<ProtectedRoute><HospitalBooking /></ProtectedRoute>} />
+            <Route path="/view-bookings" element={<ProtectedRoute><ViewBookings /></ProtectedRoute>} />
             <Route path="/blog" element={<ProtectedRoute><Blog /></ProtectedRoute>} />
+            <Route path="/discussion" element={<ProtectedRoute><Discussion /></ProtectedRoute>} />
             <Route path="/cart" element={<ProtectedRoute><EnhancedCart /></ProtectedRoute>} />
             <Route path="/wishlist" element={<ProtectedRoute><EnhancedWishlist /></ProtectedRoute>} />
             <Route path="/logout" element={<ProtectedRoute><Logout /></ProtectedRoute>} />

@@ -11,6 +11,7 @@ import 'react-toastify/dist/ReactToastify.css';
 function Blog() {
   const [title, setTitle] = useState("");
   const [content, setContent] = useState("");
+  const [showPreview, setShowPreview] = useState(false);
   const [posts, setPosts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -24,10 +25,22 @@ function Blog() {
   const [showCreateForm, setShowCreateForm] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
   const [filteredPosts, setFilteredPosts] = useState([]);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [commentCounts, setCommentCounts] = useState({});
+  const [viewCounts, setViewCounts] = useState({});
+  const [likeCounts, setLikeCounts] = useState({});
+  const [likedPosts, setLikedPosts] = useState(new Set());
 
   useEffect(() => {
     fetchPosts();
   }, []);
+
+  useEffect(() => {
+    if (posts.length > 0) {
+      fetchCommentCounts();
+      fetchPostStats();
+    }
+  }, [posts]);
 
   useEffect(() => {
     const filtered = posts.filter(post =>
@@ -61,23 +74,35 @@ function Blog() {
   };
 
   const handleSubmit = async () => {
+    console.log('Submitting blog post:', { title, content });
     setError("");
     setSuccess("");
+    setIsSubmitting(true);
+
     if (!title || !content) {
       setError("Title and content are required");
+      toast.error("Please fill in both title and content");
+      setIsSubmitting(false);
       return;
     }
+
     const user = JSON.parse(localStorage.getItem('user'));
     const author = user?.name || "Anonymous";
+
     try {
+      console.log('Sending request to backend...');
       const res = await fetch("http://localhost:5000/api/blog", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ title, content, author })
       });
+
       const data = await res.json();
+      console.log('Backend response:', data);
+
       if (data._id) {
         setPosts([data, ...posts]);
+        setFilteredPosts([data, ...filteredPosts]);
         setTitle("");
         setContent("");
         setShowCreateForm(false);
@@ -85,9 +110,14 @@ function Blog() {
         toast.success("Blog post published successfully!");
       } else {
         setError(data.error || "Failed to submit post");
+        toast.error(data.error || "Failed to submit post");
       }
-    } catch {
+    } catch (error) {
+      console.error('Error submitting post:', error);
       setError("Failed to submit post");
+      toast.error("Failed to submit post");
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -103,10 +133,12 @@ function Blog() {
         return;
       }
 
+      setIsSubmitting(true);
+
       const response = await axios.post(
         `http://localhost:5000/api/comments/blog/${selectedPost._id}`,
         {
-          content: newComment,
+          content: newComment.trim(),
           parentComment: replyTo
         },
         {
@@ -114,13 +146,25 @@ function Blog() {
         }
       );
 
+      // Refresh comments and counts
       await fetchComments(selectedPost._id);
+      await fetchCommentCounts();
+
       setNewComment("");
       setReplyTo(null);
-      toast.success("Comment added successfully!");
+
+      toast.success(replyTo ? "Reply added successfully!" : "Comment added successfully!");
     } catch (error) {
       console.error('Error adding comment:', error);
-      toast.error(error.response?.data?.error || 'Failed to add comment');
+      if (error.response?.status === 401) {
+        toast.error("Please login again to comment");
+        localStorage.removeItem('token');
+        localStorage.removeItem('user');
+      } else {
+        toast.error(error.response?.data?.error || 'Failed to add comment');
+      }
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -149,6 +193,193 @@ function Blog() {
     setSelectedPost(post);
     setCommentsDialog(true);
     fetchComments(post._id);
+  };
+
+  const handleShare = async (post) => {
+    try {
+      if (navigator.share) {
+        // Use native share API if available
+        await navigator.share({
+          title: post.title,
+          text: post.content.substring(0, 100) + '...',
+          url: window.location.href
+        });
+        toast.success('Post shared successfully!');
+      } else {
+        // Fallback: copy to clipboard
+        const shareText = `Check out this blog post: "${post.title}" - ${window.location.href}`;
+        await navigator.clipboard.writeText(shareText);
+        toast.success('Link copied to clipboard!');
+      }
+    } catch (error) {
+      console.error('Error sharing:', error);
+      // Fallback: copy to clipboard
+      try {
+        const shareText = `Check out this blog post: "${post.title}" - ${window.location.href}`;
+        await navigator.clipboard.writeText(shareText);
+        toast.success('Link copied to clipboard!');
+      } catch (clipboardError) {
+        toast.error('Unable to share. Please copy the URL manually.');
+      }
+    }
+  };
+
+  const handleViewPost = async (post) => {
+    try {
+      // Increment view count on server
+      const response = await fetch(`http://localhost:5000/api/blog/${post._id}/view`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        }
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        // Update local view count
+        setViewCounts(prev => ({
+          ...prev,
+          [post._id]: data.views
+        }));
+      }
+    } catch (error) {
+      console.error('Error updating view count:', error);
+    }
+
+    // Navigate to full post view or expand post
+    setSelectedPost(post);
+    setCommentsDialog(true);
+    fetchComments(post._id);
+    toast.info(`Viewing: ${post.title}`);
+  };
+
+  const fetchCommentCounts = async () => {
+    try {
+      const counts = {};
+      for (const post of posts) {
+        try {
+          const response = await fetch(`http://localhost:5000/api/comments/blog/${post._id}`);
+          if (response.ok) {
+            const comments = await response.json();
+            counts[post._id] = comments.length;
+          } else {
+            counts[post._id] = 0;
+          }
+        } catch (error) {
+          counts[post._id] = 0;
+        }
+      }
+      setCommentCounts(counts);
+    } catch (error) {
+      console.error('Error fetching comment counts:', error);
+    }
+  };
+
+  const fetchPostStats = async () => {
+    try {
+      const views = {};
+      const likes = {};
+      const userLikes = new Set();
+
+      for (const post of posts) {
+        try {
+          const response = await fetch(`http://localhost:5000/api/blog/${post._id}/stats`);
+          if (response.ok) {
+            const stats = await response.json();
+            views[post._id] = stats.views;
+            likes[post._id] = stats.likes;
+
+            // Check if current user liked this post
+            const token = localStorage.getItem('token');
+            if (token) {
+              const userResponse = await fetch('http://localhost:5000/api/auth/me', {
+                headers: { Authorization: `Bearer ${token}` }
+              });
+              if (userResponse.ok) {
+                const userData = await userResponse.json();
+                if (stats.likedBy && stats.likedBy.includes(userData._id)) {
+                  userLikes.add(post._id);
+                }
+              }
+            }
+          } else {
+            views[post._id] = 0;
+            likes[post._id] = 0;
+          }
+        } catch (error) {
+          views[post._id] = 0;
+          likes[post._id] = 0;
+        }
+      }
+
+      setViewCounts(views);
+      setLikeCounts(likes);
+      setLikedPosts(userLikes);
+    } catch (error) {
+      console.error('Error fetching post stats:', error);
+    }
+  };
+
+  const generateViewCounts = () => {
+    const counts = {};
+    const likes = {};
+    posts.forEach(post => {
+      // Generate a consistent view count based on post ID
+      const hash = post._id.split('').reduce((a, b) => {
+        a = ((a << 5) - a) + b.charCodeAt(0);
+        return a & a;
+      }, 0);
+      counts[post._id] = Math.abs(hash % 200) + 50; // 50-250 views
+      likes[post._id] = Math.abs(hash % 50) + 5; // 5-55 likes
+    });
+    setViewCounts(counts);
+    setLikeCounts(likes);
+  };
+
+  const handleLikePost = async (post) => {
+    try {
+      const token = localStorage.getItem('token');
+      if (!token) {
+        toast.error('Please login to like posts');
+        return;
+      }
+
+      const response = await fetch(`http://localhost:5000/api/blog/${post._id}/like`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        }
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+
+        // Update local state
+        if (data.liked) {
+          setLikedPosts(prev => new Set([...prev, post._id]));
+          toast.success('Post liked!');
+        } else {
+          setLikedPosts(prev => {
+            const newSet = new Set(prev);
+            newSet.delete(post._id);
+            return newSet;
+          });
+          toast.info('Removed like');
+        }
+
+        setLikeCounts(prev => ({
+          ...prev,
+          [post._id]: data.likes
+        }));
+      } else {
+        const errorData = await response.json();
+        toast.error(errorData.error || 'Failed to like post');
+      }
+    } catch (error) {
+      console.error('Error liking post:', error);
+      toast.error('Failed to like post');
+    }
   };
 
   const closeCommentsDialog = () => {
@@ -283,8 +514,11 @@ function Blog() {
             </div>
             
             <button
-              onClick={() => setShowCreateForm(!showCreateForm)}
-              className="bg-emerald-600 hover:bg-emerald-700 text-white px-6 py-3 rounded-lg font-medium transition-colors flex items-center gap-2"
+              onClick={() => {
+                console.log('Write Article button clicked');
+                setShowCreateForm(!showCreateForm);
+              }}
+              className="bg-emerald-600 hover:bg-emerald-700 text-white px-6 py-3 rounded-lg font-medium transition-colors flex items-center gap-2 shadow-lg hover:shadow-xl transform hover:scale-105"
             >
               <FaPlus />
               Write Article
@@ -296,59 +530,114 @@ function Blog() {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Create Post Form */}
         {showCreateForm && (
-          <div className="bg-white rounded-xl shadow-lg p-6 mb-8 border border-gray-200">
+          <div className="bg-white rounded-xl shadow-xl p-8 mb-8 border border-gray-200 animate-fade-in">
             <div className="flex items-center justify-between mb-6">
-              <h2 className="text-xl font-semibold text-gray-900 flex items-center gap-2">
-                <FaPenFancy className="text-emerald-600" />
+              <h2 className="text-2xl font-bold text-gray-900 flex items-center gap-3">
+                <div className="p-2 bg-emerald-100 rounded-lg">
+                  <FaPenFancy className="text-emerald-600 text-lg" />
+                </div>
                 Share Your Knowledge
               </h2>
               <button
                 onClick={() => setShowCreateForm(false)}
-                className="text-gray-400 hover:text-gray-600 transition-colors"
+                className="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg transition-all duration-200"
               >
-                <FaTimes />
+                <FaTimes className="text-lg" />
               </button>
             </div>
             
-            <div className="space-y-4">
-              <input
-                type="text"
-                placeholder="Article title..."
-                value={title}
-                onChange={(e) => setTitle(e.target.value)}
-                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none text-lg"
-              />
+            <div className="space-y-6">
+              <div className="space-y-2">
+                <label className="block text-sm font-medium text-gray-700">Article Title</label>
+                <input
+                  type="text"
+                  placeholder="Article title..."
+                  value={title}
+                  onChange={(e) => {
+                    if (e.target.value.length <= 100) {
+                      setTitle(e.target.value);
+                    }
+                  }}
+                  className="w-full px-4 py-4 border border-gray-300 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none text-lg font-medium placeholder-gray-400 transition-all duration-200 hover:border-gray-400"
+                />
+              </div>
+
+              <div className="space-y-2">
+                <label className="block text-sm font-medium text-gray-700">Content</label>
+                <textarea
+                  placeholder="Share your herbal knowledge, experiences, or recipes..."
+                  value={content}
+                  onChange={(e) => {
+                    if (e.target.value.length <= 5000) {
+                      setContent(e.target.value);
+                    }
+                  }}
+                  onKeyDown={(e) => {
+                    if (e.ctrlKey && e.key === 'Enter') {
+                      e.preventDefault();
+                      if (title.trim() && content.trim() && !isSubmitting) {
+                        handleSubmit();
+                      }
+                    }
+                  }}
+                  rows={8}
+                  className="w-full px-4 py-4 border border-gray-300 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none resize-none placeholder-gray-400 transition-all duration-200 hover:border-gray-400"
+                />
+              </div>
               
-              <textarea
-                placeholder="Share your herbal knowledge, experiences, or recipes..."
-                value={content}
-                onChange={(e) => setContent(e.target.value)}
-                rows={6}
-                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none resize-none"
-              />
-              
-              <div className="flex gap-3">
+              <div className="flex flex-col sm:flex-row gap-4">
                 <button
                   onClick={handleSubmit}
-                  className="bg-emerald-600 hover:bg-emerald-700 text-white px-6 py-3 rounded-lg font-medium transition-colors flex items-center gap-2"
+                  disabled={!title.trim() || !content.trim() || isSubmitting}
+                  className="flex-1 sm:flex-none bg-gradient-to-r from-emerald-600 to-emerald-700 hover:from-emerald-700 hover:to-emerald-800 disabled:from-gray-300 disabled:to-gray-300 disabled:cursor-not-allowed text-white px-8 py-4 rounded-xl font-semibold transition-all duration-300 flex items-center justify-center gap-3 shadow-lg hover:shadow-xl transform hover:scale-105 disabled:transform-none disabled:shadow-none"
                 >
-                  <FaPenFancy />
-                  Publish Article
+                  {isSubmitting ? (
+                    <>
+                      <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white"></div>
+                      <span>Publishing...</span>
+                    </>
+                  ) : (
+                    <>
+                      <FaPenFancy className="text-lg" />
+                      <span>Publish Article</span>
+                    </>
+                  )}
                 </button>
                 <button
                   onClick={() => {
                     setTitle("");
                     setContent("");
                     setShowCreateForm(false);
+                    setError("");
+                    setSuccess("");
                   }}
-                  className="bg-gray-100 hover:bg-gray-200 text-gray-700 px-6 py-3 rounded-lg font-medium transition-colors"
+                  className="flex-1 sm:flex-none bg-gray-100 hover:bg-gray-200 text-gray-700 px-8 py-4 rounded-xl font-semibold transition-all duration-200 flex items-center justify-center gap-3 hover:shadow-md"
                 >
-                  Cancel
+                  <FaTimes className="text-lg" />
+                  <span>Cancel</span>
                 </button>
               </div>
-              
-              {success && <p className="text-green-600 text-sm">{success}</p>}
-              {error && <p className="text-red-600 text-sm">{error}</p>}
+
+              <div className="flex items-center justify-between pt-4 border-t border-gray-100">
+                <div className="flex items-center text-sm text-gray-500">
+                  <span className="mr-2">💡</span>
+                  <span><strong>Tip:</strong> Press Ctrl+Enter to publish quickly</span>
+                </div>
+                <div className="text-sm text-gray-400">
+                  {title.length}/100 title • {content.length}/5000 content
+                </div>
+              </div>
+
+              {success && (
+                <div className="p-4 bg-green-50 border border-green-200 rounded-lg">
+                  <p className="text-green-800 font-medium">{success}</p>
+                </div>
+              )}
+              {error && (
+                <div className="p-4 bg-red-50 border border-red-200 rounded-lg">
+                  <p className="text-red-800 font-medium">{error}</p>
+                </div>
+              )}
             </div>
           </div>
         )}
@@ -398,18 +687,50 @@ function Blog() {
                   <div className="flex items-center justify-between pt-4 border-t border-gray-100">
                     <button
                       onClick={() => openCommentsDialog(post)}
-                      className="flex items-center gap-2 text-emerald-600 hover:text-emerald-700 transition-colors font-medium"
+                      className="flex items-center gap-2 text-emerald-600 hover:text-emerald-700 hover:bg-emerald-50 transition-all duration-200 font-medium px-3 py-1.5 rounded-full border border-emerald-200 hover:border-emerald-300 active:scale-95"
+                      title="Join the discussion"
                     >
-                      <FaCommentDots />
+                      <FaCommentDots className="text-sm" />
                       <span>Discuss</span>
+                      {commentCounts[post._id] !== undefined && commentCounts[post._id] > 0 && (
+                        <span className="bg-emerald-100 text-emerald-700 text-xs px-2 py-0.5 rounded-full ml-1 animate-pulse">
+                          {commentCounts[post._id]}
+                        </span>
+                      )}
                     </button>
 
                     <div className="flex items-center gap-3 text-gray-500">
-                      <span className="flex items-center gap-1 text-sm">
+                      <button
+                        onClick={() => handleViewPost(post)}
+                        className="flex items-center gap-1 text-sm hover:text-emerald-600 transition-all duration-200 cursor-pointer hover:bg-emerald-50 px-2 py-1 rounded-full"
+                        title="View full post"
+                      >
                         <FaEye className="text-xs" />
-                        {Math.floor(Math.random() * 100) + 10}
-                      </span>
-                      <button className="hover:text-emerald-600 transition-colors">
+                        <span className="font-medium">
+                          {viewCounts[post._id] || 0}
+                        </span>
+                      </button>
+
+                      <button
+                        onClick={() => handleLikePost(post)}
+                        className={`flex items-center gap-1 text-sm transition-all duration-200 cursor-pointer px-2 py-1 rounded-full ${
+                          likedPosts.has(post._id)
+                            ? 'text-red-500 bg-red-50 hover:bg-red-100'
+                            : 'hover:text-red-500 hover:bg-red-50'
+                        }`}
+                        title={likedPosts.has(post._id) ? "Unlike this post" : "Like this post"}
+                      >
+                        <FaHeart className={`text-xs ${likedPosts.has(post._id) ? 'animate-pulse' : ''}`} />
+                        <span className="font-medium">
+                          {likeCounts[post._id] || 0}
+                        </span>
+                      </button>
+
+                      <button
+                        onClick={() => handleShare(post)}
+                        className="hover:text-emerald-600 transition-all duration-200 p-1 rounded-full hover:bg-emerald-50"
+                        title="Share this post"
+                      >
                         <FaShare className="text-sm" />
                       </button>
                     </div>
@@ -432,9 +753,13 @@ function Blog() {
             </p>
             {!searchTerm && (
               <button
-                onClick={() => setShowCreateForm(true)}
-                className="bg-emerald-600 hover:bg-emerald-700 text-white px-6 py-3 rounded-lg font-medium transition-colors"
+                onClick={() => {
+                  console.log('Write First Article button clicked');
+                  setShowCreateForm(true);
+                }}
+                className="bg-emerald-600 hover:bg-emerald-700 text-white px-6 py-3 rounded-lg font-medium transition-colors shadow-lg hover:shadow-xl transform hover:scale-105 flex items-center gap-2"
               >
+                <FaPenFancy />
                 Write First Article
               </button>
             )}
@@ -468,33 +793,65 @@ function Blog() {
 
                 {/* Add Comment Section */}
                 <div className="mb-6">
-                  {replyTo && (
-                    <div className="bg-blue-50 rounded-lg p-3 mb-4 flex items-center justify-between">
-                      <p className="text-sm text-blue-800">Replying to comment...</p>
+                  {!localStorage.getItem('token') ? (
+                    <div className="bg-gradient-to-r from-emerald-50 to-blue-50 rounded-lg p-6 text-center border border-emerald-200">
+                      <div className="w-16 h-16 bg-emerald-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                        <FaUser className="text-emerald-600 text-xl" />
+                      </div>
+                      <h3 className="text-lg font-semibold text-gray-900 mb-2">Join the Discussion</h3>
+                      <p className="text-gray-600 mb-4">Please login to share your thoughts and engage with the community.</p>
                       <button
-                        onClick={() => setReplyTo(null)}
-                        className="text-blue-600 hover:text-blue-800 transition-colors"
+                        onClick={() => window.location.href = '/login'}
+                        className="bg-emerald-600 hover:bg-emerald-700 text-white px-6 py-2 rounded-lg font-medium transition-colors"
                       >
-                        <FaTimes />
+                        Login to Comment
                       </button>
                     </div>
-                  )}
+                  ) : (
+                    <>
+                      {replyTo && (
+                        <div className="bg-blue-50 rounded-lg p-3 mb-4 flex items-center justify-between">
+                          <p className="text-sm text-blue-800">Replying to comment...</p>
+                          <button
+                            onClick={() => setReplyTo(null)}
+                            className="text-blue-600 hover:text-blue-800 transition-colors"
+                          >
+                            <FaTimes />
+                          </button>
+                        </div>
+                      )}
 
-                  <textarea
-                    placeholder={replyTo ? "Write your reply..." : "Share your thoughts..."}
-                    value={newComment}
-                    onChange={(e) => setNewComment(e.target.value)}
-                    rows={3}
-                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none resize-none mb-4"
-                  />
+                      <textarea
+                        placeholder={replyTo ? "Write your reply..." : "Share your thoughts..."}
+                        value={newComment}
+                        onChange={(e) => setNewComment(e.target.value)}
+                        rows={3}
+                        className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none resize-none mb-4"
+                      />
 
                   <button
                     onClick={handleCommentSubmit}
-                    className="bg-emerald-600 hover:bg-emerald-700 text-white px-6 py-3 rounded-lg font-medium transition-colors flex items-center gap-2"
+                    disabled={isSubmitting || !newComment.trim()}
+                    className={`px-6 py-3 rounded-lg font-medium transition-all duration-200 flex items-center gap-2 ${
+                      isSubmitting || !newComment.trim()
+                        ? 'bg-gray-400 cursor-not-allowed'
+                        : 'bg-emerald-600 hover:bg-emerald-700 hover:shadow-lg transform hover:scale-105'
+                    } text-white`}
                   >
-                    {replyTo ? <FaReply /> : <FaCommentDots />}
-                    {replyTo ? 'Post Reply' : 'Post Comment'}
+                    {isSubmitting ? (
+                      <>
+                        <div className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent"></div>
+                        {replyTo ? 'Posting Reply...' : 'Posting Comment...'}
+                      </>
+                    ) : (
+                      <>
+                        {replyTo ? <FaReply /> : <FaCommentDots />}
+                        {replyTo ? 'Post Reply' : 'Post Comment'}
+                      </>
+                    )}
                   </button>
+                    </>
+                  )}
                 </div>
 
                 <hr className="mb-6" />

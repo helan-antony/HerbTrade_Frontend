@@ -4,7 +4,7 @@ export const sampleHerbs = [
     _id: 'sample1',
     name: 'Organic Turmeric Powder',
     price: 299,
-    image: '/assets/organic-turmeric.png',
+    image: '/assets/organic turmeric.png',
     description: 'Premium organic turmeric powder with high curcumin content. Perfect for cooking and health benefits.',
     category: 'Spices',
     grade: 'A',

@@ -42,25 +42,56 @@ function EnhancedWishlist() {
       return;
     }
     fetchWishlistItems();
+
+    // Listen for wishlist updates from other components
+    const handleWishlistUpdate = () => {
+      fetchWishlistItems();
+    };
+
+    window.addEventListener('wishlistUpdated', handleWishlistUpdate);
+
+    return () => {
+      window.removeEventListener('wishlistUpdated', handleWishlistUpdate);
+    };
   }, [navigate]);
 
   const fetchWishlistItems = async () => {
     try {
       setLoading(true);
       setError('');
-      
+
       const response = await axios.get('http://localhost:5000/api/wishlist', {
         headers: getAuthHeaders()
       });
-      
-      setWishlistItems(response.data.items || []);
+
+      // Fix: The backend returns { success: true, data: { items: [...] } }
+      const items = response.data.data?.items || [];
+
+      // Transform the items to match the expected format
+      const transformedItems = items.map(item => {
+        // Handle both populated and non-populated productId
+        const productData = item.productId;
+
+        return {
+          _id: typeof productData === 'object' ? productData._id : productData,
+          name: item.productName || (typeof productData === 'object' ? productData.name : ''),
+          price: item.productPrice || (typeof productData === 'object' ? productData.price : 0),
+          image: item.productImage || (typeof productData === 'object' ? productData.image : ''),
+          category: item.productCategory || (typeof productData === 'object' ? productData.category : ''),
+          description: typeof productData === 'object' ? productData.description : '',
+          grade: typeof productData === 'object' ? productData.grade : '',
+          product: typeof productData === 'object' ? productData : null
+        };
+      });
+
+      setWishlistItems(transformedItems);
     } catch (error) {
       console.error('Error fetching wishlist:', error);
       if (error.response?.status === 401) {
         logout();
         return;
       }
-      
+
       // Fallback to localStorage
       try {
         const localWishlist = JSON.parse(localStorage.getItem('wishlistItems') || '[]');

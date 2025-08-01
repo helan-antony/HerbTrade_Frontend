@@ -43,7 +43,14 @@ function HerbCatalog() {
       if (sortBy) params.append('sort', sortBy);
 
       const response = await axios.get(`http://localhost:5000/api/products?${params}`);
-      setProducts(response.data);
+
+      // If no products from API, use sample data
+      if (!response.data || response.data.length === 0) {
+        const { sampleHerbs } = await import('../utils/sampleData.js');
+        setProducts(sampleHerbs);
+      } else {
+        setProducts(response.data);
+      }
     } catch (error) {
       console.error('Error fetching products:', error);
       toast.error('Failed to load products');
@@ -90,14 +97,18 @@ function HerbCatalog() {
   const saveCartToStorage = (newCart) => {
     // Save in both formats for compatibility
     localStorage.setItem('herbtradeCart', JSON.stringify(newCart));
-    // Also save in the format expected by Cart page
+
+    // Save in the format expected by Cart page (keep nested structure)
     const cartItems = newCart.map(item => ({
-      ...item.product,
-      quantity: item.quantity
+      _id: `cart-${item.product._id}-${Date.now()}`,
+      productId: item.product._id,
+      quantity: item.quantity,
+      product: item.product // Keep the full product object nested
     }));
     localStorage.setItem('cartItems', JSON.stringify(cartItems));
-    
+
     // Trigger navbar count update
+    console.log('Dispatching cartUpdated event');
     window.dispatchEvent(new Event('cartUpdated'));
   };
 
@@ -117,6 +128,8 @@ function HerbCatalog() {
         return;
       }
 
+      console.log('Adding to cart:', { productId: product._id, quantity });
+
       // Add to backend
       const response = await fetch('http://localhost:5000/api/cart/add', {
         method: 'POST',
@@ -129,6 +142,10 @@ function HerbCatalog() {
           quantity: quantity
         })
       });
+
+      console.log('Backend response status:', response.status);
+      const responseData = await response.json();
+      console.log('Backend response data:', responseData);
 
       if (response.ok) {
         // Update local state
@@ -145,11 +162,13 @@ function HerbCatalog() {
           newCart = [...cart, { product, quantity }];
         }
 
+        console.log('Updating local cart:', newCart);
         setCart(newCart);
         saveCartToStorage(newCart);
         toast.success(`${product.name} added to cart!`);
       } else {
-        throw new Error('Failed to add to cart');
+        console.error('Backend error:', responseData);
+        toast.error(responseData.message || 'Failed to add to cart');
       }
     } catch (error) {
       console.error('Error adding to cart:', error);
@@ -216,10 +235,14 @@ function HerbCatalog() {
         });
 
         if (response.ok) {
+          await response.json(); // Consume the response
           const newWishlist = [...wishlist, product];
           setWishlist(newWishlist);
           saveWishlistToStorage(newWishlist);
           toast.success(`${product.name} added to wishlist!`);
+        } else {
+          const errorData = await response.json();
+          toast.error(errorData.message || 'Failed to add to wishlist');
         }
       }
     } catch (error) {
@@ -417,17 +440,36 @@ function HerbCatalog() {
                     ))}
                   </div>
 
-                  {/* Price and Add to Cart */}
-                  <div className="flex justify-between items-center">
-                    <div className="text-2xl font-bold text-emerald-600">
-                      ₹{product.price}
-                    </div>
+                  {/* Price */}
+                  <div className="text-2xl font-bold text-emerald-600 mb-3">
+                    ₹{product.price}
+                  </div>
+
+                  {/* Action Buttons */}
+                  <div className="flex gap-2">
                     <button
-                      onClick={() => addToCart(product)}
-                      className="btn-primary text-sm px-4 py-2 flex items-center gap-2 hover:scale-105 transition-transform duration-300"
+                      onClick={() => {
+                        console.log('Add to Cart button clicked!', product);
+                        addToCart(product);
+                      }}
+                      className="flex-1 bg-emerald-600 hover:bg-emerald-700 text-white text-sm px-4 py-2.5 rounded-lg flex items-center justify-center gap-2 transition-colors duration-200 relative z-50"
+                      style={{ pointerEvents: 'auto', cursor: 'pointer' }}
                     >
                       <FaShoppingBasket className="text-sm" />
                       Add to Cart
+                    </button>
+
+                    <button
+                      onClick={() => toggleWishlist(product)}
+                      className={`px-3 py-2.5 rounded-lg transition-all duration-200 relative z-50 ${
+                        wishlist.some(item => item._id === product._id)
+                          ? 'bg-red-500 hover:bg-red-600 text-white'
+                          : 'bg-gray-100 hover:bg-gray-200 text-gray-600 hover:text-red-500'
+                      }`}
+                      style={{ pointerEvents: 'auto', cursor: 'pointer' }}
+                      title={wishlist.some(item => item._id === product._id) ? 'Remove from Wishlist' : 'Add to Wishlist'}
+                    >
+                      <FaHeart className="text-sm" />
                     </button>
                   </div>
 
@@ -549,6 +591,7 @@ function HerbCatalog() {
               </button>
               <button
                 onClick={() => {
+                  console.log('Modal Add to Cart button clicked!', selectedProduct);
                   addToCart(selectedProduct);
                   setProductDialog(false);
                 }}

@@ -14,12 +14,25 @@ function EditProfile() {
   useEffect(() => {
     const userData = localStorage.getItem('user');
     if (userData) {
-      const u = JSON.parse(userData);
-      setUser(u);
-      setName(u.name || '');
-      setPhone(u.phone || '');
-      setProfilePic(u.profilePic || '');
+      try {
+        const u = JSON.parse(userData);
+        console.log('User data loaded:', u);
+        setUser(u);
+        setName(u.name || '');
+        setPhone(u.phone || '');
+        setProfilePic(u.profilePic || '');
+      } catch (error) {
+        console.error('Error parsing user data:', error);
+        // Set default user object to prevent navigation issues
+        setUser({ role: 'user' });
+      }
+    } else {
+      console.log('No user data found in localStorage');
+      // Set default user object to prevent navigation issues
+      setUser({ role: 'user' });
     }
+
+
   }, []);
 
   async function handleSave() {
@@ -47,34 +60,68 @@ function EditProfile() {
   }
 
   const handleBackToDashboard = () => {
-    if (user.role === 'admin') {
-      navigate('/admin-dashboard');
-    } else if (user.role === 'employee' || user.role === 'manager' || user.role === 'supervisor') {
-      navigate('/employee-dashboard');
-    } else {
+    console.log('Back arrow clicked, user role:', user?.role);
+    try {
+      if (user?.role === 'admin') {
+        console.log('Navigating to admin dashboard');
+        navigate('/admin-dashboard');
+      } else if (user?.role === 'employee' || user?.role === 'manager' || user?.role === 'supervisor') {
+        console.log('Navigating to employee dashboard');
+        navigate('/employee-dashboard');
+      } else {
+        console.log('Navigating to profile page');
+        navigate('/profile');
+      }
+    } catch (error) {
+      console.error('Error during navigation:', error);
+      // Fallback navigation
       navigate('/profile');
     }
   };
 
-  return (
-    <div className="min-h-screen bg-gray-50">
-      <div className="max-w-md mx-auto bg-white min-h-screen">
-        {/* Header */}
-        <div className="flex items-center gap-4 p-6 border-b border-gray-100">
-          <button
-            onClick={handleBackToDashboard}
-            className="w-12 h-12 bg-emerald-500 hover:bg-emerald-600 text-white rounded-full flex items-center justify-center transition-colors duration-200"
-          >
-            <FaArrowLeft className="text-lg" />
-          </button>
-          <h1 className="text-2xl font-semibold text-emerald-600">Edit Profile</h1>
-        </div>
+  // Alternative simple back navigation
+  const handleSimpleBack = () => {
+    console.log('Simple back navigation');
+    navigate(-1); // Go back to previous page in history
+  };
 
-        <div className="p-6">
+  // Add keyboard shortcut for back navigation
+  useEffect(() => {
+    const handleKeyPress = (event) => {
+      if (event.key === 'Escape') {
+        console.log('Escape key pressed - going back');
+        handleBackToDashboard();
+      }
+    };
+
+    document.addEventListener('keydown', handleKeyPress);
+    return () => {
+      document.removeEventListener('keydown', handleKeyPress);
+    };
+  }, [user]); // Include user in dependency array
+
+  return (
+    <div className="min-h-screen bg-gradient-to-br from-emerald-50 via-teal-50 to-cyan-50 pt-24 pb-12">
+      <div className="max-w-2xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div className="card-ultra p-8">
+        {/* Header */}
+        <div className="flex items-center gap-4 mb-8">
+          <button
+            onClick={() => {
+              console.log('Back button clicked!');
+              handleBackToDashboard();
+            }}
+            className="w-12 h-12 bg-emerald-500 hover:bg-emerald-600 text-white rounded-full flex items-center justify-center transition-all duration-300 cursor-pointer shadow-lg hover:shadow-xl hover:scale-105 active:scale-95"
+            title="Go back to previous page (or press Escape)"
+          >
+            <FaArrowLeft className="text-lg transition-transform duration-200 hover:-translate-x-0.5" />
+          </button>
+          <h1 className="text-3xl font-playfair font-bold gradient-text">Edit Profile</h1>
+        </div>
           {/* Profile Avatar */}
           <div className="text-center mb-8">
             <div className="relative inline-block">
-              <div className="w-24 h-24 bg-emerald-500 rounded-full flex items-center justify-center mx-auto mb-3">
+              <div className="w-32 h-32 bg-gradient-to-br from-emerald-400 via-emerald-500 to-emerald-600 rounded-full flex items-center justify-center mx-auto mb-4 shadow-2xl border-4 border-white">
                 {profilePic ? (
                   <img
                     src={profilePic}
@@ -82,14 +129,15 @@ function EditProfile() {
                     className="w-full h-full rounded-full object-cover"
                   />
                 ) : (
-                  <FaUser className="text-white text-2xl" />
+                  <FaUser className="text-white text-3xl" />
                 )}
               </div>
-              <div className="absolute -bottom-1 -right-1 w-6 h-6 bg-emerald-500 rounded-full border-2 border-white flex items-center justify-center">
-                <div className="w-2 h-2 bg-white rounded-full"></div>
+              <div className="absolute -bottom-1 -right-1 w-10 h-10 bg-green-500 rounded-full border-4 border-white flex items-center justify-center shadow-lg">
+                <div className="w-3 h-3 bg-white rounded-full animate-pulse"></div>
               </div>
             </div>
-            <h2 className="text-lg font-medium text-gray-600">User</h2>
+            <h2 className="text-xl font-semibold text-slate-700">{user?.name || 'User'}</h2>
+            <p className="text-slate-500 text-sm">{user?.email}</p>
           </div>
 
           {/* Form Fields */}
@@ -103,8 +151,8 @@ function EditProfile() {
                 type="text"
                 value={name}
                 onChange={(e) => setName(e.target.value)}
-                className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none transition-colors"
-                placeholder="Teena Ram"
+                className="w-full px-6 py-4 bg-white/90 backdrop-blur-sm border-2 border-slate-200/50 rounded-2xl focus:ring-4 focus:ring-emerald-300/30 focus:border-emerald-500 transition-all duration-500 text-slate-700 shadow-sm hover:shadow-md focus:shadow-lg"
+                placeholder="Enter your full name"
               />
             </div>
 
@@ -117,7 +165,7 @@ function EditProfile() {
                 type="tel"
                 value={phone}
                 onChange={(e) => setPhone(e.target.value)}
-                className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none transition-colors"
+                className="w-full px-6 py-4 bg-white/90 backdrop-blur-sm border-2 border-slate-200/50 rounded-2xl focus:ring-4 focus:ring-emerald-300/30 focus:border-emerald-500 transition-all duration-500 text-slate-700 shadow-sm hover:shadow-md focus:shadow-lg"
                 placeholder="Enter your phone number"
               />
             </div>
@@ -131,8 +179,8 @@ function EditProfile() {
                 type="url"
                 value={profilePic}
                 onChange={(e) => setProfilePic(e.target.value)}
-                className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none transition-colors"
-                placeholder="Enter profile picture URL"
+                className="w-full px-6 py-4 bg-white/90 backdrop-blur-sm border-2 border-slate-200/50 rounded-2xl focus:ring-4 focus:ring-emerald-300/30 focus:border-emerald-500 transition-all duration-500 text-slate-700 shadow-sm hover:shadow-md focus:shadow-lg"
+                placeholder="Enter profile picture URL (optional)"
               />
             </div>
 
@@ -145,7 +193,7 @@ function EditProfile() {
                 type="email"
                 value={user.email || ''}
                 disabled
-                className="w-full px-4 py-3 border border-gray-200 rounded-lg bg-gray-50 text-gray-500 cursor-not-allowed"
+                className="w-full px-6 py-4 bg-slate-100/80 border-2 border-slate-200/50 rounded-2xl text-slate-500 cursor-not-allowed shadow-sm"
               />
             </div>
 
@@ -154,7 +202,7 @@ function EditProfile() {
               <button
                 onClick={handleSave}
                 disabled={loading}
-                className="flex-1 bg-emerald-500 hover:bg-emerald-600 text-white py-3 px-6 rounded-lg font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                className="flex-1 btn-primary py-4 px-8 font-semibold disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-3"
               >
                 {loading ? (
                   <>
@@ -170,8 +218,11 @@ function EditProfile() {
               </button>
 
               <button
-                onClick={handleBackToDashboard}
-                className="flex-1 bg-gray-100 hover:bg-gray-200 text-gray-700 py-3 px-6 rounded-lg font-medium transition-colors flex items-center justify-center gap-2"
+                onClick={() => {
+                  console.log('Cancel button clicked!');
+                  handleBackToDashboard();
+                }}
+                className="flex-1 bg-slate-200/80 hover:bg-slate-300/80 text-slate-700 py-4 px-8 rounded-2xl font-semibold transition-all duration-300 flex items-center justify-center gap-3 shadow-sm hover:shadow-md cursor-pointer"
               >
                 <FaTimes />
                 Cancel

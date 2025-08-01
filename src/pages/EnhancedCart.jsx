@@ -1,16 +1,19 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
-import { 
-  FaShoppingCart, 
-  FaTrash, 
-  FaPlus, 
-  FaMinus, 
+import { toast, ToastContainer } from 'react-toastify';
+import 'react-toastify/dist/ReactToastify.css';
+import {
+  FaShoppingCart,
+  FaTrash,
+  FaPlus,
+  FaMinus,
   FaArrowLeft,
   FaShoppingBag,
   FaHeart,
   FaLeaf,
-  FaShieldAlt
+  FaShieldAlt,
+  FaExclamationTriangle
 } from 'react-icons/fa';
 
 // Auth utility functions (inline for now to avoid import issues)
@@ -35,6 +38,8 @@ function EnhancedCart() {
   const [cartItems, setCartItems] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [showRemoveDialog, setShowRemoveDialog] = useState(false);
+  const [itemToRemove, setItemToRemove] = useState(null);
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -42,6 +47,9 @@ function EnhancedCart() {
       navigate('/login');
       return;
     }
+
+
+
     fetchCartItems();
   }, [navigate]);
 
@@ -53,8 +61,9 @@ function EnhancedCart() {
       const response = await axios.get('http://localhost:5000/api/cart', {
         headers: getAuthHeaders()
       });
-      
-      setCartItems(response.data.items || []);
+
+      console.log('Backend cart response:', response.data);
+      setCartItems(response.data.data?.items || []);
     } catch (error) {
       console.error('Error fetching cart:', error);
       if (error.response?.status === 401) {
@@ -65,8 +74,58 @@ function EnhancedCart() {
       // Fallback to localStorage for demo purposes
       try {
         const localCart = JSON.parse(localStorage.getItem('cartItems') || '[]');
-        setCartItems(localCart);
+        const herbtradeCart = JSON.parse(localStorage.getItem('herbtradeCart') || '[]');
+
+        // If cartItems is empty but herbtradeCart has data, use herbtradeCart
+        if (localCart.length === 0 && herbtradeCart.length > 0) {
+          const herbtradeFormatted = herbtradeCart.map((item, index) => ({
+            _id: item._id || `cart-${item.product._id}-${Date.now()}-${index}`,
+            productId: item.product._id,
+            quantity: item.quantity || 1,
+            product: item.product
+          }));
+          setCartItems(herbtradeFormatted);
+          return;
+        }
+
+        if (localCart.length === 0) {
+          setCartItems([]);
+          return;
+        }
+        const formattedCart = localCart.map((item, index) => {
+          // If item already has the correct structure (new format)
+          if (item.product && item.productId && item.quantity) {
+            return item;
+          }
+
+          // If item has product wrapper but missing other fields (old format)
+          if (item.product) {
+            return {
+              _id: item._id || `cart-${item.product._id}-${Date.now()}-${index}`,
+              productId: item.product._id,
+              quantity: item.quantity || 1,
+              product: item.product
+            };
+          }
+
+          // If item is flattened product format (legacy)
+          if (item._id && item.name && item.price) {
+            const productData = { ...item };
+            delete productData.quantity; // Remove quantity from product data
+            return {
+              _id: `cart-${item._id}-${Date.now()}-${index}`,
+              productId: item._id,
+              quantity: item.quantity || 1,
+              product: productData
+            };
+          }
+
+          return item;
+        });
+
+        setCartItems(formattedCart);
       } catch (e) {
+        console.error('Error loading cart from localStorage:', e);
         setError('Failed to load cart items');
       }
     } finally {
@@ -75,57 +134,235 @@ function EnhancedCart() {
   };
 
   const updateQuantity = async (productId, newQuantity) => {
-    if (newQuantity < 1) return;
-    
+    // If quantity becomes 0 or less, trigger remove confirmation
+    if (newQuantity < 1) {
+      const product = cartItems.find(item => {
+        const itemProductId = item.product?._id || item.productId || item._id;
+        return itemProductId === productId;
+      });
+      if (product) {
+        handleRemoveClick(product.product || product);
+      }
+      return;
+    }
+
     try {
-      await axios.put(`http://localhost:5000/api/cart/${productId}`, 
+      await axios.put(`http://localhost:5000/api/cart/update/${productId}`,
         { quantity: newQuantity },
         { headers: getAuthHeaders() }
       );
-      
-      setCartItems(items => 
-        items.map(item => 
-          item.product._id === productId 
+
+      setCartItems(items =>
+        items.map(item => {
+          const itemProductId = item.product?._id || item.productId || item._id;
+          return itemProductId === productId
             ? { ...item, quantity: newQuantity }
-            : item
-        )
+            : item;
+        })
       );
+
+      // Trigger navbar count update
+      window.dispatchEvent(new Event('cartUpdated'));
+
+      // Show subtle feedback for quantity update
+      const product = cartItems.find(item => {
+        const itemProductId = item.product?._id || item.productId || item._id;
+        return itemProductId === productId;
+      });
+
+      if (product) {
+        const productName = product.product?.name || product.name;
+        toast.info(`Updated ${productName} quantity to ${newQuantity}`, {
+          position: "bottom-right",
+          autoClose: 2000,
+          hideProgressBar: true,
+          closeOnClick: true,
+          pauseOnHover: false,
+          draggable: true,
+        });
+      }
+
     } catch (error) {
       console.error('Error updating quantity:', error);
       if (error.response?.status === 401) {
         logout();
         return;
       }
-      
+
       // Fallback to local update
-      setCartItems(items => 
-        items.map(item => 
-          item.product?._id === productId || item._id === productId
+      setCartItems(items =>
+        items.map(item => {
+          const itemProductId = item.product?._id || item.productId || item._id;
+          return itemProductId === productId
             ? { ...item, quantity: newQuantity }
-            : item
-        )
+            : item;
+        })
       );
+
+      // Trigger navbar count update
+      window.dispatchEvent(new Event('cartUpdated'));
+
+      // Show error message
+      toast.error('Failed to update quantity. Please try again.', {
+        position: "top-right",
+        autoClose: 3000,
+        hideProgressBar: false,
+        closeOnClick: true,
+        pauseOnHover: true,
+        draggable: true,
+      });
     }
   };
 
-  const removeFromCart = async (productId) => {
+  const handleRemoveClick = (product) => {
+    console.log('handleRemoveClick called with product:', product);
+    setItemToRemove(product);
+    setShowRemoveDialog(true);
+  };
+
+  const confirmRemove = async () => {
+    if (!itemToRemove) return;
+
+    // Check if this is a clear all operation
+    if (itemToRemove.name === 'all items') {
+      await clearEntireCart();
+      return;
+    }
+
+    const productId = itemToRemove._id;
+    const productName = itemToRemove.name;
+
+    console.log('Attempting to remove item:', { productId, productName, itemToRemove });
+
     try {
-      await axios.delete(`http://localhost:5000/api/cart/${productId}`, {
+      const response = await axios.delete(`http://localhost:5000/api/cart/remove/${productId}`, {
         headers: getAuthHeaders()
       });
-      
-      setCartItems(items => items.filter(item => item.product._id !== productId));
+
+      console.log('Backend remove response:', response.data);
+
+      // Update local state - filter out the item
+      setCartItems(items => {
+        const filteredItems = items.filter(item => {
+          const itemProductId = item.product?._id || item.productId || item._id;
+          console.log('Comparing:', { itemProductId, productId, shouldKeep: itemProductId !== productId });
+          return itemProductId !== productId;
+        });
+        
+        // Also update localStorage for consistency
+        localStorage.setItem('cartItems', JSON.stringify(filteredItems));
+        localStorage.setItem('herbtradeCart', JSON.stringify(filteredItems));
+        
+        return filteredItems;
+      });
+
+      // Trigger navbar count update
+      window.dispatchEvent(new Event('cartUpdated'));
+
+      // Show success message
+      toast.success(`${productName} removed from cart!`, {
+        position: "top-right",
+        autoClose: 3000,
+        hideProgressBar: false,
+        closeOnClick: true,
+        pauseOnHover: true,
+        draggable: true,
+      });
+
     } catch (error) {
       console.error('Error removing from cart:', error);
       if (error.response?.status === 401) {
         logout();
         return;
       }
-      
+
       // Fallback to local removal
-      setCartItems(items => items.filter(item => 
-        item.product?._id !== productId && item._id !== productId
-      ));
+      setCartItems(items => {
+        const filteredItems = items.filter(item => {
+          const itemProductId = item.product?._id || item.productId || item._id;
+          console.log('Fallback - Comparing:', { itemProductId, productId, shouldKeep: itemProductId !== productId });
+          return itemProductId !== productId;
+        });
+        
+        // Also update localStorage for consistency
+        localStorage.setItem('cartItems', JSON.stringify(filteredItems));
+        localStorage.setItem('herbtradeCart', JSON.stringify(filteredItems));
+        
+        return filteredItems;
+      });
+
+      // Trigger navbar count update
+      window.dispatchEvent(new Event('cartUpdated'));
+
+      // Show success message even for fallback
+      toast.success(`${productName} removed from cart!`, {
+        position: "top-right",
+        autoClose: 3000,
+        hideProgressBar: false,
+        closeOnClick: true,
+        pauseOnHover: true,
+        draggable: true,
+      });
+    } finally {
+      // Close dialog and reset state
+      setShowRemoveDialog(false);
+      setItemToRemove(null);
+    }
+  };
+
+  const cancelRemove = () => {
+    setShowRemoveDialog(false);
+    setItemToRemove(null);
+  };
+
+  const clearEntireCart = async () => {
+    try {
+      // Clear cart on server
+      await axios.delete('http://localhost:5000/api/cart/clear', {
+        headers: getAuthHeaders()
+      });
+
+      setCartItems([]);
+
+      // Trigger navbar count update
+      window.dispatchEvent(new Event('cartUpdated'));
+
+      // Show success message
+      toast.success('Cart cleared successfully!', {
+        position: "top-right",
+        autoClose: 3000,
+        hideProgressBar: false,
+        closeOnClick: true,
+        pauseOnHover: true,
+        draggable: true,
+      });
+
+    } catch (error) {
+      console.error('Error clearing cart:', error);
+      if (error.response?.status === 401) {
+        logout();
+        return;
+      }
+
+      // Fallback to local clear
+      setCartItems([]);
+
+      // Trigger navbar count update
+      window.dispatchEvent(new Event('cartUpdated'));
+
+      // Show success message even for fallback
+      toast.success('Cart cleared successfully!', {
+        position: "top-right",
+        autoClose: 3000,
+        hideProgressBar: false,
+        closeOnClick: true,
+        pauseOnHover: true,
+        draggable: true,
+      });
+    } finally {
+      // Close dialog and reset state
+      setShowRemoveDialog(false);
+      setItemToRemove(null);
     }
   };
 
@@ -136,6 +373,8 @@ function EnhancedCart() {
       return total + (price * quantity);
     }, 0);
   };
+
+
 
 
 
@@ -174,7 +413,7 @@ function EnhancedCart() {
         {/* Header */}
         <div className="flex items-center justify-between mb-12">
           <div className="flex items-center space-x-4">
-            <button 
+            <button
               onClick={() => navigate('/herbs')}
               className="group flex items-center text-slate-600 hover:text-emerald-600 transition-all duration-300 bg-white/80 backdrop-blur-sm px-6 py-3 rounded-2xl shadow-lg hover:shadow-xl border border-white/50"
             >
@@ -189,7 +428,21 @@ function EnhancedCart() {
             </h1>
             <p className="text-slate-600 font-medium">Your herbal wellness journey</p>
           </div>
-          <div className="w-48"></div> {/* Spacer for centering */}
+          <div className="flex items-center space-x-4">
+            {cartItems.length > 0 && (
+              <button
+                onClick={() => {
+                  setItemToRemove({ name: 'all items' });
+                  setShowRemoveDialog(true);
+                }}
+                className="group flex items-center text-red-600 hover:text-red-700 transition-all duration-300 bg-red-50 hover:bg-red-100 px-4 py-2 rounded-xl shadow-md hover:shadow-lg border border-red-200/50"
+                title="Clear entire cart"
+              >
+                <FaTrash className="mr-2 group-hover:scale-110 transition-transform duration-300" />
+                <span className="font-semibold text-sm">Clear Cart</span>
+              </button>
+            )}
+          </div>
         </div>
 
         {error && (
@@ -232,16 +485,21 @@ function EnhancedCart() {
           <div className="grid lg:grid-cols-3 gap-12">
             {/* Cart Items */}
             <div className="lg:col-span-2 space-y-6">
-              {cartItems.map((item) => {
+              {cartItems.map((item, index) => {
                 const product = item.product || item;
+                const imageUrl = item.product?.image || product?.image || item.image || item.productImage || 'https://via.placeholder.com/300x200/10b981/ffffff?text=Herb+Image';
+
                 return (
                   <div key={product._id} className="group bg-white/80 backdrop-blur-sm rounded-3xl shadow-lg hover:shadow-2xl transition-all duration-500 p-8 border border-white/50 hover:border-emerald-200/50">
                     <div className="flex items-center space-x-8">
                       <div className="relative">
-                        <img 
-                          src={product.image} 
+                        <img
+                          src={imageUrl}
                           alt={product.name}
                           className="w-32 h-32 object-cover rounded-3xl shadow-lg group-hover:scale-105 transition-transform duration-300"
+                          onError={(e) => {
+                            e.target.src = 'https://via.placeholder.com/300x200/10b981/ffffff?text=Herb+Image';
+                          }}
                         />
                         <div className="absolute -top-2 -right-2 w-8 h-8 bg-emerald-500 rounded-full flex items-center justify-center shadow-lg">
                           <FaLeaf className="text-white text-sm" />
@@ -290,9 +548,16 @@ function EnhancedCart() {
                         </div>
 
                         {/* Remove Button */}
-                        <button 
-                          onClick={() => removeFromCart(product._id)}
-                          className="w-12 h-12 bg-red-50 hover:bg-red-100 rounded-xl flex items-center justify-center transition-all duration-300 group/btn border border-red-200/50 hover:border-red-300"
+                        <button
+                          onClick={(e) => {
+                            e.preventDefault();
+                            e.stopPropagation();
+                            console.log('Delete button clicked for product:', product);
+                            handleRemoveClick(product);
+                          }}
+                          className="w-12 h-12 bg-red-50 hover:bg-red-100 rounded-xl flex items-center justify-center transition-all duration-300 group/btn border border-red-200/50 hover:border-red-300 hover:shadow-lg"
+                          title={`Remove ${product.name} from cart`}
+                          type="button"
                         >
                           <FaTrash className="text-red-500 group-hover/btn:scale-110 transition-transform duration-300" />
                         </button>
@@ -351,6 +616,80 @@ function EnhancedCart() {
           </div>
         )}
       </div>
+
+      {/* Confirmation Dialog */}
+      {showRemoveDialog && itemToRemove && (
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-3xl shadow-2xl max-w-md w-full p-8 transform animate-in zoom-in-95 duration-300">
+            <div className="text-center">
+              {/* Warning Icon */}
+              <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-6">
+                <FaExclamationTriangle className="text-red-500 text-2xl" />
+              </div>
+
+              {/* Title */}
+              <h3 className="text-2xl font-playfair font-bold text-slate-900 mb-4">
+                {itemToRemove.name === 'all items' ? 'Clear Entire Cart?' : 'Remove Item from Cart?'}
+              </h3>
+
+              {/* Message */}
+              {itemToRemove.name === 'all items' ? (
+                <>
+                  <p className="text-slate-600 mb-2">
+                    Are you sure you want to clear your entire cart?
+                  </p>
+                  <p className="text-lg font-semibold text-slate-900 mb-6">
+                    This will remove all {cartItems.length} items
+                  </p>
+                </>
+              ) : (
+                <>
+                  <p className="text-slate-600 mb-2">
+                    Are you sure you want to remove
+                  </p>
+                  <p className="text-lg font-semibold text-slate-900 mb-6">
+                    "{itemToRemove.name}"
+                  </p>
+                </>
+              )}
+              <p className="text-sm text-slate-500 mb-8">
+                This action cannot be undone.
+              </p>
+
+              {/* Buttons */}
+              <div className="flex space-x-4">
+                <button
+                  onClick={cancelRemove}
+                  className="flex-1 px-6 py-3 bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold rounded-xl transition-all duration-300 hover:scale-105"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={confirmRemove}
+                  className="flex-1 px-6 py-3 bg-red-500 hover:bg-red-600 text-white font-semibold rounded-xl transition-all duration-300 hover:scale-105 shadow-lg hover:shadow-xl"
+                >
+                  {itemToRemove.name === 'all items' ? 'Clear Cart' : 'Remove Item'}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Toast Container */}
+      <ToastContainer
+        position="top-right"
+        autoClose={3000}
+        hideProgressBar={false}
+        newestOnTop={false}
+        closeOnClick
+        rtl={false}
+        pauseOnFocusLoss
+        draggable
+        pauseOnHover
+        theme="light"
+        className="mt-16"
+      />
     </div>
   );
 }

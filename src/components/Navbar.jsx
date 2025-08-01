@@ -15,7 +15,10 @@ import {
   Package,
   MapPin,
   BookOpen,
-  Sparkles
+  Sparkles,
+  Calendar,
+  Shield,
+  MessageCircle
 } from 'lucide-react';
 
 function Navbar() {
@@ -32,11 +35,18 @@ function Navbar() {
         const response = await fetch('http://localhost:5000/api/cart', {
           headers: { 'Authorization': `Bearer ${token}` }
         });
-        
+
         if (response.ok) {
           const data = await response.json();
           const count = data.data.items?.reduce((total, item) => total + (item.quantity || 1), 0) || 0;
           setCartCount(count);
+        } else if (response.status === 401) {
+          // Token is invalid, clear auth data
+          localStorage.removeItem('token');
+          localStorage.removeItem('user');
+          setUser(null);
+          setCartCount(0);
+          setWishlistCount(0);
         }
       }
     } catch (error) {
@@ -54,10 +64,17 @@ function Navbar() {
         const response = await fetch('http://localhost:5000/api/wishlist', {
           headers: { 'Authorization': `Bearer ${token}` }
         });
-        
+
         if (response.ok) {
           const data = await response.json();
           setWishlistCount(data.data.items?.length || 0);
+        } else if (response.status === 401) {
+          // Token is invalid, clear auth data
+          localStorage.removeItem('token');
+          localStorage.removeItem('user');
+          setUser(null);
+          setCartCount(0);
+          setWishlistCount(0);
         }
       }
     } catch (error) {
@@ -69,7 +86,8 @@ function Navbar() {
 
   useEffect(() => {
     const storedUser = localStorage.getItem('user');
-    if (storedUser) {
+    const token = localStorage.getItem('token');
+    if (storedUser && token) {
       setUser(JSON.parse(storedUser));
       fetchCartCount();
       fetchWishlistCount();
@@ -78,7 +96,7 @@ function Navbar() {
     const onStorage = (e) => {
       if (e.key === 'user') {
         setUser(e.newValue ? JSON.parse(e.newValue) : null);
-        if (e.newValue) {
+        if (e.newValue && localStorage.getItem('token')) {
           fetchCartCount();
           fetchWishlistCount();
         }
@@ -87,19 +105,28 @@ function Navbar() {
 
     const onUserChange = () => {
       const storedUser = localStorage.getItem('user');
+      const token = localStorage.getItem('token');
       setUser(storedUser ? JSON.parse(storedUser) : null);
-      if (storedUser) {
+      if (storedUser && token) {
         fetchCartCount();
         fetchWishlistCount();
       }
     };
 
     const updateCounts = () => {
-      fetchCartCount();
-      fetchWishlistCount();
+      // Only fetch counts if user is authenticated
+      const token = localStorage.getItem('token');
+      const user = localStorage.getItem('user');
+      if (token && user) {
+        fetchCartCount();
+        fetchWishlistCount();
+      }
     };
 
-    updateCounts();
+    // Only call updateCounts if user is authenticated
+    if (storedUser && token) {
+      updateCounts();
+    }
 
     window.addEventListener('storage', onStorage);
     window.addEventListener('userChanged', onUserChange);
@@ -113,7 +140,11 @@ function Navbar() {
         window.dispatchEvent(new Event('userChanged'));
       }
       if (key.includes('cart') || key.includes('wishlist')) {
-        updateCounts();
+        const token = localStorage.getItem('token');
+        const user = localStorage.getItem('user');
+        if (token && user) {
+          updateCounts();
+        }
       }
     };
 
@@ -124,7 +155,11 @@ function Navbar() {
         window.dispatchEvent(new Event('userChanged'));
       }
       if (key.includes('cart') || key.includes('wishlist')) {
-        updateCounts();
+        const token = localStorage.getItem('token');
+        const user = localStorage.getItem('user');
+        if (token && user) {
+          updateCounts();
+        }
       }
     };
 
@@ -142,7 +177,7 @@ function Navbar() {
   useEffect(() => {
     const handleClickOutside = (event) => {
       if (isMenuOpen && !event.target.closest('.user-dropdown')) {
-        setIsMenuOpen(false);
+        setTimeout(() => setIsMenuOpen(false), 100);
       }
     };
 
@@ -224,6 +259,7 @@ function Navbar() {
                       <button
                         onClick={toggleMenu}
                         className="flex items-center space-x-4 px-6 py-3 rounded-2xl bg-gradient-to-r from-emerald-100/80 to-teal-100/80 hover:from-emerald-200/80 hover:to-teal-200/80 backdrop-blur-sm transition-all duration-500 text-emerald-700 font-semibold shadow-lg hover:shadow-2xl interactive-hover"
+                        style={{ zIndex: 9999 }}
                       >
                         <div className="w-10 h-10 rounded-full bg-gradient-to-br from-emerald-500 via-teal-500 to-cyan-500 flex items-center justify-center text-white font-bold text-sm shadow-lg glow-emerald">
                           {user.name?.charAt(0) || 'A'}
@@ -234,40 +270,41 @@ function Navbar() {
 
                       {/* Admin Dropdown */}
                       {isMenuOpen && (
-                        <div className="absolute right-0 mt-4 w-64 card-ultra py-3 z-50 animate-fade-in-scale">
-                          <div className="px-6 py-4 border-b border-slate-200/50">
-                            <p className="text-sm font-semibold text-slate-900">{user.name}</p>
-                            <p className="text-xs text-slate-500 font-medium">Administrator</p>
+                        <div className="absolute right-0 mt-4 w-72 card-ultra py-4 z-50 animate-fade-in-scale shadow-2xl border border-emerald-100/50">
+                          <div className="px-6 py-4 border-b border-slate-200/50 bg-gradient-to-r from-emerald-50/50 to-teal-50/50">
+                            <div className="flex items-center space-x-3">
+                              <div className="w-12 h-12 rounded-full bg-gradient-to-br from-emerald-500 via-teal-500 to-cyan-500 flex items-center justify-center text-white font-bold shadow-lg">
+                                {user.name?.charAt(0) || 'A'}
+                              </div>
+                              <div>
+                                <p className="text-sm font-semibold text-slate-900">{user.name}</p>
+                                <p className="text-xs text-slate-500 font-medium">Administrator</p>
+                              </div>
+                            </div>
                           </div>
-                          <button
-                            onClick={() => { closeMenu(); navigate('/admin'); }}
-                            className="w-full px-6 py-4 text-left text-slate-700 hover:bg-emerald-50/80 hover:text-emerald-700 transition-all duration-300 flex items-center space-x-3 interactive-hover"
+                          <Link
+                            to="/admin-dashboard"
+                            onClick={() => {
+                              closeMenu();
+                            }}
+                            className="w-full px-6 py-4 text-left text-slate-700 hover:bg-emerald-50/80 hover:text-emerald-700 transition-all duration-300 flex items-center space-x-3 no-underline"
                           >
                             <Shield className="w-5 h-5 text-emerald-600" />
                             <span className="font-medium">Admin Dashboard</span>
-                          </button>
-                          <button
-                            onClick={() => { closeMenu(); navigate('/profile'); }}
-                            className="w-full px-6 py-4 text-left text-slate-700 hover:bg-emerald-50/80 hover:text-emerald-700 transition-all duration-300 flex items-center space-x-3 interactive-hover"
-                          >
-                            <User className="w-5 h-5 text-emerald-600" />
-                            <span className="font-medium">Profile</span>
-                          </button>
-                          <button
-                            onClick={() => { closeMenu(); navigate('/edit-profile'); }}
-                            className="w-full px-6 py-4 text-left text-slate-700 hover:bg-emerald-50/80 hover:text-emerald-700 transition-all duration-300 flex items-center space-x-3 interactive-hover"
-                          >
-                            <Settings className="w-5 h-5 text-emerald-600" />
-                            <span className="font-medium">Edit Profile</span>
-                          </button>
+                          </Link>
                           <hr className="my-2 border-slate-200/50" />
-                          <button
-                            onClick={handleLogout}
-                            className="w-full px-6 py-4 text-left text-red-600 hover:bg-red-50/80 transition-all duration-300 flex items-center space-x-3 font-medium interactive-hover"
+                          <div
+                            onClick={() => {
+                              closeMenu();
+                              handleLogout();
+                            }}
+                            className="w-full px-6 py-4 text-left text-red-600 hover:bg-red-50/80 transition-all duration-300 flex items-center space-x-3 font-medium cursor-pointer"
+                            role="button"
+                            tabIndex={0}
                           >
                             <LogOut className="w-5 h-5" />
                             <span>Logout</span>
-                          </button>
+                          </div>
                         </div>
                       )}
                     </div>
@@ -298,6 +335,14 @@ function Navbar() {
                     >
                       <BookOpen className="w-5 h-5 group-hover:text-emerald-600 transition-colors duration-500" />
                       <span className="font-medium">Blog</span>
+                    </Link>
+
+                    <Link
+                      to="/discussion"
+                      className="nav-link flex items-center space-x-3 px-4 py-3 group"
+                    >
+                      <MessageCircle className="w-5 h-5 group-hover:text-emerald-600 transition-colors duration-500" />
+                      <span className="font-medium">Discuss</span>
                     </Link>
 
                     {/* Action Icons */}
@@ -333,6 +378,7 @@ function Navbar() {
                         <button
                           onClick={toggleMenu}
                           className="flex items-center space-x-3 px-4 py-3 rounded-2xl bg-slate-100/80 hover:bg-emerald-100/80 backdrop-blur-sm transition-all duration-500 group interactive-hover shadow-sm hover:shadow-lg"
+                          style={{ zIndex: 9999 }}
                         >
                           <div className="w-10 h-10 rounded-full bg-gradient-to-br from-emerald-500 via-teal-500 to-cyan-500 flex items-center justify-center text-white font-bold text-sm shadow-lg glow-emerald">
                             {user.name?.charAt(0) || 'U'}
@@ -345,33 +391,82 @@ function Navbar() {
 
                         {/* User Dropdown */}
                         {isMenuOpen && (
-                          <div className="absolute right-0 mt-4 w-64 card-ultra py-3 z-50 animate-fade-in-scale">
-                            <div className="px-6 py-4 border-b border-slate-200/50">
-                              <p className="text-sm font-semibold text-slate-900">{user.name}</p>
-                              <p className="text-xs text-slate-500 font-medium">Member</p>
+                          <div className="absolute right-0 mt-4 w-72 card-ultra py-4 z-[9999] animate-fade-in-scale shadow-2xl border border-emerald-100/50" style={{ zIndex: 9999 }}>
+                            <div className="px-6 py-4 border-b border-slate-200/50 bg-gradient-to-r from-emerald-50/50 to-teal-50/50">
+                              <div className="flex items-center space-x-3">
+                                <div className="w-12 h-12 rounded-full bg-gradient-to-br from-emerald-500 via-teal-500 to-cyan-500 flex items-center justify-center text-white font-bold shadow-lg">
+                                  {user.name?.charAt(0) || 'U'}
+                                </div>
+                                <div>
+                                  <p className="text-sm font-semibold text-slate-900">{user.name}</p>
+                                  <p className="text-xs text-slate-500 font-medium">Premium Member</p>
+                                </div>
+                              </div>
                             </div>
-                            <button
-                              onClick={() => { closeMenu(); navigate('/profile'); }}
-                              className="w-full px-6 py-4 text-left text-slate-700 hover:bg-emerald-50/80 hover:text-emerald-700 transition-all duration-300 flex items-center space-x-3 interactive-hover"
+                            <Link
+                              to="/profile"
+                              onClick={() => {
+                                closeMenu();
+                              }}
+                              className="w-full px-6 py-4 text-left text-slate-700 hover:bg-emerald-50/80 hover:text-emerald-700 transition-all duration-300 flex items-center space-x-3 group cursor-pointer no-underline"
                             >
-                              <User className="w-5 h-5 text-emerald-600" />
-                              <span className="font-medium">Profile</span>
-                            </button>
-                            <button
-                              onClick={() => { closeMenu(); navigate('/edit-profile'); }}
-                              className="w-full px-6 py-4 text-left text-slate-700 hover:bg-emerald-50/80 hover:text-emerald-700 transition-all duration-300 flex items-center space-x-3 interactive-hover"
+                              <div className="p-2 rounded-lg bg-emerald-100/50 group-hover:bg-emerald-200/50 transition-colors duration-300">
+                                <User className="w-4 h-4 text-emerald-600" />
+                              </div>
+                              <div>
+                                <span className="font-medium">My Profile</span>
+                                <p className="text-xs text-slate-500">View and manage your profile</p>
+                              </div>
+                            </Link>
+                            <Link
+                              to="/view-bookings"
+                              onClick={() => {
+                                closeMenu();
+                              }}
+                              className="w-full px-6 py-4 text-left text-slate-700 hover:bg-emerald-50/80 hover:text-emerald-700 transition-all duration-300 flex items-center space-x-3 group cursor-pointer no-underline"
                             >
-                              <Settings className="w-5 h-5 text-emerald-600" />
-                              <span className="font-medium">Edit Profile</span>
-                            </button>
-                            <hr className="my-2 border-slate-200/50" />
-                            <button
-                              onClick={handleLogout}
-                              className="w-full px-6 py-4 text-left text-red-600 hover:bg-red-50/80 transition-all duration-300 flex items-center space-x-3 font-medium interactive-hover"
+                              <div className="p-2 rounded-lg bg-blue-100/50 group-hover:bg-blue-200/50 transition-colors duration-300">
+                                <Calendar className="w-4 h-4 text-blue-600" />
+                              </div>
+                              <div>
+                                <span className="font-medium">My Bookings</span>
+                                <p className="text-xs text-slate-500">View appointment history</p>
+                              </div>
+                            </Link>
+                            <Link
+                              to="/edit-profile"
+                              onClick={() => { 
+                                console.log('Edit Profile clicked!');
+                                closeMenu(); 
+                              }}
+                              className="w-full px-6 py-4 text-left text-slate-700 hover:bg-emerald-50/80 hover:text-emerald-700 transition-all duration-300 flex items-center space-x-3 group cursor-pointer no-underline"
                             >
-                              <LogOut className="w-5 h-5" />
-                              <span>Logout</span>
-                            </button>
+                              <div className="p-2 rounded-lg bg-purple-100/50 group-hover:bg-purple-200/50 transition-colors duration-300">
+                                <Settings className="w-4 h-4 text-purple-600" />
+                              </div>
+                              <div>
+                                <span className="font-medium">Edit Profile</span>
+                                <p className="text-xs text-slate-500">Update your information</p>
+                              </div>
+                            </Link>
+                            <hr className="my-3 border-slate-200/50" />
+                            <div
+                              onClick={() => {
+                                closeMenu();
+                                handleLogout();
+                              }}
+                              className="w-full px-6 py-4 text-left text-red-600 hover:bg-red-50/80 transition-all duration-300 flex items-center space-x-3 font-medium group cursor-pointer"
+                              role="button"
+                              tabIndex={0}
+                            >
+                              <div className="p-2 rounded-lg bg-red-100/50 group-hover:bg-red-200/50 transition-colors duration-300">
+                                <LogOut className="w-4 h-4 text-red-600" />
+                              </div>
+                              <div>
+                                <span className="font-medium">Logout</span>
+                                <p className="text-xs text-red-400">Sign out of your account</p>
+                              </div>
+                            </div>
                           </div>
                         )}
                       </div>
@@ -404,6 +499,14 @@ function Navbar() {
                 >
                   <BookOpen className="w-4 h-4 group-hover:text-emerald-600 transition-colors duration-300" />
                   <span>Blog</span>
+                </Link>
+
+                <Link
+                  to="/discussion"
+                  className="nav-link flex items-center space-x-2 group"
+                >
+                  <MessageCircle className="w-4 h-4 group-hover:text-emerald-600 transition-colors duration-300" />
+                  <span>Discuss</span>
                 </Link>
 
                 <div className="flex items-center space-x-2 ml-4">
@@ -470,6 +573,14 @@ function Navbar() {
                       >
                         <BookOpen className="w-5 h-5" />
                         <span>Blog</span>
+                      </Link>
+                      <Link
+                        to="/discussion"
+                        onClick={closeMenu}
+                        className="flex items-center space-x-3 px-4 py-3 text-slate-700 font-semibold hover:bg-emerald-50 hover:text-emerald-700 rounded-xl transition-all duration-300"
+                      >
+                        <MessageCircle className="w-5 h-5" />
+                        <span>Discuss</span>
                       </Link>
                       <Link
                         to="/wishlist"
@@ -544,6 +655,14 @@ function Navbar() {
                   >
                     <BookOpen className="w-5 h-5" />
                     <span>Blog</span>
+                  </Link>
+                  <Link
+                    to="/discussion"
+                    onClick={closeMenu}
+                    className="flex items-center space-x-3 px-4 py-3 text-slate-700 font-semibold hover:bg-emerald-50 hover:text-emerald-700 rounded-xl transition-all duration-300"
+                  >
+                    <MessageCircle className="w-5 h-5" />
+                    <span>Discuss</span>
                   </Link>
                   <hr className="border-gray-200 my-4" />
                   <Link

@@ -160,12 +160,15 @@ function Signup() {
   };
 
   useEffect(() => {
+    // Temporarily disabled Google Sign-In for development
+    // Uncomment and configure proper client ID for production
+    /*
     const script = document.createElement('script');
     script.src = 'https://accounts.google.com/gsi/client';
     script.async = true;
     script.defer = true;
     document.body.appendChild(script);
-    
+
     script.onload = () => {
       if (window.google && window.google.accounts) {
         window.google.accounts.id.initialize({
@@ -178,10 +181,11 @@ function Signup() {
         );
       }
     };
-    
-    return () => { 
-      document.body.removeChild(script); 
+
+    return () => {
+      document.body.removeChild(script);
     };
+    */
   }, []);
   
   function handleGoogleResponse(response) {
@@ -282,20 +286,22 @@ function Signup() {
             </p>
           </div>
 
-          {/* Google Sign Up */}
-          <div className="mb-6">
-            <div className="flex justify-center mb-4">
-              <div id="google-signup-btn"></div>
-            </div>
-            <div className="relative">
-              <div className="absolute inset-0 flex items-center">
-                <div className="w-full border-t border-gray-200"></div>
+          {/* Google Sign Up - Temporarily disabled for development */}
+          {false && (
+            <div className="mb-6">
+              <div className="flex justify-center mb-4">
+                <div id="google-signup-btn"></div>
               </div>
-              <div className="relative flex justify-center text-sm">
-                <span className="px-4 bg-white text-gray-500 font-medium">or continue with email</span>
+              <div className="relative">
+                <div className="absolute inset-0 flex items-center">
+                  <div className="w-full border-t border-gray-200"></div>
+                </div>
+                <div className="relative flex justify-center text-sm">
+                  <span className="px-4 bg-white text-gray-500 font-medium">or continue with email</span>
+                </div>
               </div>
             </div>
-          </div>
+          )}
 
           {/* Form Fields */}
           <div className="space-y-6">

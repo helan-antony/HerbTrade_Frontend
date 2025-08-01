@@ -39,6 +39,31 @@
   *:focus-visible {
     @apply ring-2 ring-emerald-500/50 ring-offset-2 ring-offset-white;
   }
+
+  /* Ensure dropdown links work */
+  .no-underline {
+    text-decoration: none !important;
+  }
+
+  .no-underline:hover {
+    text-decoration: none !important;
+  }
+
+  /* Animation for blog form */
+  .animate-fade-in {
+    animation: fadeIn 0.3s ease-out;
+  }
+
+  @keyframes fadeIn {
+    from {
+      opacity: 0;
+      transform: translateY(-10px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
 }
 
 @layer components {
@@ -106,6 +131,8 @@
   .card-hospital::after {
     @apply absolute inset-0 bg-gradient-to-t from-blue-500/5 via-transparent to-transparent opacity-0 hover:opacity-100 transition-opacity duration-700;
     content: '';
+    pointer-events: none;
+    z-index: 1;
   }
 
   .card-feature {

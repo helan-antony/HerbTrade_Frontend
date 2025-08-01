@@ -30,5 +30,9 @@ export const getCurrentUser = () => {
 export const logout = () => {
   localStorage.removeItem('token');
   localStorage.removeItem('user');
+  localStorage.removeItem('cartItems');
+  localStorage.removeItem('wishlistItems');
   window.location.href = '/login';
 };
+
+

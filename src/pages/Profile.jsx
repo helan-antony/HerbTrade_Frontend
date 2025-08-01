@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { FaUser, FaShoppingCart, FaHeart, FaTrash, FaPlus, FaMinus, FaEdit, FaCalendarAlt, FaMapMarkerAlt, FaStar, FaSignOutAlt } from 'react-icons/fa';
+import { FaUser, FaShoppingCart, FaHeart, FaTrash, FaPlus, FaMinus, FaEdit, FaCalendarAlt, FaMapMarkerAlt, FaStar, FaSignOutAlt, FaCalendarCheck, FaHospital } from 'react-icons/fa';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'react-toastify';
 
@@ -7,30 +7,49 @@ function Profile() {
   const [user, setUser] = useState(null);
   const [cartItems, setCartItems] = useState([]);
   const [wishlistItems, setWishlistItems] = useState([]);
-  const [appointments, setAppointments] = useState([]);
+  const [appointmentCount, setAppointmentCount] = useState(0);
   const [loading, setLoading] = useState(true);
   const navigate = useNavigate();
 
   useEffect(() => {
+    // Get user from localStorage first
+    const storedUser = localStorage.getItem('user');
+    if (storedUser) {
+      try {
+        setUser(JSON.parse(storedUser));
+      } catch (error) {
+        console.error('Error parsing stored user:', error);
+      }
+    }
+
     fetchUserProfile();
     fetchCartItems();
     fetchWishlistItems();
-    fetchAppointments();
+    fetchAppointmentCount();
   }, []);
 
   const fetchUserProfile = async () => {
     try {
       const token = localStorage.getItem('token');
+      if (!token) {
+        setLoading(false);
+        return;
+      }
+
       const response = await fetch('http://localhost:5000/api/auth/profile', {
         headers: { 'Authorization': `Bearer ${token}` }
       });
-      
+
       if (response.ok) {
         const data = await response.json();
         setUser(data.user);
+        // Update localStorage with fresh user data
+        localStorage.setItem('user', JSON.stringify(data.user));
       }
     } catch (error) {
       console.error('Error fetching profile:', error);
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -174,31 +193,72 @@ function Profile() {
     }
   };
 
-  const fetchAppointments = async () => {
+  const fetchAppointmentCount = async () => {
     try {
       const token = localStorage.getItem('token');
-      const response = await fetch('http://localhost:5000/api/appointments/user', {
-        headers: { 'Authorization': `Bearer ${token}` }
-      });
-      
-      if (response.ok) {
-        const data = await response.json();
-        setAppointments(data);
+      const [appointmentsRes, hospitalBookingsRes] = await Promise.all([
+        fetch('http://localhost:5000/api/appointments/user', {
+          headers: { 'Authorization': `Bearer ${token}` }
+        }),
+        fetch('http://localhost:5000/api/hospital-bookings', {
+          headers: { 'Authorization': `Bearer ${token}` }
+        })
+      ]);
+
+      let totalCount = 0;
+
+      if (appointmentsRes.ok) {
+        const appointmentsData = await appointmentsRes.json();
+        totalCount += (appointmentsData || []).length;
       }
+
+      if (hospitalBookingsRes.ok) {
+        const hospitalBookingsData = await hospitalBookingsRes.json();
+        totalCount += (hospitalBookingsData.data || []).length;
+      }
+
+      setAppointmentCount(totalCount);
     } catch (error) {
-      console.error('Error fetching appointments:', error);
+      console.error('Error fetching appointment count:', error);
     } finally {
       setLoading(false);
     }
   };
 
   const handleLogout = () => {
-    localStorage.removeItem('token');
-    localStorage.removeItem('user');
-    localStorage.removeItem('cartItems');
-    localStorage.removeItem('wishlistItems');
-    toast.success('Logged out successfully');
-    navigate('/login');
+    try {
+      // Clear all user-related data
+      localStorage.removeItem('token');
+      localStorage.removeItem('user');
+      localStorage.removeItem('cartItems');
+      localStorage.removeItem('wishlistItems');
+      localStorage.removeItem('herbtradeCart');
+      localStorage.removeItem('herbtradeWishlist');
+
+      // Reset component state
+      setUser(null);
+      setCartItems([]);
+      setWishlistItems([]);
+
+      // Dispatch events to update other components
+      window.dispatchEvent(new Event('userChanged'));
+      window.dispatchEvent(new Event('cartUpdated'));
+      window.dispatchEvent(new Event('wishlistUpdated'));
+
+      // Show success message
+      toast.success('Logged out successfully');
+
+      // Navigate to login
+      navigate('/login');
+
+      // Force refresh to clear any cached data
+      setTimeout(() => {
+        window.location.reload();
+      }, 100);
+    } catch (error) {
+      console.error('Error during logout:', error);
+      toast.error('Error during logout');
+    }
   };
 
   if (loading) {
@@ -221,10 +281,10 @@ function Profile() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50 pt-24 pb-12">
+    <div className="min-h-screen bg-gradient-to-br from-emerald-50 via-teal-50 to-cyan-50 pt-24 pb-12">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         {/* Profile Header */}
-        <div className="bg-white/80 backdrop-blur-sm rounded-3xl shadow-xl border border-white/50 p-8 mb-8">
+        <div className="card-ultra p-8 mb-8">
           <div className="flex flex-col lg:flex-row items-start justify-between gap-8">
             <div className="flex flex-col sm:flex-row items-center sm:items-start gap-6">
               <div className="relative group">
@@ -237,12 +297,26 @@ function Profile() {
               </div>
               <div className="text-center sm:text-left">
                 <h1 className="text-4xl lg:text-5xl font-playfair font-bold text-slate-900 mb-3 tracking-tight">
-                  {user?.name || 'Teena Ram'}
+                  {user?.name || (() => {
+                    try {
+                      const storedUser = localStorage.getItem('user');
+                      return storedUser ? JSON.parse(storedUser).name : 'User';
+                    } catch {
+                      return 'User';
+                    }
+                  })()}
                 </h1>
                 <div className="space-y-2">
                   <p className="text-slate-600 text-lg flex items-center justify-center sm:justify-start gap-3">
                     <FaMapMarkerAlt className="text-emerald-500" />
-                    {user?.email || 'teenaram@gmail.com'}
+                    {user?.email || (() => {
+                      try {
+                        const storedUser = localStorage.getItem('user');
+                        return storedUser ? JSON.parse(storedUser).email : 'user@example.com';
+                      } catch {
+                        return 'user@example.com';
+                      }
+                    })()}
                   </p>
                   <p className="text-slate-500 flex items-center justify-center sm:justify-start gap-3">
                     <FaCalendarAlt className="text-emerald-500" />
@@ -253,15 +327,18 @@ function Profile() {
             </div>
             <div className="flex gap-4">
               <button
-                onClick={() => navigate('/edit-profile')}
-                className="bg-gradient-to-r from-emerald-500 to-emerald-600 hover:from-emerald-600 hover:to-emerald-700 text-white font-semibold px-8 py-4 rounded-2xl shadow-lg hover:shadow-xl transition-all duration-300 flex items-center gap-3 group"
+                onClick={() => {
+                  console.log('Edit Profile button clicked');
+                  navigate('/edit-profile');
+                }}
+                className="bg-gradient-to-r from-emerald-500 to-emerald-600 hover:from-emerald-600 hover:to-emerald-700 text-white font-semibold px-8 py-4 rounded-2xl shadow-lg hover:shadow-xl transition-all duration-300 flex items-center gap-3 group cursor-pointer"
               >
                 <FaEdit className="group-hover:rotate-12 transition-transform duration-300" />
                 Edit Profile
               </button>
               <button
                 onClick={handleLogout}
-                className="bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 text-white font-semibold px-8 py-4 rounded-2xl shadow-lg hover:shadow-xl transition-all duration-300 flex items-center gap-3 group"
+                className="bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 text-white font-semibold px-8 py-4 rounded-2xl shadow-lg hover:shadow-xl transition-all duration-300 flex items-center gap-3 group cursor-pointer"
               >
                 <FaSignOutAlt className="group-hover:translate-x-1 transition-transform duration-300" />
                 Logout
@@ -271,27 +348,95 @@ function Profile() {
         </div>
 
         {/* Stats Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mb-12">
-          <div className="bg-white/80 backdrop-blur-sm rounded-3xl shadow-xl border border-white/50 p-8 text-center group hover:scale-105 transition-all duration-500">
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-8 mb-12">
+          <div className="card-ultra p-8 text-center group hover:scale-105 transition-all duration-500">
             <div className="w-20 h-20 bg-gradient-to-br from-blue-400 via-blue-500 to-blue-600 rounded-full flex items-center justify-center mx-auto mb-6 shadow-2xl group-hover:shadow-blue-300/50 transition-all duration-500">
               <FaShoppingCart className="text-white text-2xl" />
             </div>
             <h3 className="text-4xl font-bold text-slate-900 mb-2">{cartItems.length}</h3>
             <p className="text-slate-600 font-medium">Items in Cart</p>
           </div>
-          <div className="bg-white/80 backdrop-blur-sm rounded-3xl shadow-xl border border-white/50 p-8 text-center group hover:scale-105 transition-all duration-500" style={{ animationDelay: '0.1s' }}>
+          <div className="card-ultra p-8 text-center group hover:scale-105 transition-all duration-500" style={{ animationDelay: '0.1s' }}>
             <div className="w-20 h-20 bg-gradient-to-br from-pink-400 via-pink-500 to-pink-600 rounded-full flex items-center justify-center mx-auto mb-6 shadow-2xl group-hover:shadow-pink-300/50 transition-all duration-500">
               <FaHeart className="text-white text-2xl" />
             </div>
             <h3 className="text-4xl font-bold text-slate-900 mb-2">{wishlistItems.length}</h3>
             <p className="text-slate-600 font-medium">Wishlist Items</p>
           </div>
-          <div className="bg-white/80 backdrop-blur-sm rounded-3xl shadow-xl border border-white/50 p-8 text-center group hover:scale-105 transition-all duration-500" style={{ animationDelay: '0.2s' }}>
+          <div
+            className="card-ultra p-8 text-center group hover:scale-105 transition-all duration-500 cursor-pointer"
+            style={{ animationDelay: '0.2s' }}
+            onClick={() => {
+              console.log('Bookings stats card clicked');
+              navigate('/view-bookings');
+            }}
+          >
+            <div className="w-20 h-20 bg-gradient-to-br from-green-400 via-green-500 to-green-600 rounded-full flex items-center justify-center mx-auto mb-6 shadow-2xl group-hover:shadow-green-300/50 transition-all duration-500">
+              <FaCalendarCheck className="text-white text-2xl" />
+            </div>
+            <h3 className="text-4xl font-bold text-slate-900 mb-2">{appointmentCount}</h3>
+            <p className="text-slate-600 font-medium">My Bookings</p>
+          </div>
+          <div className="card-ultra p-8 text-center group hover:scale-105 transition-all duration-500" style={{ animationDelay: '0.3s' }}>
             <div className="w-20 h-20 bg-gradient-to-br from-amber-400 via-amber-500 to-amber-600 rounded-full flex items-center justify-center mx-auto mb-6 shadow-2xl group-hover:shadow-amber-300/50 transition-all duration-500">
               <FaStar className="text-white text-2xl" />
             </div>
             <h3 className="text-4xl font-bold text-slate-900 mb-2">4.8</h3>
             <p className="text-slate-600 font-medium">Rating</p>
+          </div>
+        </div>
+
+        {/* Quick Actions */}
+        <div className="bg-white/80 backdrop-blur-sm rounded-3xl shadow-xl border border-white/50 p-8 mb-8">
+          <h2 className="text-3xl font-playfair font-bold text-slate-900 mb-6">Quick Actions</h2>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <button
+              onClick={() => {
+                console.log('View Bookings button clicked');
+                navigate('/view-bookings');
+              }}
+              className="flex items-center space-x-4 p-6 bg-gradient-to-r from-green-50 to-emerald-50 rounded-2xl border border-green-200 hover:shadow-lg transition-all duration-300 group cursor-pointer"
+            >
+              <div className="w-12 h-12 bg-gradient-to-br from-green-500 to-green-600 rounded-xl flex items-center justify-center shadow-lg group-hover:shadow-green-300/50 transition-all duration-300">
+                <FaCalendarCheck className="text-white text-xl" />
+              </div>
+              <div className="text-left">
+                <h3 className="font-semibold text-slate-900">View Bookings</h3>
+                <p className="text-sm text-slate-600">Manage appointments</p>
+              </div>
+            </button>
+
+            <button
+              onClick={() => {
+                console.log('Find Hospitals button clicked');
+                navigate('/hospitals');
+              }}
+              className="flex items-center space-x-4 p-6 bg-gradient-to-r from-blue-50 to-indigo-50 rounded-2xl border border-blue-200 hover:shadow-lg transition-all duration-300 group cursor-pointer"
+            >
+              <div className="w-12 h-12 bg-gradient-to-br from-blue-500 to-blue-600 rounded-xl flex items-center justify-center shadow-lg group-hover:shadow-blue-300/50 transition-all duration-300">
+                <FaHospital className="text-white text-xl" />
+              </div>
+              <div className="text-left">
+                <h3 className="font-semibold text-slate-900">Find Hospitals</h3>
+                <p className="text-sm text-slate-600">Book new appointment</p>
+              </div>
+            </button>
+
+            <button
+              onClick={() => {
+                console.log('Browse Herbs button clicked');
+                navigate('/herbs');
+              }}
+              className="flex items-center space-x-4 p-6 bg-gradient-to-r from-purple-50 to-pink-50 rounded-2xl border border-purple-200 hover:shadow-lg transition-all duration-300 group cursor-pointer"
+            >
+              <div className="w-12 h-12 bg-gradient-to-br from-purple-500 to-purple-600 rounded-xl flex items-center justify-center shadow-lg group-hover:shadow-purple-300/50 transition-all duration-300">
+                <FaShoppingCart className="text-white text-xl" />
+              </div>
+              <div className="text-left">
+                <h3 className="font-semibold text-slate-900">Browse Herbs</h3>
+                <p className="text-sm text-slate-600">Explore catalog</p>
+              </div>
+            </button>
           </div>
         </div>
 
@@ -422,65 +567,7 @@ function Profile() {
             )}
           </div>
 
-          {/* Appointments Section */}
-          <div className="bg-white/80 backdrop-blur-sm rounded-3xl shadow-xl border border-white/50 p-8">
-            <div className="flex items-center gap-4 mb-8">
-              <div className="relative">
-                <div className="w-12 h-12 bg-gradient-to-br from-blue-400 to-blue-600 rounded-2xl flex items-center justify-center shadow-lg">
-                  <FaCalendarAlt className="text-white text-xl" />
-                </div>
-                {appointments.length > 0 && (
-                  <span className="absolute -top-2 -right-2 bg-green-500 text-white text-xs rounded-full w-6 h-6 flex items-center justify-center font-semibold">
-                    {appointments.length}
-                  </span>
-                )}
-              </div>
-              <h2 className="text-3xl font-playfair font-bold text-slate-900">My Appointments</h2>
-            </div>
-            
-            {appointments.length === 0 ? (
-              <div className="text-center py-16">
-                <div className="w-32 h-32 bg-gradient-to-br from-slate-100 to-slate-200 rounded-full flex items-center justify-center mx-auto mb-6 shadow-inner">
-                  <FaCalendarAlt className="text-4xl text-slate-400" />
-                </div>
-                <p className="text-slate-600 text-xl font-medium mb-2">No appointments scheduled</p>
-                <p className="text-slate-400">Book an appointment with our partner hospitals!</p>
-              </div>
-            ) : (
-              <div className="space-y-4 max-h-96 overflow-y-auto">
-                {appointments.map((appointment, index) => (
-                  <div key={appointment._id} className="bg-gradient-to-r from-slate-50 to-slate-100/50 rounded-2xl p-6 hover:shadow-lg transition-all duration-300 border border-slate-200/50" style={{ animationDelay: `${index * 0.1}s` }}>
-                    <div className="flex items-start gap-6">
-                      <div className="w-16 h-16 bg-gradient-to-br from-blue-500 to-blue-600 rounded-xl flex items-center justify-center shadow-lg">
-                        <FaUser className="text-white text-xl" />
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <h3 className="font-semibold text-slate-900 text-lg mb-2">{appointment.doctorName}</h3>
-                        <p className="text-slate-600 mb-1"><strong>Hospital:</strong> {appointment.hospitalName}</p>
-                        <p className="text-slate-600 mb-1"><strong>Date:</strong> {appointment.date}</p>
-                        <p className="text-slate-600 mb-1"><strong>Time:</strong> {appointment.time}</p>
-                        <p className="text-slate-600 mb-1"><strong>Reason:</strong> {appointment.reason}</p>
-                        <p className="text-slate-600"><strong>Patient:</strong> {appointment.patientName}</p>
-                      </div>
-                      <div className="flex flex-col items-end gap-2">
-                        <span className={`px-3 py-1 rounded-full text-xs font-semibold ${
-                          appointment.status === 'confirmed' ? 'bg-green-100 text-green-700' :
-                          appointment.status === 'pending' ? 'bg-yellow-100 text-yellow-700' :
-                          appointment.status === 'cancelled' ? 'bg-red-100 text-red-700' :
-                          'bg-blue-100 text-blue-700'
-                        }`}>
-                          {appointment.status || 'pending'}
-                        </span>
-                        <p className="text-xs text-slate-500">
-                          {appointment.createdAt ? new Date(appointment.createdAt).toLocaleDateString() : 'Recent'}
-                        </p>
-                      </div>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
+
         </div>
       </div>
     </div>

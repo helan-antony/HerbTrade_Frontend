@@ -76,6 +76,9 @@ function Login() {
   };
 
   useEffect(() => {
+    // Temporarily disabled Google Sign-In for development
+    // Uncomment and configure proper client ID for production
+    /*
     const script = document.createElement('script');
     script.src = 'https://accounts.google.com/gsi/client';
     script.async = true;
@@ -94,6 +97,7 @@ function Login() {
       }
     };
     return () => { document.body.removeChild(script); };
+    */
   }, []);
   
   async function handleGoogleResponse(response) {
@@ -210,20 +214,22 @@ function Login() {
             </p>
           </div>
 
-          {/* Google Sign In */}
-          <div className="mb-6">
-            <div className="flex justify-center mb-4">
-              <div id="google-signin-btn" style={{ width: '100%' }}></div>
-            </div>
-            <div className="relative">
-              <div className="absolute inset-0 flex items-center">
-                <div className="w-full border-t border-gray-200"></div>
+          {/* Google Sign In - Temporarily disabled for development */}
+          {false && (
+            <div className="mb-6">
+              <div className="flex justify-center mb-4">
+                <div id="google-signin-btn" style={{ width: '100%' }}></div>
               </div>
-              <div className="relative flex justify-center text-sm">
-                <span className="px-4 bg-white text-gray-500 font-medium">or continue with email</span>
+              <div className="relative">
+                <div className="absolute inset-0 flex items-center">
+                  <div className="w-full border-t border-gray-200"></div>
+                </div>
+                <div className="relative flex justify-center text-sm">
+                  <span className="px-4 bg-white text-gray-500 font-medium">or continue with email</span>
+                </div>
               </div>
             </div>
-          </div>
+          )}
 
           {/* Form Fields */}
           <div className="space-y-6">

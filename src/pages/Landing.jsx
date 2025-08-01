@@ -97,14 +97,16 @@ function Landing() {
       {/* Hero Section */}
       <section className="relative min-h-screen flex items-center justify-center overflow-hidden bg-gradient-to-br from-emerald-50 via-white to-teal-50 pt-20">
         {/* Background Image */}
-        <div 
-          className="absolute inset-0 bg-cover bg-center bg-no-repeat opacity-50"
+        <div
+          className="absolute inset-0 bg-cover bg-center bg-no-repeat"
           style={{ backgroundImage: 'url(/assets/bg.png)' }}
         />
+        {/* Minimal Overlay for text readability */}
+        <div className="absolute inset-0 bg-gradient-to-br from-black/20 via-black/10 to-black/15" />
         {/* Enhanced Decorative Elements */}
-        <div className="absolute top-20 left-10 w-72 h-72 bg-emerald-200/30 rounded-full blur-3xl animate-float" />
-        <div className="absolute bottom-20 right-10 w-96 h-96 bg-teal-200/20 rounded-full blur-3xl animate-float" style={{ animationDelay: '2s' }} />
-        <div className="absolute top-1/2 left-1/3 w-64 h-64 bg-cyan-200/20 rounded-full blur-3xl animate-float" style={{ animationDelay: '4s' }} />
+        <div className="absolute top-20 left-10 w-72 h-72 bg-emerald-200/20 rounded-full blur-2xl animate-float" />
+        <div className="absolute bottom-20 right-10 w-96 h-96 bg-teal-200/15 rounded-full blur-2xl animate-float" style={{ animationDelay: '2s' }} />
+        <div className="absolute top-1/2 left-1/3 w-64 h-64 bg-cyan-200/15 rounded-full blur-2xl animate-float" style={{ animationDelay: '4s' }} />
 
         {/* Floating Icons */}
         <div className="absolute top-32 right-20 animate-bounce-slow">
@@ -120,80 +122,34 @@ function Landing() {
         <div className="container-custom relative z-10">
           <div className="max-w-5xl mx-auto text-center">
             <div className="animate-fade-in">
-              <div className="inline-flex items-center px-6 py-3 bg-gradient-to-r from-emerald-100 to-teal-100 text-emerald-700 rounded-full text-sm font-semibold mb-8 shadow-lg hover:shadow-xl transition-all duration-300 group">
-                <Award className="w-4 h-4 mr-2 group-hover:rotate-12 transition-transform duration-300" />
-                <span className="bg-gradient-to-r from-emerald-600 to-teal-600 bg-clip-text text-transparent">
-                  Trusted by 10,000+ customers worldwide
-                </span>
-                <Sparkles className="w-4 h-4 ml-2 animate-pulse" />
-              </div>
 
-              <h1 className="text-6xl md:text-7xl lg:text-8xl font-playfair font-bold text-slate-900 mb-8 leading-tight">
-                <span className="block animate-slide-up">Natural Healing</span>
-                <span className="block gradient-text animate-slide-up" style={{ animationDelay: '0.2s' }}>
-                  Made Simple
+
+              <h1 className="text-6xl md:text-7xl lg:text-8xl font-playfair font-bold mb-8 leading-tight">
+                <span className="block animate-slide-up text-white drop-shadow-2xl">Natural Healing</span>
+                <span className="block animate-slide-up drop-shadow-lg" style={{ animationDelay: '0.2s' }}>
+                  <span className="bg-gradient-to-r from-emerald-600 via-teal-600 to-cyan-600 bg-clip-text text-transparent font-extrabold">
+                    Made Simple
+                  </span>
                 </span>
               </h1>
 
-              <p className="text-xl md:text-2xl text-slate-600 mb-12 max-w-4xl mx-auto leading-relaxed animate-fade-in" style={{ animationDelay: '0.4s' }}>
+              <p className="text-xl md:text-2xl text-white mb-12 max-w-4xl mx-auto leading-relaxed animate-fade-in font-medium drop-shadow-lg" style={{ animationDelay: '0.4s' }}>
                 Discover premium herbal products sourced from trusted farms worldwide.
-                Your wellness journey starts with nature's finest ingredients, backed by science.
+                <br />
+                <span className="text-emerald-200 font-semibold">Your wellness journey starts with nature's finest ingredients, backed by science.</span>
               </p>
 
-              <div className="flex flex-col sm:flex-row gap-6 justify-center items-center mb-16 animate-fade-in" style={{ animationDelay: '0.6s' }}>
+              <div className="flex justify-center items-center mb-16 animate-fade-in" style={{ animationDelay: '0.6s' }}>
                 <Link
                   to={user ? "/herbs" : "/signup"}
-                  className="group btn-primary text-lg px-10 py-5 flex items-center space-x-3 hover:scale-105 transition-all duration-300"
+                  className="group btn-primary text-lg px-12 py-6 flex items-center space-x-3 hover:scale-105 transition-all duration-300 shadow-xl"
                 >
                   <span>Explore Products</span>
                   <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform duration-300" />
                 </Link>
-
-                <button className="group btn-ghost text-lg px-10 py-5 flex items-center space-x-3 hover:scale-105 transition-all duration-300">
-                  <Play className="w-5 h-5 group-hover:scale-110 transition-transform duration-300" />
-                  <span>Watch Our Story</span>
-                </button>
               </div>
 
-              {/* Enhanced Trust Indicators */}
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-8 max-w-4xl mx-auto animate-fade-in" style={{ animationDelay: '0.8s' }}>
-                <div className="text-center group hover:scale-105 transition-all duration-300">
-                  <div className="flex justify-center mb-3">
-                    <div className="p-3 bg-gradient-to-r from-emerald-500 to-teal-500 rounded-2xl shadow-lg group-hover:shadow-xl transition-all duration-300">
-                      <Leaf className="w-6 h-6 text-white" />
-                    </div>
-                  </div>
-                  <div className="text-3xl font-bold text-slate-900 mb-2 group-hover:text-emerald-600 transition-colors duration-300">500+</div>
-                  <div className="text-slate-600 text-sm font-medium">Premium Herbs</div>
-                </div>
-                <div className="text-center group hover:scale-105 transition-all duration-300">
-                  <div className="flex justify-center mb-3">
-                    <div className="p-3 bg-gradient-to-r from-blue-500 to-indigo-500 rounded-2xl shadow-lg group-hover:shadow-xl transition-all duration-300">
-                      <Users className="w-6 h-6 text-white" />
-                    </div>
-                  </div>
-                  <div className="text-3xl font-bold text-slate-900 mb-2 group-hover:text-blue-600 transition-colors duration-300">10K+</div>
-                  <div className="text-slate-600 text-sm font-medium">Happy Customers</div>
-                </div>
-                <div className="text-center group hover:scale-105 transition-all duration-300">
-                  <div className="flex justify-center mb-3">
-                    <div className="p-3 bg-gradient-to-r from-purple-500 to-pink-500 rounded-2xl shadow-lg group-hover:shadow-xl transition-all duration-300">
-                      <Target className="w-6 h-6 text-white" />
-                    </div>
-                  </div>
-                  <div className="text-3xl font-bold text-slate-900 mb-2 group-hover:text-purple-600 transition-colors duration-300">99.9%</div>
-                  <div className="text-slate-600 text-sm font-medium">Purity Rate</div>
-                </div>
-                <div className="text-center group hover:scale-105 transition-all duration-300">
-                  <div className="flex justify-center mb-3">
-                    <div className="p-3 bg-gradient-to-r from-orange-500 to-red-500 rounded-2xl shadow-lg group-hover:shadow-xl transition-all duration-300">
-                      <Clock className="w-6 h-6 text-white" />
-                    </div>
-                  </div>
-                  <div className="text-3xl font-bold text-slate-900 mb-2 group-hover:text-orange-600 transition-colors duration-300">24/7</div>
-                  <div className="text-slate-600 text-sm font-medium">Support</div>
-                </div>
-              </div>
+
             </div>
           </div>
         </div>
@@ -294,7 +250,7 @@ function Landing() {
             <div className="relative animate-scale-in">
               <div className="glass-card p-8">
                 <img 
-                  src="https://images.unsplash.com/photo-1544947950-fa07a98d237f?w=600&h=400&fit=crop&auto=format" 
+                  src="/assets/ashwagandha.png" 
                   alt="Premium herbs"
                   className="w-full h-80 object-cover rounded-xl mb-6"
                 />

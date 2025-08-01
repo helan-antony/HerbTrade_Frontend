@@ -63,7 +63,7 @@ function AdminDashboard() {
       navigate('/login');
       return;
     }
-    
+
     fetchDashboardData();
   }, [navigate]);
 
@@ -73,7 +73,7 @@ function AdminDashboard() {
       const token = localStorage.getItem('token');
       
       // Fetch all data in parallel
-      const [usersRes, ordersRes, productsRes, appointmentsRes] = await Promise.all([
+      const [usersRes, ordersRes, productsRes, hospitalBookingsRes] = await Promise.all([
         fetch('http://localhost:5000/api/admin/users', {
           headers: { 'Authorization': `Bearer ${token}` }
         }),
@@ -83,7 +83,7 @@ function AdminDashboard() {
         fetch('http://localhost:5000/api/products', {
           headers: { 'Authorization': `Bearer ${token}` }
         }),
-        fetch('http://localhost:5000/api/admin/appointments', {
+        fetch('http://localhost:5000/api/admin/hospital-bookings', {
           headers: { 'Authorization': `Bearer ${token}` }
         })
       ]);
@@ -103,9 +103,30 @@ function AdminDashboard() {
         setProducts(productsData);
       }
 
-      if (appointmentsRes.ok) {
-        const appointmentsData = await appointmentsRes.json();
-        setAppointments(appointmentsData);
+      console.log('Hospital bookings response status:', hospitalBookingsRes.status);
+
+      if (hospitalBookingsRes.ok) {
+        const hospitalBookingsData = await hospitalBookingsRes.json();
+        console.log('Hospital bookings response:', hospitalBookingsData);
+        console.log('Hospital bookings array:', hospitalBookingsData.data || hospitalBookingsData);
+        setAppointments(hospitalBookingsData.data || hospitalBookingsData || []);
+      } else {
+        console.error('Failed to fetch hospital bookings:', hospitalBookingsRes.status, hospitalBookingsRes.statusText);
+
+        // Try to get error details
+        const contentType = hospitalBookingsRes.headers.get('content-type');
+        console.log('Response content type:', contentType);
+
+        if (contentType && contentType.includes('application/json')) {
+          const errorData = await hospitalBookingsRes.json();
+          console.error('JSON Error response:', errorData);
+        } else {
+          const errorText = await hospitalBookingsRes.text();
+          console.error('Text Error response:', errorText.substring(0, 200) + '...');
+        }
+
+        // Set empty array on error
+        setAppointments([]);
       }
 
       // Calculate stats
@@ -130,6 +151,8 @@ function AdminDashboard() {
     }
   };
 
+
+
   const handleUserAction = async (userId, action) => {
     try {
       const token = localStorage.getItem('token');
@@ -153,6 +176,43 @@ function AdminDashboard() {
     }
   };
 
+  const handleBookingStatusUpdate = async (bookingId, newStatus) => {
+    try {
+      const token = localStorage.getItem('token');
+      const response = await fetch(`http://localhost:5000/api/admin/hospital-bookings/${bookingId}/status`, {
+        method: 'PATCH',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ bookingStatus: newStatus })
+      });
+
+      if (response.ok) {
+        const result = await response.json();
+        toast.success(result.message || `Booking ${newStatus.toLowerCase()} successfully`);
+
+        // Update local state
+        setAppointments(prev =>
+          prev.map(booking =>
+            booking._id === bookingId
+              ? { ...booking, bookingStatus: newStatus, updatedAt: new Date() }
+              : booking
+          )
+        );
+
+        // Refresh notifications
+        fetchNotifications();
+      } else {
+        const error = await response.json();
+        toast.error(error.message || 'Failed to update booking status');
+      }
+    } catch (error) {
+      console.error('Error updating booking status:', error);
+      toast.error('Failed to update booking status');
+    }
+  };
+
   const StatCard = ({ title, value, icon: Icon, color, change }) => (
     <div className="bg-white/80 backdrop-blur-sm rounded-3xl shadow-xl border border-white/50 p-6 hover:shadow-2xl transition-all duration-500 hover:-translate-y-1 group">
       <div className="flex items-center justify-between">
@@ -173,10 +233,10 @@ function AdminDashboard() {
     </div>
   );
 
-  const TabButton = ({ id, label, icon: Icon, isActive, onClick }) => (
+  const TabButton = ({ id, label, icon: Icon, isActive, onClick, badge }) => (
     <button
       onClick={() => onClick(id)}
-      className={`flex items-center space-x-3 px-6 py-4 rounded-2xl font-semibold transition-all duration-300 ${
+      className={`relative flex items-center space-x-3 px-6 py-4 rounded-2xl font-semibold transition-all duration-300 ${
         isActive
           ? 'bg-gradient-to-r from-emerald-500 to-teal-500 text-white shadow-lg'
           : 'text-slate-600 hover:bg-emerald-50 hover:text-emerald-600'
@@ -184,6 +244,11 @@ function AdminDashboard() {
     >
       <Icon className="w-5 h-5" />
       <span>{label}</span>
+      {badge > 0 && (
+        <span className="absolute -top-2 -right-2 bg-red-500 text-white text-xs rounded-full w-6 h-6 flex items-center justify-center font-bold animate-pulse">
+          {badge > 99 ? '99+' : badge}
+        </span>
+      )}
     </button>
   );
 
@@ -227,15 +292,82 @@ function AdminDashboard() {
             <button
               onClick={fetchDashboardData}
               className="p-3 bg-white/80 backdrop-blur-sm rounded-2xl shadow-lg hover:shadow-xl border border-white/50 transition-all duration-300 hover:-translate-y-1 group"
+              title="Refresh Dashboard"
             >
               <RefreshCw className="w-6 h-6 text-emerald-600 group-hover:rotate-180 transition-transform duration-500" />
             </button>
-            <div className="relative p-3 bg-white/80 backdrop-blur-sm rounded-2xl shadow-lg border border-white/50">
-              <Bell className="w-6 h-6 text-slate-600" />
-              <span className="absolute -top-2 -right-2 bg-red-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center">
-                {stats.pendingOrders}
-              </span>
+
+            {/* Notification Bell */}
+            <div className="relative">
+              <button
+                onClick={() => setShowNotifications(!showNotifications)}
+                className="p-3 bg-white/80 backdrop-blur-sm rounded-2xl shadow-lg hover:shadow-xl border border-white/50 transition-all duration-300 hover:-translate-y-1 group"
+                title="Notifications"
+              >
+                <Bell className="w-6 h-6 text-slate-600 group-hover:text-emerald-600 transition-colors duration-300" />
+                {unreadCount > 0 && (
+                  <span className="absolute -top-2 -right-2 bg-red-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center animate-pulse">
+                    {unreadCount > 99 ? '99+' : unreadCount}
+                  </span>
+                )}
+              </button>
+
+              {/* Notification Dropdown */}
+              {showNotifications && (
+                <div className="absolute right-0 mt-2 w-96 bg-white rounded-2xl shadow-2xl border border-slate-200 z-50 max-h-96 overflow-hidden">
+                  <div className="p-4 border-b border-slate-200 flex justify-between items-center">
+                    <h3 className="font-semibold text-slate-900">Notifications</h3>
+                    <div className="flex items-center space-x-2">
+                      {unreadCount > 0 && (
+                        <button
+                          onClick={markAllNotificationsAsRead}
+                          className="text-xs text-emerald-600 hover:text-emerald-700 font-medium"
+                        >
+                          Mark all read
+                        </button>
+                      )}
+                      <button
+                        onClick={() => setShowNotifications(false)}
+                        className="text-slate-400 hover:text-slate-600"
+                      >
+                        <X className="w-4 h-4" />
+                      </button>
+                    </div>
+                  </div>
+
+                  <div className="max-h-80 overflow-y-auto">
+                    {notifications.length === 0 ? (
+                      <div className="p-6 text-center text-slate-500">
+                        <Bell className="w-8 h-8 mx-auto mb-2 text-slate-300" />
+                        <p>No notifications yet</p>
+                      </div>
+                    ) : (
+                      notifications.map((notification) => (
+                        <div
+                          key={notification._id}
+                          className={`p-4 border-b border-slate-100 hover:bg-slate-50 cursor-pointer transition-colors duration-200 ${
+                            !notification.read ? 'bg-emerald-50/50' : ''
+                          }`}
+                          onClick={() => markNotificationAsRead(notification._id)}
+                        >
+                          <div className="flex items-start space-x-3">
+                            <div className={`w-2 h-2 rounded-full mt-2 ${!notification.read ? 'bg-emerald-500' : 'bg-slate-300'}`} />
+                            <div className="flex-1">
+                              <p className="font-medium text-slate-900">{notification.title}</p>
+                              <p className="text-sm text-slate-600 mt-1">{notification.message}</p>
+                              <p className="text-xs text-slate-400 mt-2">
+                                {new Date(notification.createdAt).toLocaleString()}
+                              </p>
+                            </div>
+                          </div>
+                        </div>
+                      ))
+                    )}
+                  </div>
+                </div>
+              )}
             </div>
+
             <button
               onClick={() => {
                 localStorage.clear();
@@ -319,6 +451,7 @@ function AdminDashboard() {
               icon={Calendar}
               isActive={activeTab === 'appointments'}
               onClick={setActiveTab}
+              badge={appointments.filter(apt => apt.bookingStatus === 'Pending').length}
             />
           </div>
         </div>
@@ -561,28 +694,253 @@ function AdminDashboard() {
 
           {activeTab === 'appointments' && (
             <div className="space-y-6">
-              <h2 className="text-2xl font-playfair font-bold text-slate-900">Appointment Management</h2>
+              <div className="flex justify-between items-center">
+                <h2 className="text-2xl font-playfair font-bold text-slate-900">Hospital Booking Management</h2>
+                <div className="flex items-center space-x-4">
+                  <span className="text-sm text-slate-600">
+                    Total: {appointments.length} | Pending: {appointments.filter(apt => apt.bookingStatus === 'Pending').length}
+                  </span>
+                  <button
+                    onClick={fetchDashboardData}
+                    className="p-2 bg-emerald-500 hover:bg-emerald-600 text-white rounded-lg transition-colors duration-200"
+                    title="Refresh bookings"
+                  >
+                    <RefreshCw className="w-4 h-4" />
+                  </button>
+                </div>
+              </div>
+
               <div className="space-y-4">
-                {appointments.map((appointment, index) => (
-                  <div key={appointment._id || index} className="p-6 bg-slate-50 rounded-2xl border border-slate-200">
-                    <div className="flex justify-between items-start">
-                      <div className="space-y-2">
-                        <p className="font-semibold text-slate-900">{appointment.patientName || 'Unknown Patient'}</p>
-                        <p className="text-slate-600">Doctor: {appointment.doctorName || 'N/A'}</p>
-                        <p className="text-slate-600">Hospital: {appointment.hospitalName || 'N/A'}</p>
-                        <p className="text-slate-600">Date: {appointment.date || 'N/A'} at {appointment.time || 'N/A'}</p>
-                        <p className="text-slate-600">Reason: {appointment.reason || 'N/A'}</p>
-                      </div>
-                      <span className={`px-3 py-1 rounded-full text-xs font-semibold ${
-                        appointment.status === 'confirmed' ? 'bg-green-100 text-green-700' :
-                        appointment.status === 'pending' ? 'bg-yellow-100 text-yellow-700' :
-                        'bg-red-100 text-red-700'
-                      }`}>
-                        {appointment.status || 'pending'}
-                      </span>
+                {/* Debug Information */}
+                <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-4">
+                  <p className="text-sm text-blue-800">
+                    <strong>Debug Info:</strong> Found {appointments.length} bookings
+                  </p>
+                  {appointments.length > 0 && (
+                    <details className="mt-2">
+                      <summary className="text-sm text-blue-600 cursor-pointer">View raw data</summary>
+                      <pre className="text-xs bg-white p-2 mt-2 rounded border overflow-auto max-h-40">
+                        {JSON.stringify(appointments, null, 2)}
+                      </pre>
+                    </details>
+                  )}
+                </div>
+
+                {appointments.length === 0 ? (
+                  <div className="text-center py-12 bg-slate-50 rounded-2xl">
+                    <Calendar className="w-16 h-16 text-slate-300 mx-auto mb-4" />
+                    <p className="text-slate-500 text-lg">No hospital bookings found</p>
+                    <p className="text-slate-400 text-sm">Bookings will appear here when users make appointments</p>
+                    <div className="mt-4 space-y-2">
+                      <button
+                        onClick={async () => {
+                          console.log('Testing database connection...');
+                          try {
+                            // First test basic API
+                            const testResponse = await fetch('http://localhost:5000/api/test');
+                            console.log('Basic API test status:', testResponse.status);
+
+                            if (!testResponse.ok) {
+                              throw new Error(`API test failed: ${testResponse.status}`);
+                            }
+
+                            const testData = await testResponse.json();
+                            console.log('Basic API test response:', testData);
+
+                            // Then test database
+                            const dbResponse = await fetch('http://localhost:5000/api/debug/bookings');
+                            console.log('Database test status:', dbResponse.status);
+
+                            if (!dbResponse.ok) {
+                              const errorText = await dbResponse.text();
+                              throw new Error(`Database test failed: ${dbResponse.status} - ${errorText}`);
+                            }
+
+                            const dbData = await dbResponse.json();
+                            console.log('Database test response:', dbData);
+                            alert(`Database test: Found ${dbData.count} bookings. Check console for details.`);
+                          } catch (err) {
+                            console.error('Database test error:', err);
+                            alert(`Database test failed: ${err.message}`);
+                          }
+                        }}
+                        className="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors mr-2"
+                      >
+                        Test Database
+                      </button>
+
+                      <button
+                        onClick={async () => {
+                          console.log('Testing admin API endpoint...');
+                          const token = localStorage.getItem('token');
+                          console.log('Using token:', token ? 'Token exists' : 'No token');
+
+                          try {
+                            const response = await fetch('http://localhost:5000/api/admin/hospital-bookings', {
+                              headers: {
+                                'Authorization': `Bearer ${token}`,
+                                'Content-Type': 'application/json'
+                              }
+                            });
+
+                            console.log('Response status:', response.status);
+                            console.log('Response headers:', response.headers);
+
+                            if (!response.ok) {
+                              const errorText = await response.text();
+                              console.error('API Error Response:', errorText);
+                              alert(`API Error: ${response.status} - ${errorText}`);
+                              return;
+                            }
+
+                            const data = await response.json();
+                            console.log('Admin API response:', data);
+                            alert(`Admin API: Found ${data.count || 0} bookings. Check console for details.`);
+                          } catch (err) {
+                            console.error('Admin API error:', err);
+                            alert(`Admin API failed: ${err.message}`);
+                          }
+                        }}
+                        className="px-4 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 transition-colors"
+                      >
+                        Test Admin API
+                      </button>
+
+                      <button
+                        onClick={async () => {
+                          console.log('Testing backend health...');
+                          try {
+                            const response = await fetch('http://localhost:5000/api/health');
+                            const data = await response.json();
+                            console.log('Health check response:', data);
+                            alert(`Backend Status: ${data.status}, Database: ${data.database}`);
+                          } catch (err) {
+                            console.error('Health check error:', err);
+                            alert(`Backend not responding: ${err.message}`);
+                          }
+                        }}
+                        className="px-4 py-2 bg-purple-500 text-white rounded-lg hover:bg-purple-600 transition-colors ml-2"
+                      >
+                        Test Backend
+                      </button>
                     </div>
                   </div>
-                ))}
+                ) : (
+                  appointments.map((booking, index) => (
+                    <div key={booking._id || index} className="p-6 bg-white rounded-2xl border border-slate-200 shadow-sm hover:shadow-md transition-shadow duration-200">
+                      <div className="flex justify-between items-start mb-4">
+                        <div className="flex-1 space-y-3">
+                          {/* Patient Information */}
+                          <div className="flex items-center space-x-3">
+                            <div className="w-10 h-10 bg-emerald-100 rounded-full flex items-center justify-center">
+                              <Users className="w-5 h-5 text-emerald-600" />
+                            </div>
+                            <div>
+                              <p className="font-semibold text-slate-900 text-lg">
+                                {booking.patientDetails?.name || booking.userId?.name || 'Unknown Patient'}
+                              </p>
+                              <p className="text-sm text-slate-500">
+                                {booking.patientDetails?.email || booking.userId?.email || 'No email'}
+                              </p>
+                            </div>
+                          </div>
+
+                          {/* Appointment Details */}
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
+                            <div className="space-y-2">
+                              <div className="flex items-center space-x-2">
+                                <Calendar className="w-4 h-4 text-slate-400" />
+                                <span className="text-sm text-slate-600">
+                                  <strong>Date:</strong> {booking.appointmentDetails?.appointmentDate ?
+                                    new Date(booking.appointmentDetails.appointmentDate).toLocaleDateString() : 'N/A'}
+                                </span>
+                              </div>
+                              <div className="flex items-center space-x-2">
+                                <Clock className="w-4 h-4 text-slate-400" />
+                                <span className="text-sm text-slate-600">
+                                  <strong>Time:</strong> {booking.appointmentDetails?.appointmentTime || 'N/A'}
+                                </span>
+                              </div>
+                              <div className="flex items-center space-x-2">
+                                <Users className="w-4 h-4 text-slate-400" />
+                                <span className="text-sm text-slate-600">
+                                  <strong>Doctor:</strong> {booking.appointmentDetails?.doctorName || 'N/A'}
+                                </span>
+                              </div>
+                            </div>
+                            <div className="space-y-2">
+                              <div className="flex items-center space-x-2">
+                                <MapPin className="w-4 h-4 text-slate-400" />
+                                <span className="text-sm text-slate-600">
+                                  <strong>Hospital:</strong> {booking.hospitalDetails?.name || booking.hospitalId?.name || 'N/A'}
+                                </span>
+                              </div>
+                              <div className="flex items-center space-x-2">
+                                <Phone className="w-4 h-4 text-slate-400" />
+                                <span className="text-sm text-slate-600">
+                                  <strong>Phone:</strong> {booking.patientDetails?.phone || 'N/A'}
+                                </span>
+                              </div>
+                              <div className="flex items-center space-x-2">
+                                <DollarSign className="w-4 h-4 text-slate-400" />
+                                <span className="text-sm text-slate-600">
+                                  <strong>Fee:</strong> ₹{booking.paymentDetails?.consultationFee || 500}
+                                </span>
+                              </div>
+                            </div>
+                          </div>
+
+                          {/* Medical Information */}
+                          {booking.medicalInfo?.symptoms && (
+                            <div className="mt-4 p-3 bg-slate-50 rounded-lg">
+                              <p className="text-sm text-slate-600">
+                                <strong>Symptoms:</strong> {booking.medicalInfo.symptoms}
+                              </p>
+                            </div>
+                          )}
+                        </div>
+
+                        {/* Status and Actions */}
+                        <div className="flex flex-col items-end space-y-3">
+                          <span className={`px-3 py-1 rounded-full text-xs font-semibold ${
+                            booking.bookingStatus === 'Confirmed' ? 'bg-green-100 text-green-700' :
+                            booking.bookingStatus === 'Pending' ? 'bg-yellow-100 text-yellow-700' :
+                            booking.bookingStatus === 'Cancelled' ? 'bg-red-100 text-red-700' :
+                            booking.bookingStatus === 'Completed' ? 'bg-blue-100 text-blue-700' :
+                            'bg-gray-100 text-gray-700'
+                          }`}>
+                            {booking.bookingStatus || 'Pending'}
+                          </span>
+
+                          {/* Action Buttons */}
+                          {booking.bookingStatus === 'Pending' && (
+                            <div className="flex space-x-2">
+                              <button
+                                onClick={() => handleBookingStatusUpdate(booking._id, 'Confirmed')}
+                                className="px-4 py-2 bg-green-500 hover:bg-green-600 text-white text-xs rounded-lg transition-colors duration-200 flex items-center space-x-1"
+                              >
+                                <CheckCircle className="w-3 h-3" />
+                                <span>Approve</span>
+                              </button>
+                              <button
+                                onClick={() => handleBookingStatusUpdate(booking._id, 'Cancelled')}
+                                className="px-4 py-2 bg-red-500 hover:bg-red-600 text-white text-xs rounded-lg transition-colors duration-200 flex items-center space-x-1"
+                              >
+                                <X className="w-3 h-3" />
+                                <span>Reject</span>
+                              </button>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+
+                      {/* Booking Date */}
+                      <div className="text-xs text-slate-400 border-t border-slate-100 pt-3">
+                        Booked on: {new Date(booking.createdAt).toLocaleString()}
+                      </div>
+                    </div>
+                  ))
+                )}
               </div>
             </div>
           )}
@@ -640,6 +998,19 @@ function AdminDashboard() {
           </div>
         </div>
       )}
+
+      {/* Toast Container */}
+      <ToastContainer
+        position="top-right"
+        autoClose={3000}
+        hideProgressBar={false}
+        newestOnTop={false}
+        closeOnClick
+        rtl={false}
+        pauseOnFocusLoss
+        draggable
+        pauseOnHover
+      />
     </div>
   );
 }
