@@ -20,6 +20,7 @@ import {
   Shield,
   MessageCircle
 } from 'lucide-react';
+import { API_ENDPOINTS, apiCall } from '../config/api';
 
 function Navbar() {
   const [user, setUser] = useState(null);
