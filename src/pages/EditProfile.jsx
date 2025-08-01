@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { FaArrowLeft, FaUser, FaPhone, FaImage, FaEnvelope, FaSave, FaTimes } from 'react-icons/fa';
+import { FaArrowLeft, FaUser, FaPhone, FaImage, FaEnvelope, FaSave, FaTimes, FaUpload, FaTrash } from 'react-icons/fa';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'react-toastify';
 
@@ -7,6 +7,8 @@ function EditProfile() {
   const [name, setName] = useState('');
   const [phone, setPhone] = useState('');
   const [profilePic, setProfilePic] = useState('');
+  const [selectedFile, setSelectedFile] = useState(null);
+  const [previewUrl, setPreviewUrl] = useState('');
   const [loading, setLoading] = useState(false);
   const [user, setUser] = useState({});
   const navigate = useNavigate();
@@ -21,6 +23,7 @@ function EditProfile() {
         setName(u.name || '');
         setPhone(u.phone || '');
         setProfilePic(u.profilePic || '');
+        setPreviewUrl(u.profilePic || '');
       } catch (error) {
         console.error('Error parsing user data:', error);
         // Set default user object to prevent navigation issues
@@ -34,6 +37,49 @@ function EditProfile() {
 
 
   }, []);
+
+  // Handle file selection
+  const handleFileSelect = (event) => {
+    const file = event.target.files[0];
+    if (file) {
+      // Validate file type
+      if (!file.type.startsWith('image/')) {
+        toast.error('Please select an image file');
+        return;
+      }
+
+      // Validate file size (max 5MB)
+      if (file.size > 5 * 1024 * 1024) {
+        toast.error('File size must be less than 5MB');
+        return;
+      }
+
+      setSelectedFile(file);
+
+      // Create preview URL
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        setPreviewUrl(e.target.result);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+  // Remove selected file
+  const handleRemoveFile = () => {
+    setSelectedFile(null);
+    setPreviewUrl(profilePic); // Revert to original profile pic
+  };
+
+  // Convert file to base64 for upload
+  const convertToBase64 = (file) => {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.readAsDataURL(file);
+      reader.onload = () => resolve(reader.result);
+      reader.onerror = (error) => reject(error);
+    });
+  };
 
   async function handleSave() {
     setLoading(true);
@@ -60,29 +106,71 @@ function EditProfile() {
   }
 
   const handleBackToDashboard = () => {
-    console.log('Back arrow clicked, user role:', user?.role);
+    console.log('handleBackToDashboard function called');
+    console.log('Current user object:', user);
+    console.log('User role:', user?.role);
+    console.log('User type:', typeof user);
+
     try {
-      if (user?.role === 'admin') {
-        console.log('Navigating to admin dashboard');
+      // Check if user exists and has a role
+      if (!user) {
+        console.log('No user found, navigating to profile page');
+        navigate('/profile');
+        return;
+      }
+
+      const userRole = user.role;
+      console.log('Determined user role:', userRole);
+
+      if (userRole === 'admin') {
+        console.log('User is admin - navigating to admin dashboard');
         navigate('/admin-dashboard');
-      } else if (user?.role === 'employee' || user?.role === 'manager' || user?.role === 'supervisor') {
-        console.log('Navigating to employee dashboard');
+      } else if (userRole === 'employee' || userRole === 'manager' || userRole === 'supervisor') {
+        console.log('User is employee/manager/supervisor - navigating to employee dashboard');
         navigate('/employee-dashboard');
       } else {
-        console.log('Navigating to profile page');
+        console.log('User is regular user - navigating to profile page');
         navigate('/profile');
       }
+
+      console.log('Navigation command executed successfully');
     } catch (error) {
       console.error('Error during navigation:', error);
-      // Fallback navigation
-      navigate('/profile');
+      console.log('Attempting fallback navigation to profile');
+      try {
+        navigate('/profile');
+        console.log('Fallback navigation successful');
+      } catch (fallbackError) {
+        console.error('Fallback navigation also failed:', fallbackError);
+        // Last resort - use window.location
+        console.log('Using window.location as last resort');
+        window.location.href = '/profile';
+      }
     }
   };
 
   // Alternative simple back navigation
   const handleSimpleBack = () => {
-    console.log('Simple back navigation');
-    navigate(-1); // Go back to previous page in history
+    console.log('Simple back navigation - going to profile');
+    try {
+      navigate('/profile');
+      console.log('Simple navigation to profile successful');
+    } catch (error) {
+      console.error('Simple navigation failed:', error);
+      window.location.href = '/profile';
+    }
+  };
+
+  // Emergency back navigation using browser history
+  const handleHistoryBack = () => {
+    console.log('History back navigation');
+    try {
+      navigate(-1); // Go back to previous page in history
+      console.log('History back successful');
+    } catch (error) {
+      console.error('History back failed:', error);
+      handleSimpleBack();
+    }
   };
 
   // Add keyboard shortcut for back navigation
@@ -105,18 +193,49 @@ function EditProfile() {
       <div className="max-w-2xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="card-ultra p-8">
         {/* Header */}
-        <div className="flex items-center gap-4 mb-8">
+        <div className="flex items-center justify-between gap-4 mb-8">
+          <div className="flex items-center gap-4">
+            <button
+              onClick={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                console.log('Back button clicked! Event:', e);
+                console.log('Current user:', user);
+                console.log('User role:', user?.role);
+                try {
+                  handleBackToDashboard();
+                  console.log('handleBackToDashboard called successfully');
+                } catch (error) {
+                  console.error('Error calling handleBackToDashboard:', error);
+                  // Fallback to simple back navigation
+                  console.log('Falling back to simple navigation');
+                  navigate('/profile');
+                }
+              }}
+              className="w-12 h-12 bg-emerald-500 hover:bg-emerald-600 text-white rounded-full flex items-center justify-center transition-all duration-300 cursor-pointer shadow-lg hover:shadow-xl hover:scale-105 active:scale-95 border-2 border-transparent hover:border-emerald-300 focus:outline-none focus:ring-4 focus:ring-emerald-300/50"
+              style={{ pointerEvents: 'auto', zIndex: 10 }}
+              title="Go back to previous page (or press Escape)"
+              type="button"
+            >
+              <FaArrowLeft className="text-lg transition-transform duration-200 hover:-translate-x-0.5" />
+            </button>
+            <h1 className="text-3xl font-playfair font-bold gradient-text">Edit Profile</h1>
+          </div>
+
+          {/* Secondary back button as text link */}
           <button
-            onClick={() => {
-              console.log('Back button clicked!');
-              handleBackToDashboard();
+            onClick={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              console.log('Secondary back button clicked');
+              handleSimpleBack();
             }}
-            className="w-12 h-12 bg-emerald-500 hover:bg-emerald-600 text-white rounded-full flex items-center justify-center transition-all duration-300 cursor-pointer shadow-lg hover:shadow-xl hover:scale-105 active:scale-95"
-            title="Go back to previous page (or press Escape)"
+            className="text-emerald-600 hover:text-emerald-700 font-medium text-sm underline hover:no-underline transition-all duration-200 cursor-pointer"
+            style={{ pointerEvents: 'auto', zIndex: 10 }}
+            type="button"
           >
-            <FaArrowLeft className="text-lg transition-transform duration-200 hover:-translate-x-0.5" />
+            ← Back to Profile
           </button>
-          <h1 className="text-3xl font-playfair font-bold gradient-text">Edit Profile</h1>
         </div>
           {/* Profile Avatar */}
           <div className="text-center mb-8">

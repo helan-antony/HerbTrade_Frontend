@@ -1,8 +1,8 @@
 import { useState, useEffect } from "react";
-import { 
-  FaPenFancy, FaCommentDots, FaHeart, FaReply, 
+import {
+  FaPenFancy, FaCommentDots, FaHeart, FaReply,
   FaTimes, FaChevronDown, FaChevronUp, FaPlus, FaSearch,
-  FaCalendar, FaUser, FaEye, FaShare
+  FaCalendar, FaUser, FaEye, FaShare, FaChevronRight
 } from "react-icons/fa";
 import axios from "axios";
 import { toast, ToastContainer } from 'react-toastify';
@@ -30,6 +30,7 @@ function Blog() {
   const [viewCounts, setViewCounts] = useState({});
   const [likeCounts, setLikeCounts] = useState({});
   const [likedPosts, setLikedPosts] = useState(new Set());
+  const [postComments, setPostComments] = useState({}); // Store comments for each post
 
   useEffect(() => {
     fetchPosts();
@@ -39,6 +40,7 @@ function Blog() {
     if (posts.length > 0) {
       fetchCommentCounts();
       fetchPostStats();
+      fetchAllPostComments();
     }
   }, [posts]);
 
@@ -149,6 +151,7 @@ function Blog() {
       // Refresh comments and counts
       await fetchComments(selectedPost._id);
       await fetchCommentCounts();
+      await fetchAllPostComments(); // Refresh comment previews
 
       setNewComment("");
       setReplyTo(null);
@@ -272,6 +275,31 @@ function Blog() {
       setCommentCounts(counts);
     } catch (error) {
       console.error('Error fetching comment counts:', error);
+    }
+  };
+
+  // Fetch comments for all posts to display in cards
+  const fetchAllPostComments = async () => {
+    try {
+      const allComments = {};
+      for (const post of posts) {
+        try {
+          const response = await fetch(`http://localhost:5000/api/comments/blog/${post._id}`);
+
+          if (response.ok) {
+            const comments = await response.json();
+            // Store only the first 2 comments for preview
+            allComments[post._id] = comments.slice(0, 2);
+          } else {
+            allComments[post._id] = [];
+          }
+        } catch (error) {
+          allComments[post._id] = [];
+        }
+      }
+      setPostComments(allComments);
+    } catch (error) {
+      console.error('Error fetching post comments:', error);
     }
   };
 
@@ -480,36 +508,42 @@ function Blog() {
   );
 
   return (
-    <div className="min-h-screen bg-gray-50 relative pt-20">
-      {/* Background Image */}
-      <div 
-        className="absolute inset-0 bg-cover bg-center bg-no-repeat opacity-5"
-        style={{ backgroundImage: 'url(/assets/bg.png)' }}
-      />
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-gray-50 to-emerald-50 relative pt-20">
+      {/* Background Pattern */}
+      <div className="absolute inset-0 opacity-5">
+        <div className="absolute inset-0 bg-gradient-to-br from-emerald-100/20 via-teal-100/20 to-cyan-100/20"></div>
+        <div
+          className="absolute inset-0 bg-cover bg-center bg-no-repeat"
+          style={{ backgroundImage: 'url(/assets/bg.png)' }}
+        />
+      </div>
       <ToastContainer position="top-right" autoClose={3000} />
       
       {/* Header Section */}
-      <div className="bg-white shadow-sm border-b border-gray-200">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-          <div className="text-center">
-            <h1 className="text-4xl font-bold text-gray-900 mb-2">
+      <div className="bg-gradient-to-br from-emerald-50 via-teal-50 to-cyan-50 shadow-lg border-b border-emerald-100">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+          <div className="text-center mb-8">
+            <div className="inline-flex items-center justify-center w-16 h-16 bg-gradient-to-br from-emerald-500 to-teal-600 rounded-full mb-4 shadow-lg">
+              <FaPenFancy className="text-white text-2xl" />
+            </div>
+            <h1 className="text-5xl font-bold bg-gradient-to-r from-emerald-600 via-teal-600 to-cyan-600 bg-clip-text text-transparent mb-4">
               Herbal Knowledge Hub
             </h1>
-            <p className="text-lg text-gray-600 max-w-2xl mx-auto">
+            <p className="text-xl text-gray-700 max-w-3xl mx-auto leading-relaxed">
               Discover, share, and learn about the power of herbal remedies from our community of experts and enthusiasts.
             </p>
           </div>
-          
+
           {/* Action Bar */}
-          <div className="mt-8 flex flex-col sm:flex-row gap-4 items-center justify-between">
-            <div className="relative flex-1 max-w-md">
-              <FaSearch className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
+          <div className="flex flex-col lg:flex-row gap-6 items-center justify-center">
+            <div className="relative w-full max-w-2xl">
+              <FaSearch className="absolute left-4 top-1/2 transform -translate-y-1/2 text-emerald-500 text-lg" />
               <input
                 type="text"
                 placeholder="Search articles, authors, topics..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none"
+                className="w-full pl-12 pr-6 py-4 bg-white/90 backdrop-blur-sm border-2 border-emerald-200 rounded-2xl focus:ring-4 focus:ring-emerald-300/30 focus:border-emerald-500 outline-none text-lg shadow-lg hover:shadow-xl transition-all duration-300"
               />
             </div>
             
@@ -518,16 +552,16 @@ function Blog() {
                 console.log('Write Article button clicked');
                 setShowCreateForm(!showCreateForm);
               }}
-              className="bg-emerald-600 hover:bg-emerald-700 text-white px-6 py-3 rounded-lg font-medium transition-colors flex items-center gap-2 shadow-lg hover:shadow-xl transform hover:scale-105"
+              className="bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white px-8 py-4 rounded-2xl font-semibold flex items-center gap-3 transition-all duration-300 shadow-lg hover:shadow-xl hover:scale-105 transform"
             >
-              <FaPlus />
+              <FaPenFancy className="text-lg" />
               Write Article
             </button>
           </div>
         </div>
       </div>
 
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 relative z-10">
         {/* Create Post Form */}
         {showCreateForm && (
           <div className="bg-white rounded-xl shadow-xl p-8 mb-8 border border-gray-200 animate-fade-in">
@@ -644,45 +678,90 @@ function Blog() {
 
         {/* Posts Grid */}
         {loading ? (
-          <div className="flex justify-center py-12">
+          <div className="flex justify-center py-20">
             <div className="text-center">
-              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-emerald-600 mx-auto mb-4"></div>
-              <p className="text-gray-600">Loading articles...</p>
+              <div className="relative">
+                <div className="animate-spin rounded-full h-16 w-16 border-4 border-emerald-200 border-t-emerald-600 mx-auto mb-6"></div>
+                <div className="absolute inset-0 rounded-full bg-gradient-to-r from-emerald-400/20 to-teal-400/20 animate-pulse"></div>
+              </div>
+              <h3 className="text-xl font-semibold text-gray-700 mb-2">Loading articles...</h3>
+              <p className="text-gray-500">Discovering amazing herbal knowledge for you</p>
             </div>
           </div>
         ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
             {filteredPosts.map((post, i) => (
               <article
                 key={post._id || i}
-                className="bg-white rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 hover:-translate-y-1 border border-gray-200 overflow-hidden"
+                className="bg-white/90 backdrop-blur-sm rounded-2xl shadow-xl hover:shadow-2xl transition-all duration-500 hover:-translate-y-2 hover:scale-105 border border-emerald-100/50 overflow-hidden group"
               >
-                <div className="p-6">
-                  <div className="flex items-center justify-between mb-4">
-                    <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 bg-emerald-500 rounded-full flex items-center justify-center text-white font-medium">
+                <div className="p-8">
+                  <div className="flex items-center justify-between mb-6">
+                    <div className="flex items-center gap-4">
+                      <div className="w-12 h-12 bg-gradient-to-br from-emerald-500 to-teal-600 rounded-full flex items-center justify-center text-white font-bold shadow-lg">
                         {post.author?.charAt(0) || 'A'}
                       </div>
                       <div>
-                        <p className="font-medium text-gray-900">{post.author}</p>
-                        <p className="text-sm text-gray-500 flex items-center gap-1">
-                          <FaCalendar className="text-xs" />
+                        <p className="font-semibold text-gray-900 text-lg">{post.author}</p>
+                        <p className="text-sm text-gray-500 flex items-center gap-2">
+                          <FaCalendar className="text-emerald-500" />
                           {formatDate(post.createdAt || new Date())}
                         </p>
                       </div>
                     </div>
                     <div className="flex items-center gap-2">
-                      <span className="bg-emerald-100 text-emerald-800 text-xs px-2 py-1 rounded-full">Herbal</span>
+                      <span className="bg-gradient-to-r from-emerald-100 to-teal-100 text-emerald-700 text-sm px-3 py-1 rounded-full font-medium shadow-sm">
+                        🌿 Herbal
+                      </span>
                     </div>
                   </div>
 
-                  <h3 className="text-xl font-semibold text-gray-900 mb-3 line-clamp-2">
+                  <h3 className="text-2xl font-bold text-gray-900 mb-4 line-clamp-2 group-hover:text-emerald-700 transition-colors duration-300">
                     {post.title}
                   </h3>
 
-                  <p className="text-gray-600 mb-4 line-clamp-3">
+                  <p className="text-gray-600 mb-6 line-clamp-3 leading-relaxed text-lg">
                     {post.content.length > 150 ? `${post.content.substring(0, 150)}...` : post.content}
                   </p>
+
+                  {/* Comments Preview */}
+                  {postComments[post._id] && postComments[post._id].length > 0 && (
+                    <div className="mb-6 bg-gradient-to-r from-emerald-50/50 to-teal-50/50 rounded-xl p-4 border border-emerald-100/50">
+                      <h4 className="text-sm font-semibold text-emerald-700 mb-3 flex items-center gap-2">
+                        <FaCommentDots className="text-emerald-500" />
+                        Recent Comments
+                      </h4>
+                      <div className="space-y-3">
+                        {postComments[post._id].map((comment, index) => (
+                          <div key={comment._id || index} className="bg-white/80 rounded-lg p-3 border border-emerald-100/30">
+                            <div className="flex items-center gap-2 mb-2">
+                              <div className="w-6 h-6 bg-gradient-to-br from-emerald-400 to-teal-500 rounded-full flex items-center justify-center text-white text-xs font-bold">
+                                {comment.user?.name?.charAt(0) || 'U'}
+                              </div>
+                              <span className="text-sm font-medium text-gray-700">
+                                {comment.user?.name || 'Anonymous'}
+                              </span>
+                              <span className="text-xs text-gray-500">
+                                {formatDate(comment.createdAt)}
+                              </span>
+                            </div>
+                            <p className="text-sm text-gray-600 line-clamp-2">
+                              {comment.content}
+                            </p>
+                          </div>
+                        ))}
+                        {commentCounts[post._id] > 2 && (
+                          <button
+                            onClick={() => openCommentsDialog(post)}
+                            className="text-sm text-emerald-600 hover:text-emerald-700 font-medium flex items-center gap-1 transition-colors"
+                          >
+                            View {commentCounts[post._id] - 2} more comments
+                            <FaChevronRight className="text-xs" />
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                  )}
 
                   <div className="flex items-center justify-between pt-4 border-t border-gray-100">
                     <button
@@ -743,13 +822,18 @@ function Blog() {
 
         {/* Empty State */}
         {!loading && filteredPosts.length === 0 && (
-          <div className="text-center py-12">
-            <div className="w-24 h-24 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
-              <FaPenFancy className="text-gray-400 text-2xl" />
+          <div className="text-center py-20">
+            <div className="relative inline-block mb-8">
+              <div className="w-32 h-32 bg-gradient-to-br from-emerald-100 via-teal-100 to-cyan-100 rounded-full flex items-center justify-center mx-auto shadow-lg">
+                <FaPenFancy className="text-emerald-500 text-4xl" />
+              </div>
+              <div className="absolute -top-2 -right-2 w-8 h-8 bg-gradient-to-br from-yellow-400 to-orange-500 rounded-full flex items-center justify-center shadow-lg">
+                <span className="text-white text-lg">✨</span>
+              </div>
             </div>
-            <h3 className="text-xl font-medium text-gray-900 mb-2">No articles found</h3>
-            <p className="text-gray-600 mb-6">
-              {searchTerm ? 'Try adjusting your search terms' : 'Be the first to share your herbal knowledge!'}
+            <h3 className="text-3xl font-bold text-gray-900 mb-4">No articles found</h3>
+            <p className="text-xl text-gray-600 mb-8 max-w-md mx-auto leading-relaxed">
+              {searchTerm ? 'Try adjusting your search terms or explore different topics' : 'Be the first to share your herbal knowledge with our community!'}
             </p>
             {!searchTerm && (
               <button
@@ -757,9 +841,9 @@ function Blog() {
                   console.log('Write First Article button clicked');
                   setShowCreateForm(true);
                 }}
-                className="bg-emerald-600 hover:bg-emerald-700 text-white px-6 py-3 rounded-lg font-medium transition-colors shadow-lg hover:shadow-xl transform hover:scale-105 flex items-center gap-2"
+                className="bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white px-10 py-5 rounded-2xl font-bold text-lg transition-all duration-300 flex items-center gap-4 mx-auto shadow-xl hover:shadow-2xl transform hover:scale-105 hover:-translate-y-1"
               >
-                <FaPenFancy />
+                <FaPenFancy className="text-xl" />
                 Write First Article
               </button>
             )}

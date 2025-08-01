@@ -226,35 +226,50 @@ function Profile() {
   };
 
   const handleLogout = () => {
+    console.log('handleLogout function called');
     try {
+      console.log('Starting logout process...');
+
       // Clear all user-related data
+      console.log('Clearing localStorage...');
       localStorage.removeItem('token');
       localStorage.removeItem('user');
       localStorage.removeItem('cartItems');
       localStorage.removeItem('wishlistItems');
       localStorage.removeItem('herbtradeCart');
       localStorage.removeItem('herbtradeWishlist');
+      console.log('localStorage cleared');
 
       // Reset component state
+      console.log('Resetting component state...');
       setUser(null);
       setCartItems([]);
       setWishlistItems([]);
+      console.log('Component state reset');
 
       // Dispatch events to update other components
+      console.log('Dispatching events...');
       window.dispatchEvent(new Event('userChanged'));
       window.dispatchEvent(new Event('cartUpdated'));
       window.dispatchEvent(new Event('wishlistUpdated'));
+      console.log('Events dispatched');
 
       // Show success message
+      console.log('Showing success toast...');
       toast.success('Logged out successfully');
 
       // Navigate to login
+      console.log('Navigating to login...');
       navigate('/login');
 
       // Force refresh to clear any cached data
+      console.log('Setting timeout for page refresh...');
       setTimeout(() => {
+        console.log('Refreshing page...');
         window.location.reload();
       }, 100);
+
+      console.log('Logout process completed successfully');
     } catch (error) {
       console.error('Error during logout:', error);
       toast.error('Error during logout');
@@ -327,18 +342,43 @@ function Profile() {
             </div>
             <div className="flex gap-4">
               <button
-                onClick={() => {
-                  console.log('Edit Profile button clicked');
-                  navigate('/edit-profile');
+                onClick={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  console.log('Edit Profile button clicked - event:', e);
+                  console.log('Current user:', user);
+                  console.log('Navigating to /edit-profile...');
+                  try {
+                    navigate('/edit-profile');
+                    console.log('Navigation successful');
+                  } catch (error) {
+                    console.error('Navigation error:', error);
+                  }
                 }}
                 className="bg-gradient-to-r from-emerald-500 to-emerald-600 hover:from-emerald-600 hover:to-emerald-700 text-white font-semibold px-8 py-4 rounded-2xl shadow-lg hover:shadow-xl transition-all duration-300 flex items-center gap-3 group cursor-pointer"
+                style={{ pointerEvents: 'auto', zIndex: 10 }}
+                type="button"
               >
                 <FaEdit className="group-hover:rotate-12 transition-transform duration-300" />
                 Edit Profile
               </button>
               <button
-                onClick={handleLogout}
+                onClick={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  console.log('Logout button clicked - event:', e);
+                  console.log('Current user:', user);
+                  console.log('Calling handleLogout...');
+                  try {
+                    handleLogout();
+                    console.log('Logout function called successfully');
+                  } catch (error) {
+                    console.error('Logout error:', error);
+                  }
+                }}
                 className="bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 text-white font-semibold px-8 py-4 rounded-2xl shadow-lg hover:shadow-xl transition-all duration-300 flex items-center gap-3 group cursor-pointer"
+                style={{ pointerEvents: 'auto', zIndex: 10 }}
+                type="button"
               >
                 <FaSignOutAlt className="group-hover:translate-x-1 transition-transform duration-300" />
                 Logout

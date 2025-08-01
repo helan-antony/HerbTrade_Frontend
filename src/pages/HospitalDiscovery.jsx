@@ -24,13 +24,15 @@ function HospitalDiscovery() {
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedSpecialty, setSelectedSpecialty] = useState("");
   const [selectedCity, setSelectedCity] = useState("");
-  const [pincode, setPincode] = useState("");
+  const [place, setPlace] = useState("");
   const [hospitalDialog, setHospitalDialog] = useState(false);
   const [selectedHospital, setSelectedHospital] = useState(null);
   const [userLocation, setUserLocation] = useState(null);
+  const [locationPermissionDenied, setLocationPermissionDenied] = useState(false);
   const [specialties, setSpecialties] = useState([]);
   const [cities, setCities] = useState([]);
   const [tabValue, setTabValue] = useState(0);
+  const [searchingPlace, setSearchingPlace] = useState(false);
   const [aiInsights, setAiInsights] = useState("");
   const [loadingInsights, setLoadingInsights] = useState(false);
   const [appointmentDialog, setAppointmentDialog] = useState(false);
@@ -99,11 +101,48 @@ function HospitalDiscovery() {
             latitude: position.coords.latitude,
             longitude: position.coords.longitude
           });
+          setLocationPermissionDenied(false); // Reset permission denied state
+          toast.success('Location access granted! You can now find nearby hospitals.');
         },
         (error) => {
           console.log('Location access denied:', error);
+          
+          // Set location permission denied state
+          if (error.code === error.PERMISSION_DENIED) {
+            setLocationPermissionDenied(true);
+          }
+          
+          // Handle different types of geolocation errors
+          let errorMessage = '';
+          switch (error.code) {
+            case error.PERMISSION_DENIED:
+              errorMessage = 'Location access denied. You can still search hospitals by entering a city or place name.';
+              break;
+            case error.POSITION_UNAVAILABLE:
+              errorMessage = 'Location information unavailable. Please search by city or place name.';
+              break;
+            case error.TIMEOUT:
+              errorMessage = 'Location request timed out. Please search by city or place name.';
+              break;
+            default:
+              errorMessage = 'Unable to get your location. Please search by city or place name.';
+              break;
+          }
+          
+          // Show a user-friendly toast message
+          toast.info(errorMessage, {
+            autoClose: 5000,
+            hideProgressBar: false,
+          });
+        },
+        {
+          enableHighAccuracy: true,
+          timeout: 10000,
+          maximumAge: 300000 // 5 minutes
         }
       );
+    } else {
+      toast.info('Geolocation is not supported by this browser. Please search by city or place name.');
     }
   };
 
@@ -139,15 +178,10 @@ function HospitalDiscovery() {
       );
     }
 
-    // Pincode filter
-    if (pincode) {
-      filtered = filtered.filter(hospital =>
-        hospital.pincode && hospital.pincode.toString().includes(pincode)
-      );
-    }
+    // Place filter (removed pincode filter as we're using Google Places API)
 
     setFilteredHospitals(filtered);
-  }, [hospitals, searchQuery, selectedSpecialty, selectedCity, pincode]);
+  }, [hospitals, searchQuery, selectedSpecialty, selectedCity]);
 
   const openHospitalDialog = (hospital) => {
     setSelectedHospital(hospital);
@@ -158,6 +192,53 @@ function HospitalDiscovery() {
   const closeHospitalDialog = () => {
     setHospitalDialog(false);
     setSelectedHospital(null);
+  };
+
+  // Search hospitals by place using Google Places API
+  const searchHospitalsByPlace = async (placeName) => {
+    if (!placeName.trim()) {
+      toast.error('Please enter a place name');
+      return;
+    }
+
+    setSearchingPlace(true);
+    setLoading(true);
+
+    try {
+      console.log(`🔍 Searching for Ayurvedic hospitals in: ${placeName}`);
+
+      const response = await fetch(`http://localhost:5000/api/google-places/search-hospitals/${encodeURIComponent(placeName)}`);
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      const data = await response.json();
+
+      console.log(`✅ Found ${data.length} hospitals from Google Places`);
+
+      if (data.length === 0) {
+        toast.info(`No Ayurvedic hospitals found in ${placeName}. Try a different location.`);
+      } else {
+        setHospitals(data);
+        setFilteredHospitals(data);
+        toast.success(`Found ${data.length} Ayurvedic hospitals in ${placeName}`);
+      }
+
+    } catch (error) {
+      console.error('Error searching hospitals by place:', error);
+      toast.error('Failed to search hospitals. Please try again.');
+    } finally {
+      setSearchingPlace(false);
+      setLoading(false);
+    }
+  };
+
+  // Handle place search on Enter key or button click
+  const handlePlaceSearch = (e) => {
+    if (e.key === 'Enter' || e.type === 'click') {
+      searchHospitalsByPlace(place);
+    }
   };
 
   const openAppointmentDialog = (doctor, hospital) => {
@@ -250,6 +331,44 @@ function HospitalDiscovery() {
     }
   };
 
+  // Retry location access
+  const retryLocationAccess = () => {
+    setLocationPermissionDenied(false);
+    getUserLocation();
+  };
+
+  // Calculate distance between two coordinates (Haversine formula)
+  const calculateDistance = (lat1, lon1, lat2, lon2) => {
+    const R = 6371; // Radius of the Earth in kilometers
+    const dLat = (lat2 - lat1) * Math.PI / 180;
+    const dLon = (lon2 - lon1) * Math.PI / 180;
+    const a = 
+      Math.sin(dLat/2) * Math.sin(dLat/2) +
+      Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) * 
+      Math.sin(dLon/2) * Math.sin(dLon/2);
+    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+    const distance = R * c; // Distance in kilometers
+    return distance;
+  };
+
+  // Get distance text for display
+  const getDistanceText = (hospital) => {
+    if (!userLocation || !hospital.geometry?.location) return null;
+    
+    const distance = calculateDistance(
+      userLocation.latitude,
+      userLocation.longitude,
+      hospital.geometry.location.lat,
+      hospital.geometry.location.lng
+    );
+    
+    if (distance < 1) {
+      return `${Math.round(distance * 1000)}m away`;
+    } else {
+      return `${distance.toFixed(1)}km away`;
+    }
+  };
+
   // Handle directions functionality
   const handleDirections = (hospital) => {
     try {
@@ -334,13 +453,64 @@ function HospitalDiscovery() {
           </div>
         </div>
 
+        {/* Location Permission Banner */}
+        {locationPermissionDenied && (
+          <div className="mb-6 p-4 bg-gradient-to-r from-amber-50 to-orange-50 border border-amber-200 rounded-2xl shadow-lg">
+            <div className="flex items-start space-x-3">
+              <div className="flex-shrink-0">
+                <FaMapMarkerAlt className="w-6 h-6 text-amber-600 mt-1" />
+              </div>
+              <div className="flex-1">
+                <h3 className="text-lg font-semibold text-amber-800 mb-2">
+                  📍 Location Access Needed for Better Results
+                </h3>
+                <p className="text-amber-700 mb-3">
+                  To find hospitals near you and show accurate distances, we need access to your location. 
+                  You can still search by entering a city or place name below.
+                </p>
+                <div className="flex flex-col sm:flex-row gap-3">
+                  <button
+                    onClick={retryLocationAccess}
+                    className="bg-gradient-to-r from-amber-600 to-orange-600 hover:from-amber-700 hover:to-orange-700 text-white font-semibold px-4 py-2 rounded-xl shadow-md hover:shadow-lg transition-all duration-300 flex items-center space-x-2"
+                  >
+                    <FaMapMarkerAlt />
+                    <span>Allow Location Access</span>
+                  </button>
+                  <button
+                    onClick={() => setLocationPermissionDenied(false)}
+                    className="bg-gray-200 hover:bg-gray-300 text-gray-700 font-semibold px-4 py-2 rounded-xl transition-all duration-300"
+                  >
+                    Dismiss
+                  </button>
+                </div>
+                <p className="text-xs text-amber-600 mt-2">
+                  💡 <strong>Tip:</strong> If you've blocked location access, you can reset it by clicking the tune icon next to the URL in your browser.
+                </p>
+              </div>
+            </div>
+          </div>
+        )}
+
         {/* Search and Filters */}
         <div className="mb-8 p-6 bg-white/80 backdrop-blur-sm rounded-3xl shadow-xl border border-white/50">
           <div className="mb-6">
-            <h2 className="text-xl font-playfair font-bold text-slate-900 mb-2">
-              🔍 Find Ayurvedic Hospitals Near You
-            </h2>
-            <p className="text-slate-600">Search by location, specialty, or doctor name</p>
+            <div className="flex items-center justify-between mb-2">
+              <h2 className="text-xl font-playfair font-bold text-slate-900">
+                🔍 Find Ayurvedic Hospitals Near You
+              </h2>
+              {userLocation && (
+                <div className="flex items-center space-x-2 text-sm text-green-600 bg-green-50 px-3 py-1 rounded-full border border-green-200">
+                  <FaMapMarkerAlt className="w-4 h-4" />
+                  <span className="font-medium">Location Enabled</span>
+                </div>
+              )}
+            </div>
+            <p className="text-slate-600">Search by place name to find Ayurvedic hospitals from Google Places</p>
+            <div className="mt-2 p-3 bg-blue-50 rounded-lg border border-blue-200">
+              <p className="text-sm text-blue-700">
+                💡 <strong>New Feature:</strong> Enter a place name (like "Kattappana") to search for Ayurvedic hospitals in that location using Google Places API.
+              </p>
+            </div>
           </div>
           <div className="grid grid-cols-1 md:grid-cols-12 gap-4 items-end">
             <div className="md:col-span-4">
@@ -361,17 +531,30 @@ function HospitalDiscovery() {
 
             <div className="md:col-span-2">
               <label className="block text-sm font-semibold text-slate-700 mb-2">
-                Pincode
+                Place/Location
               </label>
               <div className="relative">
                 <FaMapMarkerAlt className="absolute left-4 top-1/2 transform -translate-y-1/2 text-blue-600" />
                 <input
                   type="text"
-                  placeholder="Enter Pincode"
-                  value={pincode}
-                  onChange={(e) => setPincode(e.target.value)}
-                  className="w-full pl-12 pr-4 py-4 bg-white/90 border border-slate-200 rounded-2xl focus:ring-4 focus:ring-blue-300/50 focus:border-blue-500 transition-all duration-300 text-slate-900 placeholder-slate-500"
+                  placeholder="Enter place (e.g., Kattappana)"
+                  value={place}
+                  onChange={(e) => setPlace(e.target.value)}
+                  onKeyPress={handlePlaceSearch}
+                  className="w-full pl-12 pr-16 py-4 bg-white/90 border border-slate-200 rounded-2xl focus:ring-4 focus:ring-blue-300/50 focus:border-blue-500 transition-all duration-300 text-slate-900 placeholder-slate-500"
                 />
+                <button
+                  onClick={handlePlaceSearch}
+                  disabled={searchingPlace || !place.trim()}
+                  className="absolute right-2 top-1/2 transform -translate-y-1/2 p-2 bg-blue-600 text-white rounded-xl hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed transition-colors duration-300"
+                  title="Search hospitals in this place"
+                >
+                  {searchingPlace ? (
+                    <div className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent"></div>
+                  ) : (
+                    <FaSearch className="text-sm" />
+                  )}
+                </button>
               </div>
             </div>
 
@@ -416,7 +599,7 @@ function HospitalDiscovery() {
                   setSearchQuery("");
                   setSelectedSpecialty("");
                   setSelectedCity("");
-                  setPincode("");
+                  setPlace("");
                 }}
                 className="w-full px-4 py-4 bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold rounded-2xl transition-all duration-300 flex items-center justify-center space-x-2 mt-7"
               >
@@ -472,7 +655,7 @@ function HospitalDiscovery() {
                   </h2>
                   {filteredHospitals.length > 0 && (
                     <p className="text-slate-600">
-                      Showing results {searchQuery || selectedSpecialty || selectedCity || pincode ? 'for your search' : 'in your area'}
+                      Showing results {searchQuery || selectedSpecialty || selectedCity || place ? 'for your search' : 'in your area'}
                     </p>
                   )}
                 </div>
@@ -504,7 +687,7 @@ function HospitalDiscovery() {
                       setSearchQuery("");
                       setSelectedSpecialty("");
                       setSelectedCity("");
-                      setPincode("");
+                      setPlace("");
                     }}
                     className="bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white font-semibold px-6 py-3 rounded-2xl shadow-lg hover:shadow-xl transition-all duration-300"
                   >
