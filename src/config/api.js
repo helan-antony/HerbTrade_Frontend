@@ -4,6 +4,20 @@
 // Base API URL - Update this when deploying to production
 const API_BASE_URL = process.env.VITE_API_URL || 'http://localhost:5000';
 
+// Google OAuth Client ID
+// Replace this with your new OAuth client ID from Google Cloud Console
+export const GOOGLE_CLIENT_ID = '402168891475-ag50v1vdjblsjhd317v8mrn2v9q3dc02.apps.googleusercontent.com';
+
+// Instructions to create a new OAuth client:
+// 1. Go to https://console.cloud.google.com/apis/credentials
+// 2. Click "Create Credentials" → "OAuth 2.0 Client ID"
+// 3. Choose "Web application"
+// 4. Add these JavaScript origins:
+//    - http://localhost:5173
+//    - http://localhost:3000
+//    - http://localhost:5174
+// 5. Copy the new client ID and replace the one above
+
 // API Endpoints
 export const API_ENDPOINTS = {
   // Base URL

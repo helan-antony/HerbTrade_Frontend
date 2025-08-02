@@ -214,66 +214,40 @@ function AdminDashboard() {
   };
 
   const StatCard = ({ title, value, icon: Icon, color, change }) => (
-    <div className="relative bg-white/90 backdrop-blur-sm rounded-3xl shadow-xl border border-white/60 p-6 hover:shadow-2xl transition-all duration-500 hover:-translate-y-2 group overflow-hidden">
-      {/* Herbal pattern overlay */}
-      <div className="absolute top-0 right-0 w-20 h-20 opacity-5">
-        <svg viewBox="0 0 24 24" fill="currentColor" className="w-full h-full text-emerald-400">
-          <path d="M17,8C8,10 5.9,16.17 3.82,21.34L5.71,22L6.66,19.7C7.14,19.87 7.64,20 8,20C19,20 22,3 22,3C21,5 14,5.25 9,6.25C4,7.25 2,11.5 2,13.5C2,15.5 3.75,17.25 3.75,17.25C7,8 17,8 17,8Z"/>
-        </svg>
-      </div>
-      
-      <div className="flex items-center justify-between relative z-10">
-        <div className="flex-1">
-          <p className="text-slate-600 text-sm font-semibold mb-2 uppercase tracking-wide">{title}</p>
-          <p className="text-3xl font-bold text-slate-900 mb-1 font-playfair">{value}</p>
+    <div className="bg-white/80 backdrop-blur-sm rounded-3xl shadow-xl border border-white/50 p-6 hover:shadow-2xl transition-all duration-500 hover:-translate-y-1 group">
+      <div className="flex items-center justify-between">
+        <div>
+          <p className="text-slate-600 text-sm font-medium mb-2">{title}</p>
+          <p className="text-3xl font-bold text-slate-900 mb-1">{value}</p>
           {change && (
-            <div className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-semibold ${
-              change > 0 
-                ? 'bg-green-100 text-green-700' 
-                : 'bg-red-100 text-red-700'
-            }`}>
-              <TrendingUp className={`w-3 h-3 mr-1 ${change < 0 ? 'rotate-180' : ''}`} />
+            <p className={`text-sm font-medium flex items-center ${change > 0 ? 'text-green-600' : 'text-red-600'}`}>
+              <TrendingUp className="w-4 h-4 mr-1" />
               {change > 0 ? '+' : ''}{change}%
-            </div>
+            </p>
           )}
         </div>
-        <div className={`relative p-4 rounded-2xl ${color} group-hover:scale-110 transition-all duration-300 shadow-lg`}>
-          <Icon className="w-8 h-8 text-white relative z-10" />
-          <div className="absolute inset-0 bg-white/20 rounded-2xl opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+        <div className={`p-4 rounded-2xl ${color} group-hover:scale-110 transition-transform duration-300`}>
+          <Icon className="w-8 h-8 text-white" />
         </div>
       </div>
-      
-      {/* Subtle gradient border */}
-      <div className="absolute inset-0 rounded-3xl bg-gradient-to-r from-emerald-500/10 to-teal-500/10 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
     </div>
   );
 
   const TabButton = ({ id, label, icon: Icon, isActive, onClick, badge }) => (
     <button
       onClick={() => onClick(id)}
-      className={`relative flex items-center space-x-3 px-6 py-4 rounded-2xl font-semibold transition-all duration-300 group ${
+      className={`relative flex items-center space-x-3 px-6 py-4 rounded-2xl font-semibold transition-all duration-300 ${
         isActive
-          ? 'bg-gradient-to-r from-emerald-500 to-teal-500 text-white shadow-lg transform scale-105'
-          : 'text-slate-600 hover:bg-gradient-to-r hover:from-emerald-50 hover:to-teal-50 hover:text-emerald-600 hover:shadow-md'
+          ? 'bg-gradient-to-r from-emerald-500 to-teal-500 text-white shadow-lg'
+          : 'text-slate-600 hover:bg-emerald-50 hover:text-emerald-600'
       }`}
     >
-      <div className={`p-1 rounded-lg transition-all duration-300 ${
-        isActive 
-          ? 'bg-white/20' 
-          : 'group-hover:bg-emerald-100'
-      }`}>
-        <Icon className="w-5 h-5" />
-      </div>
-      <span className="font-medium">{label}</span>
+      <Icon className="w-5 h-5" />
+      <span>{label}</span>
       {badge > 0 && (
-        <span className="absolute -top-2 -right-2 bg-gradient-to-r from-red-500 to-pink-500 text-white text-xs rounded-full w-6 h-6 flex items-center justify-center font-bold animate-pulse shadow-lg">
+        <span className="absolute -top-2 -right-2 bg-red-500 text-white text-xs rounded-full w-6 h-6 flex items-center justify-center font-bold animate-pulse">
           {badge > 99 ? '99+' : badge}
         </span>
-      )}
-      
-      {/* Herbal accent */}
-      {isActive && (
-        <div className="absolute -bottom-1 left-1/2 transform -translate-x-1/2 w-8 h-1 bg-white/50 rounded-full"></div>
       )}
     </button>
   );
@@ -290,67 +264,29 @@ function AdminDashboard() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-emerald-50 via-white to-teal-50 pt-24 pb-12 relative overflow-hidden">
+    <div className="min-h-screen bg-gradient-to-br from-emerald-50 via-white to-teal-50 pt-24 pb-12 relative">
       <ToastContainer position="top-right" autoClose={3000} />
       
-      {/* Enhanced Background with Herbal Pattern */}
+      {/* Background Image */}
       <div 
-        className="absolute inset-0 bg-cover bg-center bg-no-repeat opacity-3"
+        className="absolute inset-0 bg-cover bg-center bg-no-repeat opacity-5"
         style={{ backgroundImage: 'url(/assets/bg.png)' }}
       />
-      
-      {/* Animated Herbal Leaf Decorations */}
-      <div className="absolute top-10 left-5 w-20 h-20 opacity-10 animate-leaf-sway">
-        <svg viewBox="0 0 24 24" fill="currentColor" className="w-full h-full text-emerald-400">
-          <path d="M17,8C8,10 5.9,16.17 3.82,21.34L5.71,22L6.66,19.7C7.14,19.87 7.64,20 8,20C19,20 22,3 22,3C21,5 14,5.25 9,6.25C4,7.25 2,11.5 2,13.5C2,15.5 3.75,17.25 3.75,17.25C7,8 17,8 17,8Z"/>
-        </svg>
-      </div>
-      <div className="absolute top-32 right-10 w-16 h-16 opacity-10 rotate-45 animate-leaf-sway" style={{ animationDelay: '1s' }}>
-        <svg viewBox="0 0 24 24" fill="currentColor" className="w-full h-full text-teal-400">
-          <path d="M17,8C8,10 5.9,16.17 3.82,21.34L5.71,22L6.66,19.7C7.14,19.87 7.64,20 8,20C19,20 22,3 22,3C21,5 14,5.25 9,6.25C4,7.25 2,11.5 2,13.5C2,15.5 3.75,17.25 3.75,17.25C7,8 17,8 17,8Z"/>
-        </svg>
-      </div>
-      <div className="absolute bottom-20 left-20 w-24 h-24 opacity-10 -rotate-12 animate-leaf-sway" style={{ animationDelay: '2s' }}>
-        <svg viewBox="0 0 24 24" fill="currentColor" className="w-full h-full text-green-400">
-          <path d="M17,8C8,10 5.9,16.17 3.82,21.34L5.71,22L6.66,19.7C7.14,19.87 7.64,20 8,20C19,20 22,3 22,3C21,5 14,5.25 9,6.25C4,7.25 2,11.5 2,13.5C2,15.5 3.75,17.25 3.75,17.25C7,8 17,8 17,8Z"/>
-        </svg>
-      </div>
 
-      {/* Floating decorative elements with enhanced animation */}
-      <div className="absolute top-20 left-10 w-72 h-72 bg-gradient-to-r from-emerald-200/20 to-green-200/20 rounded-full blur-3xl animate-float" />
-      <div className="absolute bottom-20 right-10 w-96 h-96 bg-gradient-to-r from-teal-200/15 to-cyan-200/15 rounded-full blur-3xl animate-float" style={{ animationDelay: '2s' }} />
-      <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-80 h-80 bg-gradient-to-r from-lime-200/10 to-emerald-200/10 rounded-full blur-3xl animate-float" style={{ animationDelay: '4s' }} />
+      {/* Floating decorative elements */}
+      <div className="absolute top-20 left-10 w-72 h-72 bg-emerald-200/30 rounded-full blur-3xl animate-float" />
+      <div className="absolute bottom-20 right-10 w-96 h-96 bg-teal-200/20 rounded-full blur-3xl animate-float" style={{ animationDelay: '2s' }} />
 
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10 animate-slide-up">
-        {/* Enhanced Header */}
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
+        {/* Header */}
         <div className="flex justify-between items-center mb-8">
-          <div className="space-y-3">
-            <div className="flex items-center space-x-4">
-              <div className="p-4 bg-gradient-to-r from-emerald-500 to-teal-500 rounded-3xl shadow-xl">
-                <Shield className="w-10 h-10 text-white" />
-              </div>
-              <div>
-                <h1 className="text-4xl md:text-5xl font-playfair font-bold bg-gradient-to-r from-emerald-700 to-teal-700 bg-clip-text text-transparent tracking-tight">
-                  Admin Dashboard
-                </h1>
-                <div className="flex items-center space-x-2 mt-1">
-                  <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
-                  <p className="text-lg text-slate-600 font-medium">
-                    🌿 Managing HerbTrade Platform
-                  </p>
-                </div>
-              </div>
-            </div>
-            <div className="flex items-center space-x-6 text-sm text-slate-500">
-              <div className="flex items-center space-x-2">
-                <Activity className="w-4 h-4" />
-                <span>System Status: Online</span>
-              </div>
-              <div className="flex items-center space-x-2">
-                <Clock className="w-4 h-4" />
-                <span>Last Updated: {new Date().toLocaleTimeString()}</span>
-              </div>
-            </div>
+          <div className="space-y-2">
+            <h1 className="text-4xl md:text-5xl font-playfair font-bold text-slate-900 tracking-tight">
+              Admin Dashboard
+            </h1>
+            <p className="text-lg text-slate-600 font-medium">
+              🛡️ Manage your HerbTrade platform
+            </p>
           </div>
           <div className="flex items-center space-x-4">
             <button
@@ -446,53 +382,41 @@ function AdminDashboard() {
           </div>
         </div>
 
-        {/* Enhanced Stats Cards */}
+        {/* Stats Cards */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
           <StatCard
             title="Total Users"
             value={stats.totalUsers}
             icon={Users}
-            color="bg-gradient-to-r from-emerald-500 to-green-600"
+            color="bg-gradient-to-r from-blue-500 to-blue-600"
             change={12}
           />
           <StatCard
             title="Total Orders"
             value={stats.totalOrders}
             icon={ShoppingCart}
-            color="bg-gradient-to-r from-teal-500 to-cyan-600"
+            color="bg-gradient-to-r from-emerald-500 to-emerald-600"
             change={8}
           />
           <StatCard
-            title="Herbal Products"
+            title="Products"
             value={stats.totalProducts}
             icon={Package}
-            color="bg-gradient-to-r from-lime-500 to-green-600"
+            color="bg-gradient-to-r from-purple-500 to-purple-600"
             change={-2}
           />
           <StatCard
             title="Revenue"
             value={`₹${stats.totalRevenue.toLocaleString()}`}
             icon={DollarSign}
-            color="bg-gradient-to-r from-amber-500 to-orange-600"
+            color="bg-gradient-to-r from-orange-500 to-orange-600"
             change={15}
           />
         </div>
 
-        {/* Enhanced Navigation Tabs */}
-        <div className="bg-white/90 backdrop-blur-sm rounded-3xl shadow-xl border border-white/60 p-6 mb-8 relative overflow-hidden">
-          {/* Herbal pattern background */}
-          <div className="absolute top-0 right-0 w-32 h-32 opacity-5">
-            <svg viewBox="0 0 24 24" fill="currentColor" className="w-full h-full text-emerald-400">
-              <path d="M17,8C8,10 5.9,16.17 3.82,21.34L5.71,22L6.66,19.7C7.14,19.87 7.64,20 8,20C19,20 22,3 22,3C21,5 14,5.25 9,6.25C4,7.25 2,11.5 2,13.5C2,15.5 3.75,17.25 3.75,17.25C7,8 17,8 17,8Z"/>
-            </svg>
-          </div>
-          
-          <div className="relative z-10">
-            <h3 className="text-lg font-semibold text-slate-800 mb-4 flex items-center">
-              <Settings className="w-5 h-5 mr-2 text-emerald-600" />
-              Dashboard Navigation
-            </h3>
-            <div className="flex flex-wrap gap-4">
+        {/* Navigation Tabs */}
+        <div className="bg-white/80 backdrop-blur-sm rounded-3xl shadow-xl border border-white/50 p-6 mb-8">
+          <div className="flex flex-wrap gap-4">
             <TabButton
               id="overview"
               label="Overview"
@@ -529,75 +453,49 @@ function AdminDashboard() {
               onClick={setActiveTab}
               badge={appointments.filter(apt => apt.bookingStatus === 'Pending').length}
             />
-            </div>
           </div>
         </div>
 
-        {/* Enhanced Tab Content */}
-        <div className="bg-white/90 backdrop-blur-sm rounded-3xl shadow-xl border border-white/60 p-8 relative overflow-hidden">
-          {/* Subtle herbal background pattern */}
-          <div className="absolute inset-0 opacity-3">
-            <div className="absolute top-10 right-10 w-16 h-16">
-              <svg viewBox="0 0 24 24" fill="currentColor" className="w-full h-full text-emerald-400">
-                <path d="M17,8C8,10 5.9,16.17 3.82,21.34L5.71,22L6.66,19.7C7.14,19.87 7.64,20 8,20C19,20 22,3 22,3C21,5 14,5.25 9,6.25C4,7.25 2,11.5 2,13.5C2,15.5 3.75,17.25 3.75,17.25C7,8 17,8 17,8Z"/>
-              </svg>
-            </div>
-            <div className="absolute bottom-10 left-10 w-20 h-20 rotate-180">
-              <svg viewBox="0 0 24 24" fill="currentColor" className="w-full h-full text-teal-400">
-                <path d="M17,8C8,10 5.9,16.17 3.82,21.34L5.71,22L6.66,19.7C7.14,19.87 7.64,20 8,20C19,20 22,3 22,3C21,5 14,5.25 9,6.25C4,7.25 2,11.5 2,13.5C2,15.5 3.75,17.25 3.75,17.25C7,8 17,8 17,8Z"/>
-              </svg>
-            </div>
-          </div>
-          
-          <div className="relative z-10">
+        {/* Tab Content */}
+        <div className="bg-white/80 backdrop-blur-sm rounded-3xl shadow-xl border border-white/50 p-8">
           {activeTab === 'overview' && (
             <div className="space-y-8">
-              <div className="flex items-center space-x-3 mb-6">
-                <div className="p-2 bg-gradient-to-r from-emerald-500 to-teal-500 rounded-xl">
-                  <Activity className="w-6 h-6 text-white" />
-                </div>
-                <h2 className="text-3xl font-playfair font-bold bg-gradient-to-r from-emerald-700 to-teal-700 bg-clip-text text-transparent">
-                  Platform Overview
-                </h2>
-              </div>
+              <h2 className="text-2xl font-playfair font-bold text-slate-900 mb-6">Platform Overview</h2>
               
-              {/* Enhanced Quick Stats */}
+              {/* Quick Stats */}
               <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                <div className="p-6 bg-gradient-to-br from-emerald-50 to-teal-50 rounded-2xl border border-emerald-200/50 shadow-lg hover:shadow-xl transition-all duration-300 hover:-translate-y-1 group">
+                <div className="p-6 bg-gradient-to-r from-emerald-50 to-teal-50 rounded-2xl border border-emerald-200">
                   <div className="flex items-center space-x-4">
-                    <div className="p-3 bg-gradient-to-r from-emerald-500 to-green-600 rounded-xl shadow-lg group-hover:scale-110 transition-transform duration-300">
+                    <div className="p-3 bg-emerald-500 rounded-xl">
                       <UserCheck className="w-6 h-6 text-white" />
                     </div>
                     <div>
-                      <p className="text-emerald-700 font-semibold text-sm uppercase tracking-wide">Active Users</p>
-                      <p className="text-2xl font-bold text-slate-900 font-playfair">{stats.activeUsers}</p>
-                      <p className="text-xs text-emerald-600 mt-1">🌱 Growing community</p>
+                      <p className="text-emerald-600 font-semibold">Active Users</p>
+                      <p className="text-2xl font-bold text-slate-900">{stats.activeUsers}</p>
                     </div>
                   </div>
                 </div>
                 
-                <div className="p-6 bg-gradient-to-br from-amber-50 to-orange-50 rounded-2xl border border-amber-200/50 shadow-lg hover:shadow-xl transition-all duration-300 hover:-translate-y-1 group">
+                <div className="p-6 bg-gradient-to-r from-orange-50 to-red-50 rounded-2xl border border-orange-200">
                   <div className="flex items-center space-x-4">
-                    <div className="p-3 bg-gradient-to-r from-amber-500 to-orange-600 rounded-xl shadow-lg group-hover:scale-110 transition-transform duration-300">
+                    <div className="p-3 bg-orange-500 rounded-xl">
                       <Clock className="w-6 h-6 text-white" />
                     </div>
                     <div>
-                      <p className="text-amber-700 font-semibold text-sm uppercase tracking-wide">Pending Orders</p>
-                      <p className="text-2xl font-bold text-slate-900 font-playfair">{stats.pendingOrders}</p>
-                      <p className="text-xs text-amber-600 mt-1">⏳ Awaiting processing</p>
+                      <p className="text-orange-600 font-semibold">Pending Orders</p>
+                      <p className="text-2xl font-bold text-slate-900">{stats.pendingOrders}</p>
                     </div>
                   </div>
                 </div>
                 
-                <div className="p-6 bg-gradient-to-br from-teal-50 to-cyan-50 rounded-2xl border border-teal-200/50 shadow-lg hover:shadow-xl transition-all duration-300 hover:-translate-y-1 group">
+                <div className="p-6 bg-gradient-to-r from-purple-50 to-pink-50 rounded-2xl border border-purple-200">
                   <div className="flex items-center space-x-4">
-                    <div className="p-3 bg-gradient-to-r from-teal-500 to-cyan-600 rounded-xl shadow-lg group-hover:scale-110 transition-transform duration-300">
+                    <div className="p-3 bg-purple-500 rounded-xl">
                       <Calendar className="w-6 h-6 text-white" />
                     </div>
                     <div>
-                      <p className="text-teal-700 font-semibold text-sm uppercase tracking-wide">Appointments</p>
-                      <p className="text-2xl font-bold text-slate-900 font-playfair">{appointments.length}</p>
-                      <p className="text-xs text-teal-600 mt-1">🏥 Health consultations</p>
+                      <p className="text-purple-600 font-semibold">Appointments</p>
+                      <p className="text-2xl font-bold text-slate-900">{appointments.length}</p>
                     </div>
                   </div>
                 </div>
@@ -650,40 +548,15 @@ function AdminDashboard() {
                 </div>
               </div>
 
-              <div className="overflow-x-auto bg-white/50 backdrop-blur-sm rounded-2xl border border-white/60 shadow-lg">
+              <div className="overflow-x-auto">
                 <table className="w-full">
                   <thead>
-                    <tr className="bg-gradient-to-r from-emerald-50 to-teal-50 border-b border-emerald-200/50">
-                      <th className="text-left py-6 px-6 font-bold text-emerald-800 uppercase tracking-wide text-sm">
-                        <div className="flex items-center space-x-2">
-                          <Users className="w-4 h-4" />
-                          <span>User</span>
-                        </div>
-                      </th>
-                      <th className="text-left py-6 px-6 font-bold text-emerald-800 uppercase tracking-wide text-sm">
-                        <div className="flex items-center space-x-2">
-                          <Mail className="w-4 h-4" />
-                          <span>Email</span>
-                        </div>
-                      </th>
-                      <th className="text-left py-6 px-6 font-bold text-emerald-800 uppercase tracking-wide text-sm">
-                        <div className="flex items-center space-x-2">
-                          <Shield className="w-4 h-4" />
-                          <span>Role</span>
-                        </div>
-                      </th>
-                      <th className="text-left py-6 px-6 font-bold text-emerald-800 uppercase tracking-wide text-sm">
-                        <div className="flex items-center space-x-2">
-                          <Activity className="w-4 h-4" />
-                          <span>Status</span>
-                        </div>
-                      </th>
-                      <th className="text-left py-6 px-6 font-bold text-emerald-800 uppercase tracking-wide text-sm">
-                        <div className="flex items-center space-x-2">
-                          <Settings className="w-4 h-4" />
-                          <span>Actions</span>
-                        </div>
-                      </th>
+                    <tr className="border-b border-slate-200">
+                      <th className="text-left py-4 px-4 font-semibold text-slate-700">User</th>
+                      <th className="text-left py-4 px-4 font-semibold text-slate-700">Email</th>
+                      <th className="text-left py-4 px-4 font-semibold text-slate-700">Role</th>
+                      <th className="text-left py-4 px-4 font-semibold text-slate-700">Status</th>
+                      <th className="text-left py-4 px-4 font-semibold text-slate-700">Actions</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -691,82 +564,55 @@ function AdminDashboard() {
                       user.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
                       user.email?.toLowerCase().includes(searchTerm.toLowerCase())
                     ).map((user, index) => (
-                      <tr key={user._id || index} className="border-b border-slate-100/50 hover:bg-gradient-to-r hover:from-emerald-50/30 hover:to-teal-50/30 transition-all duration-300 group">
-                        <td className="py-6 px-6">
-                          <div className="flex items-center space-x-4">
-                            <div className="relative">
-                              <div className="w-12 h-12 bg-gradient-to-r from-emerald-500 to-teal-500 rounded-full flex items-center justify-center text-white font-bold text-lg shadow-lg group-hover:scale-110 transition-transform duration-300">
-                                {user.name?.charAt(0) || 'U'}
-                              </div>
-                              <div className="absolute -bottom-1 -right-1 w-4 h-4 bg-green-500 rounded-full border-2 border-white"></div>
+                      <tr key={user._id || index} className="border-b border-slate-100 hover:bg-slate-50">
+                        <td className="py-4 px-4">
+                          <div className="flex items-center space-x-3">
+                            <div className="w-10 h-10 bg-emerald-500 rounded-full flex items-center justify-center text-white font-semibold">
+                              {user.name?.charAt(0) || 'U'}
                             </div>
                             <div>
-                              <p className="font-bold text-slate-900 text-lg">{user.name || 'Unknown'}</p>
-                              <p className="text-sm text-slate-500 font-mono">ID: {user._id?.slice(-6) || 'N/A'}</p>
+                              <p className="font-semibold text-slate-900">{user.name || 'Unknown'}</p>
+                              <p className="text-sm text-slate-600">ID: {user._id?.slice(-6) || 'N/A'}</p>
                             </div>
                           </div>
                         </td>
-                        <td className="py-6 px-6">
-                          <div className="flex items-center space-x-2">
-                            <Mail className="w-4 h-4 text-slate-400" />
-                            <span className="text-slate-700 font-medium">{user.email || 'N/A'}</span>
-                          </div>
-                        </td>
-                        <td className="py-6 px-6">
-                          <span className={`inline-flex items-center px-4 py-2 rounded-full text-sm font-bold shadow-sm ${
-                            user.role === 'admin' ? 'bg-gradient-to-r from-purple-100 to-purple-200 text-purple-800 border border-purple-300' :
-                            user.role === 'seller' ? 'bg-gradient-to-r from-blue-100 to-blue-200 text-blue-800 border border-blue-300' :
-                            'bg-gradient-to-r from-emerald-100 to-green-200 text-emerald-800 border border-emerald-300'
+                        <td className="py-4 px-4 text-slate-600">{user.email || 'N/A'}</td>
+                        <td className="py-4 px-4">
+                          <span className={`px-3 py-1 rounded-full text-xs font-semibold ${
+                            user.role === 'admin' ? 'bg-purple-100 text-purple-700' :
+                            user.role === 'seller' ? 'bg-blue-100 text-blue-700' :
+                            'bg-green-100 text-green-700'
                           }`}>
-                            {user.role === 'admin' && <Shield className="w-3 h-3 mr-1" />}
-                            {user.role === 'seller' && <ShoppingCart className="w-3 h-3 mr-1" />}
-                            {user.role === 'user' && <Users className="w-3 h-3 mr-1" />}
                             {user.role || 'user'}
                           </span>
                         </td>
-                        <td className="py-6 px-6">
-                          <span className={`inline-flex items-center px-4 py-2 rounded-full text-sm font-bold shadow-sm ${
-                            user.isActive !== false 
-                              ? 'bg-gradient-to-r from-green-100 to-emerald-200 text-green-800 border border-green-300' 
-                              : 'bg-gradient-to-r from-red-100 to-red-200 text-red-800 border border-red-300'
+                        <td className="py-4 px-4">
+                          <span className={`px-3 py-1 rounded-full text-xs font-semibold ${
+                            user.isActive !== false ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'
                           }`}>
-                            {user.isActive !== false ? (
-                              <>
-                                <CheckCircle className="w-3 h-3 mr-1" />
-                                Active
-                              </>
-                            ) : (
-                              <>
-                                <AlertCircle className="w-3 h-3 mr-1" />
-                                Inactive
-                              </>
-                            )}
+                            {user.isActive !== false ? 'Active' : 'Inactive'}
                           </span>
                         </td>
-                        <td className="py-6 px-6">
-                          <div className="flex items-center space-x-3">
+                        <td className="py-4 px-4">
+                          <div className="flex items-center space-x-2">
                             <button
                               onClick={() => {
                                 setSelectedUser(user);
                                 setShowUserModal(true);
                               }}
-                              className="group relative p-3 bg-gradient-to-r from-blue-500 to-indigo-500 text-white rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 hover:-translate-y-1 hover:scale-110"
-                              title="View Details"
+                              className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
                             >
                               <Eye className="w-4 h-4" />
-                              <div className="absolute inset-0 bg-white/20 rounded-xl opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
                             </button>
                             <button
                               onClick={() => handleUserAction(user._id, user.isActive !== false ? 'deactivate' : 'activate')}
-                              className={`group relative p-3 rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 hover:-translate-y-1 hover:scale-110 ${
+                              className={`p-2 rounded-lg transition-colors ${
                                 user.isActive !== false 
-                                  ? 'bg-gradient-to-r from-red-500 to-pink-500 text-white' 
-                                  : 'bg-gradient-to-r from-green-500 to-emerald-500 text-white'
+                                  ? 'text-red-600 hover:bg-red-50' 
+                                  : 'text-green-600 hover:bg-green-50'
                               }`}
-                              title={user.isActive !== false ? 'Deactivate User' : 'Activate User'}
                             >
                               {user.isActive !== false ? <UserX className="w-4 h-4" /> : <UserCheck className="w-4 h-4" />}
-                              <div className="absolute inset-0 bg-white/20 rounded-xl opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
                             </button>
                           </div>
                         </td>
@@ -779,73 +625,28 @@ function AdminDashboard() {
           )}
 
           {activeTab === 'orders' && (
-            <div className="space-y-8">
-              <div className="flex items-center space-x-3">
-                <div className="p-2 bg-gradient-to-r from-emerald-500 to-teal-500 rounded-xl">
-                  <ShoppingCart className="w-6 h-6 text-white" />
-                </div>
-                <h2 className="text-3xl font-playfair font-bold bg-gradient-to-r from-emerald-700 to-teal-700 bg-clip-text text-transparent">
-                  Order Management
-                </h2>
-              </div>
+            <div className="space-y-6">
+              <h2 className="text-2xl font-playfair font-bold text-slate-900">Order Management</h2>
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                 {orders.map((order, index) => (
-                  <div key={order._id || index} className="group p-6 bg-white/80 backdrop-blur-sm rounded-2xl border border-white/60 shadow-lg hover:shadow-2xl transition-all duration-500 hover:-translate-y-2 relative overflow-hidden">
-                    {/* Herbal pattern overlay */}
-                    <div className="absolute top-0 right-0 w-16 h-16 opacity-5">
-                      <svg viewBox="0 0 24 24" fill="currentColor" className="w-full h-full text-emerald-400">
-                        <path d="M17,8C8,10 5.9,16.17 3.82,21.34L5.71,22L6.66,19.7C7.14,19.87 7.64,20 8,20C19,20 22,3 22,3C21,5 14,5.25 9,6.25C4,7.25 2,11.5 2,13.5C2,15.5 3.75,17.25 3.75,17.25C7,8 17,8 17,8Z"/>
-                      </svg>
+                  <div key={order._id || index} className="p-6 bg-slate-50 rounded-2xl border border-slate-200">
+                    <div className="flex justify-between items-start mb-4">
+                      <div>
+                        <p className="font-semibold text-slate-900">Order #{order.id || index + 1}</p>
+                        <p className="text-sm text-slate-600">{order.date || 'Recent'}</p>
+                      </div>
+                      <span className={`px-3 py-1 rounded-full text-xs font-semibold ${
+                        order.status === 'completed' ? 'bg-green-100 text-green-700' :
+                        order.status === 'pending' ? 'bg-yellow-100 text-yellow-700' :
+                        'bg-blue-100 text-blue-700'
+                      }`}>
+                        {order.status || 'pending'}
+                      </span>
                     </div>
-                    
-                    <div className="relative z-10">
-                      <div className="flex justify-between items-start mb-4">
-                        <div className="flex items-center space-x-3">
-                          <div className="p-2 bg-gradient-to-r from-emerald-500 to-teal-500 rounded-lg">
-                            <ShoppingCart className="w-4 h-4 text-white" />
-                          </div>
-                          <div>
-                            <p className="font-bold text-slate-900 text-lg">Order #{order.id || index + 1}</p>
-                            <p className="text-sm text-slate-500 flex items-center">
-                              <Clock className="w-3 h-3 mr-1" />
-                              {order.date || 'Recent'}
-                            </p>
-                          </div>
-                        </div>
-                        <span className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-bold shadow-sm ${
-                          order.status === 'completed' ? 'bg-gradient-to-r from-green-100 to-emerald-200 text-green-800 border border-green-300' :
-                          order.status === 'pending' ? 'bg-gradient-to-r from-amber-100 to-yellow-200 text-amber-800 border border-amber-300' :
-                          'bg-gradient-to-r from-blue-100 to-indigo-200 text-blue-800 border border-blue-300'
-                        }`}>
-                          {order.status === 'completed' && <CheckCircle className="w-3 h-3 mr-1" />}
-                          {order.status === 'pending' && <Clock className="w-3 h-3 mr-1" />}
-                          {order.status || 'pending'}
-                        </span>
-                      </div>
-                      
-                      <div className="space-y-3 mb-4">
-                        <div className="flex items-center space-x-2">
-                          <Users className="w-4 h-4 text-slate-400" />
-                          <span className="text-slate-700 font-medium">Customer: {order.customerName || 'N/A'}</span>
-                        </div>
-                        <div className="flex items-center space-x-2">
-                          <Package className="w-4 h-4 text-slate-400" />
-                          <span className="text-slate-700 font-medium">Items: {order.items?.length || 0}</span>
-                        </div>
-                        <div className="flex items-center space-x-2">
-                          <DollarSign className="w-4 h-4 text-slate-400" />
-                          <span className="text-lg font-bold text-slate-900 font-playfair">₹{order.total || 0}</span>
-                        </div>
-                      </div>
-                      
-                      <div className="flex space-x-2">
-                        <button className="flex-1 py-2 px-3 bg-gradient-to-r from-emerald-500 to-teal-500 text-white rounded-lg text-sm font-semibold hover:shadow-lg transition-all duration-300 hover:-translate-y-1">
-                          View Details
-                        </button>
-                        <button className="p-2 bg-gradient-to-r from-blue-500 to-indigo-500 text-white rounded-lg hover:shadow-lg transition-all duration-300 hover:-translate-y-1">
-                          <Edit className="w-4 h-4" />
-                        </button>
-                      </div>
+                    <div className="space-y-2">
+                      <p className="text-slate-600">Customer: {order.customerName || 'N/A'}</p>
+                      <p className="text-slate-600">Items: {order.items?.length || 0}</p>
+                      <p className="font-semibold text-slate-900">Total: ₹{order.total || 0}</p>
                     </div>
                   </div>
                 ))}
@@ -854,19 +655,12 @@ function AdminDashboard() {
           )}
 
           {activeTab === 'products' && (
-            <div className="space-y-8">
+            <div className="space-y-6">
               <div className="flex justify-between items-center">
-                <div className="flex items-center space-x-3">
-                  <div className="p-2 bg-gradient-to-r from-emerald-500 to-teal-500 rounded-xl">
-                    <Package className="w-6 h-6 text-white" />
-                  </div>
-                  <h2 className="text-3xl font-playfair font-bold bg-gradient-to-r from-emerald-700 to-teal-700 bg-clip-text text-transparent">
-                    Herbal Product Management
-                  </h2>
-                </div>
-                <button className="group flex items-center space-x-3 px-6 py-3 bg-gradient-to-r from-emerald-600 to-teal-600 text-white rounded-2xl shadow-lg hover:shadow-xl transition-all duration-300 hover:-translate-y-1 hover:scale-105">
-                  <Plus className="w-5 h-5 group-hover:rotate-90 transition-transform duration-300" />
-                  <span className="font-semibold">Add New Product</span>
+                <h2 className="text-2xl font-playfair font-bold text-slate-900">Product Management</h2>
+                <button className="flex items-center space-x-2 px-6 py-3 bg-emerald-600 text-white rounded-xl hover:bg-emerald-700 transition-colors">
+                  <Plus className="w-5 h-5" />
+                  <span>Add Product</span>
                 </button>
               </div>
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -1150,7 +944,6 @@ function AdminDashboard() {
               </div>
             </div>
           )}
-          </div>
         </div>
       </div>
 

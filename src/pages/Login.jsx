@@ -83,23 +83,23 @@ function Login() {
     script.async = true;
     script.defer = true;
     document.body.appendChild(script);
-    
+
     script.onload = () => {
       if (window.google && window.google.accounts) {
         window.google.accounts.id.initialize({
-          client_id: "402168891475-ag50v1vdjblsjhd317v8mrn2v9q3dc02.apps.googleusercontent.com",
+          client_id: GOOGLE_CLIENT_ID,
           callback: handleGoogleResponse
         });
-        
+
         // Render the Google Sign-In button
         const buttonElement = document.getElementById("google-signin-btn");
         if (buttonElement) {
           window.google.accounts.id.renderButton(
             buttonElement,
-            { 
-              theme: "outline", 
-              size: "large", 
-              type: 'standard', 
+            {
+              theme: "outline",
+              size: "large",
+              type: 'standard',
               width: 400,
               text: 'continue_with'
             }
@@ -107,7 +107,7 @@ function Login() {
         }
       }
     };
-    
+
     return () => {
       // Clean up script when component unmounts
       if (document.body.contains(script)) {
@@ -248,7 +248,7 @@ function Login() {
           {/* Google Sign In */}
           <div className="mb-6">
             <div className="flex justify-center mb-4">
-              <div id="google-signin-btn" style={{ width: '400px', maxWidth: '100%' }}></div>
+              <div id="google-signin-btn" className="w-full max-w-sm"></div>
             </div>
             <div className="relative">
               <div className="absolute inset-0 flex items-center">
