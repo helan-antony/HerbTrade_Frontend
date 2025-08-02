@@ -100,7 +100,7 @@ function Login() {
               theme: "outline", 
               size: "large", 
               type: 'standard', 
-              width: '100%',
+              width: 400,
               text: 'continue_with'
             }
           );
@@ -248,7 +248,7 @@ function Login() {
           {/* Google Sign In */}
           <div className="mb-6">
             <div className="flex justify-center mb-4">
-              <div id="google-signin-btn" style={{ width: '100%' }}></div>
+              <div id="google-signin-btn" style={{ width: '400px', maxWidth: '100%' }}></div>
             </div>
             <div className="relative">
               <div className="absolute inset-0 flex items-center">
