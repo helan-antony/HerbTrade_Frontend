@@ -13,6 +13,7 @@ import {
   Heart
 } from "lucide-react";
 import { useNavigate, Link } from "react-router-dom";
+import { API_ENDPOINTS } from '../config/api';
 
 function Signup() {
   const [name, setName] = useState("");
@@ -62,9 +63,11 @@ function Signup() {
 
   const validateEmail = (value) => {
     if (!value) return "Email is required";
-    if (!/^[a-zA-Z0-9]+@(gmail\.com|mca\.ajce\.in)$/.test(value)) {
-      return "Only Gmail and mca.ajce.in emails allowed";
+    const emailRegex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
+    if (!emailRegex.test(value)) {
+      return "Please enter a valid email address";
     }
+    if (value.length > 254) return "Email address is too long";
     return "";
   };
 
@@ -79,10 +82,8 @@ function Signup() {
   const validatePassword = (value) => {
     if (!value) return "Password is required";
     if (value.length < 6) return "Password must be at least 6 characters";
-    if (!/(?=.*[a-z])/.test(value)) return "Password must contain at least one lowercase letter";
-    if (!/(?=.*[A-Z])/.test(value)) return "Password must contain at least one uppercase letter";
-    if (!/(?=.*\d)/.test(value)) return "Password must contain at least one number";
-    if (!/(?=.*[@$!%*?&])/.test(value)) return "Password must contain at least one special character (@$!%*?&)";
+    if (value.length > 128) return "Password is too long";
+    if (/^\s/.test(value) || /\s$/.test(value)) return "Password cannot have leading or trailing spaces";
     return "";
   };
 
@@ -160,9 +161,7 @@ function Signup() {
   };
 
   useEffect(() => {
-    // Temporarily disabled Google Sign-In for development
-    // Uncomment and configure proper client ID for production
-    /*
+    // Load Google Sign-In script
     const script = document.createElement('script');
     script.src = 'https://accounts.google.com/gsi/client';
     script.async = true;
@@ -175,34 +174,89 @@ function Signup() {
           client_id: "402168891475-ag50v1vdjblsjhd317v8mrn2v9q3dc02.apps.googleusercontent.com",
           callback: handleGoogleResponse
         });
-        window.google.accounts.id.renderButton(
-          document.getElementById("google-signup-btn"),
-          { theme: "outline", size: "large", type: 'standard' }
-        );
+        
+        // Render the Google Sign-Up button
+        const buttonElement = document.getElementById("google-signup-btn");
+        if (buttonElement) {
+          window.google.accounts.id.renderButton(
+            buttonElement,
+            { 
+              theme: "outline", 
+              size: "large", 
+              type: 'standard',
+              width: '100%',
+              text: 'continue_with'
+            }
+          );
+        }
       }
     };
 
     return () => {
-      document.body.removeChild(script);
+      // Clean up script when component unmounts
+      if (document.body.contains(script)) {
+        document.body.removeChild(script);
+      }
     };
-    */
   }, []);
   
-  function handleGoogleResponse(response) {
-    const base64Url = response.credential.split('.')[1];
-    const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
-    const jsonPayload = decodeURIComponent(
-      atob(base64).split('').map(function(c) {
-        return '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2);
-      }).join('')
-    );
-    const user = JSON.parse(jsonPayload);
-    localStorage.setItem('user', JSON.stringify({ 
-      name: user.name, 
-      email: user.email, 
-      role: 'user' 
-    }));
-    navigate('/herbs');
+  async function handleGoogleResponse(response) {
+    try {
+      setIsLoading(true);
+      setError("");
+      
+      // Decode the JWT token from Google
+      const base64Url = response.credential.split('.')[1];
+      const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
+      const jsonPayload = decodeURIComponent(
+        atob(base64).split('').map(function(c) {
+          return '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2);
+        }).join('')
+      );
+      const googleUser = JSON.parse(jsonPayload);
+      
+      // Send to backend for authentication/registration
+      const res = await fetch(API_ENDPOINTS.AUTH.GOOGLE_AUTH, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          name: googleUser.name,
+          email: googleUser.email,
+          picture: googleUser.picture,
+          googleId: googleUser.sub
+        })
+      });
+      
+      const data = await res.json();
+      
+      if (data.token && data.user) {
+        // Store authentication data
+        localStorage.setItem('token', data.token);
+        localStorage.setItem('user', JSON.stringify(data.user));
+        
+        setSuccess(true);
+        
+        // Navigate based on user role
+        setTimeout(() => {
+          if (data.user.role === 'admin') {
+            navigate('/admin');
+          } else if (data.user.role === 'seller') {
+            navigate('/seller-dashboard');
+          } else if (data.user.role === 'employee') {
+            navigate('/employee-dashboard');
+          } else {
+            navigate('/herbs');
+          }
+        }, 1500);
+      } else {
+        setError(data.error || 'Google authentication failed');
+      }
+    } catch (err) {
+      console.error('Google authentication error:', err);
+      setError('Google authentication failed. Please try again.');
+    } finally {
+      setIsLoading(false);
+    }
   }
 
   function validate() {
@@ -233,21 +287,31 @@ function Signup() {
     setIsLoading(true);
     
     try {
-      const res = await fetch('http://localhost:5000/api/auth/register', {
+      const res = await fetch(API_ENDPOINTS.AUTH.REGISTER, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ name, email, phone, password })
       });
+      
       const data = await res.json();
       
-      if (data.user) {
+      if (res.ok && data.user && data.token) {
+        // Store authentication data immediately after successful registration
+        localStorage.setItem('token', data.token);
+        localStorage.setItem('user', JSON.stringify(data.user));
+        
         setSuccess(true);
-        setTimeout(() => navigate('/login'), 2000);
+        
+        // Navigate to herbs page after successful registration
+        setTimeout(() => {
+          navigate('/herbs');
+        }, 2000);
       } else {
-        setError(data.error || 'Signup failed');
+        setError(data.error || 'Registration failed. Please try again.');
       }
     } catch (err) {
-      setError('Network error. Please try again.');
+      console.error('Signup error:', err);
+      setError('Network error. Please check your connection and try again.');
     } finally {
       setIsLoading(false);
     }
@@ -286,22 +350,20 @@ function Signup() {
             </p>
           </div>
 
-          {/* Google Sign Up - Temporarily disabled for development */}
-          {false && (
-            <div className="mb-6">
-              <div className="flex justify-center mb-4">
-                <div id="google-signup-btn"></div>
+          {/* Google Sign Up */}
+          <div className="mb-6">
+            <div className="flex justify-center mb-4">
+              <div id="google-signup-btn" style={{ width: '100%' }}></div>
+            </div>
+            <div className="relative">
+              <div className="absolute inset-0 flex items-center">
+                <div className="w-full border-t border-gray-200"></div>
               </div>
-              <div className="relative">
-                <div className="absolute inset-0 flex items-center">
-                  <div className="w-full border-t border-gray-200"></div>
-                </div>
-                <div className="relative flex justify-center text-sm">
-                  <span className="px-4 bg-white text-gray-500 font-medium">or continue with email</span>
-                </div>
+              <div className="relative flex justify-center text-sm">
+                <span className="px-4 bg-white text-gray-500 font-medium">or continue with email</span>
               </div>
             </div>
-          )}
+          </div>
 
           {/* Form Fields */}
           <div className="space-y-6">

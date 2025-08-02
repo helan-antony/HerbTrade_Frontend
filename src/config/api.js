@@ -2,7 +2,7 @@
 // This file centralizes all API endpoint configurations
 
 // Base API URL - Update this when deploying to production
-const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000';
+const API_BASE_URL = process.env.VITE_API_URL || 'http://localhost:5000';
 
 // API Endpoints
 export const API_ENDPOINTS = {
@@ -16,7 +16,7 @@ export const API_ENDPOINTS = {
     PROFILE: `${API_BASE_URL}/api/auth/profile`,
     FORGOT_PASSWORD: `${API_BASE_URL}/api/auth/forgot-password`,
     RESET_PASSWORD: `${API_BASE_URL}/api/auth/reset-password`,
-    GOOGLE_AUTH: `${API_BASE_URL}/api/auth/google`,
+    GOOGLE_AUTH: `${API_BASE_URL}/api/auth/google-login`,
   },
   
   // Cart endpoints

@@ -10,6 +10,11 @@ export default defineConfig({
   server: {
     port: 5173,
     host: true
+  },
+  define: {
+    // Only expose specific environment variables for security
+    'process.env.VITE_API_URL': JSON.stringify(process.env.VITE_API_URL),
+    'process.env.NODE_ENV': JSON.stringify(process.env.NODE_ENV)
   }
 })
 

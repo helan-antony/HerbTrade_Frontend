@@ -508,7 +508,7 @@ function HospitalDiscovery() {
             <p className="text-slate-600">Search by place name to find Ayurvedic hospitals from Google Places</p>
             <div className="mt-2 p-3 bg-blue-50 rounded-lg border border-blue-200">
               <p className="text-sm text-blue-700">
-                💡 <strong>New Feature:</strong> Enter a place name (like "Kattappana") to search for Ayurvedic hospitals in that location using Google Places API.
+                💡 <strong>New Feature:</strong> Enter a place name to search for Ayurvedic hospitals in that location using Google Places API.
               </p>
             </div>
           </div>
