@@ -12,7 +12,7 @@ import {
   Heart,
   AlertCircle
 } from "lucide-react";
-import { API_ENDPOINTS } from '../config/api';
+import { API_ENDPOINTS, GOOGLE_CLIENT_ID } from '../config/api';
 
 function Login() {
   const [email, setEmail] = useState("");

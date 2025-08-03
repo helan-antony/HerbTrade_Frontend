@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import { Link } from "react-router-dom";
 import { Mail, ArrowLeft, CheckCircle } from "lucide-react";
+import { API_ENDPOINTS } from '../config/api';
 
 function ForgotPassword() {
   const [email, setEmail] = useState("");
@@ -28,7 +29,7 @@ function ForgotPassword() {
 
     if (!validateEmail(email)) {
       try {
-        const res = await fetch("http://localhost:5000/api/auth/forgot-password", {
+        const res = await fetch(API_ENDPOINTS.AUTH.FORGOT_PASSWORD, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ email })
@@ -114,7 +115,7 @@ function ForgotPassword() {
                   value={email}
                   onChange={handleEmailChange}
                   className="w-full pl-12 pr-4 py-4 border border-slate-200 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 transition-colors duration-200 bg-slate-50 focus:bg-white text-slate-700 placeholder-slate-400"
-                  placeholder="helanantony2026@mca.ajce.in"
+                  placeholder="Enter your email"
                 />
               </div>
             </div>
