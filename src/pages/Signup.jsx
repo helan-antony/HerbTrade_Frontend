@@ -292,16 +292,16 @@ function Signup() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ name, email, phone, password })
       });
-      
+
       const data = await res.json();
-      
+
       if (res.ok && data.user && data.token) {
         // Store authentication data immediately after successful registration
         localStorage.setItem('token', data.token);
         localStorage.setItem('user', JSON.stringify(data.user));
-        
+
         setSuccess(true);
-        
+
         // Navigate to herbs page after successful registration
         setTimeout(() => {
           navigate('/herbs');

@@ -186,9 +186,9 @@ function Login() {
         // Store both user and token
         localStorage.setItem('user', JSON.stringify(data.user));
         localStorage.setItem('token', data.token);
-        
+
         setSuccess(true);
-        
+
         // Navigate based on user role after a short delay
         setTimeout(() => {
           if (data.user.role === 'admin') {

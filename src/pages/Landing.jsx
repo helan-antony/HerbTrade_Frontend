@@ -250,7 +250,7 @@ function Landing() {
             <div className="relative animate-scale-in">
               <div className="glass-card p-8">
                 <img 
-                  src="/assets/ashwagandha.png" 
+                  src="/assets/p2.png" 
                   alt="Premium herbs"
                   className="w-full h-80 object-cover rounded-xl mb-6"
                 />
