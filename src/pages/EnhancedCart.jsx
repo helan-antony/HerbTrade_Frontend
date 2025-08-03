@@ -53,6 +53,8 @@ function EnhancedCart() {
     fetchCartItems();
   }, [navigate]);
 
+
+
   const fetchCartItems = async () => {
     try {
       setLoading(true);
@@ -62,8 +64,8 @@ function EnhancedCart() {
         headers: getAuthHeaders()
       });
 
-      console.log('Backend cart response:', response.data);
-      setCartItems(response.data.data?.items || []);
+      const newCartItems = response.data.data?.items || [];
+      setCartItems(newCartItems);
     } catch (error) {
       console.error('Error fetching cart:', error);
       if (error.response?.status === 401) {
@@ -214,9 +216,8 @@ function EnhancedCart() {
     }
   };
 
-  const handleRemoveClick = (product) => {
-    console.log('handleRemoveClick called with product:', product);
-    setItemToRemove(product);
+  const handleRemoveClick = (cartItem) => {
+    setItemToRemove(cartItem);
     setShowRemoveDialog(true);
   };
 
@@ -229,45 +230,81 @@ function EnhancedCart() {
       return;
     }
 
-    const productId = itemToRemove._id;
-    const productName = itemToRemove.name;
+    // Extract the correct product ID - handle different cart item structures
+    // The backend expects the productId that's stored in the cart item's productId field
+    let productId;
+    if (itemToRemove.productId) {
+      // If productId exists, use it (this is what's stored in the database)
+      if (typeof itemToRemove.productId === 'object' && itemToRemove.productId._id) {
+        productId = itemToRemove.productId._id.toString();
+      } else {
+        productId = itemToRemove.productId.toString();
+      }
+    } else if (itemToRemove.product?._id) {
+      // Fallback to product._id
+      productId = itemToRemove.product._id.toString();
+    } else {
+      // Last fallback to item._id
+      productId = itemToRemove._id.toString();
+    }
 
-    console.log('Attempting to remove item:', { productId, productName, itemToRemove });
+    const productName = itemToRemove.product?.name || itemToRemove.name;
+
+
+
+
 
     try {
       const response = await axios.delete(`http://localhost:5000/api/cart/remove/${productId}`, {
         headers: getAuthHeaders()
       });
 
-      console.log('Backend remove response:', response.data);
 
-      // Update local state - filter out the item
-      setCartItems(items => {
-        const filteredItems = items.filter(item => {
-          const itemProductId = item.product?._id || item.productId || item._id;
-          console.log('Comparing:', { itemProductId, productId, shouldKeep: itemProductId !== productId });
-          return itemProductId !== productId;
+
+      if (response.data.success) {
+        // Immediately update local state to remove the item
+        setCartItems(prevItems => {
+          const filteredItems = prevItems.filter(item => {
+            // Use the same logic as above to extract product ID
+            let itemProductId;
+            if (item.productId) {
+              if (typeof item.productId === 'object' && item.productId._id) {
+                itemProductId = item.productId._id.toString();
+              } else {
+                itemProductId = item.productId.toString();
+              }
+            } else if (item.product?._id) {
+              itemProductId = item.product._id.toString();
+            } else {
+              itemProductId = item._id.toString();
+            }
+
+            return itemProductId !== productId;
+          });
+          return filteredItems;
         });
-        
-        // Also update localStorage for consistency
-        localStorage.setItem('cartItems', JSON.stringify(filteredItems));
-        localStorage.setItem('herbtradeCart', JSON.stringify(filteredItems));
-        
-        return filteredItems;
-      });
 
-      // Trigger navbar count update
-      window.dispatchEvent(new Event('cartUpdated'));
 
-      // Show success message
-      toast.success(`${productName} removed from cart!`, {
-        position: "top-right",
-        autoClose: 3000,
-        hideProgressBar: false,
-        closeOnClick: true,
-        pauseOnHover: true,
-        draggable: true,
-      });
+
+        // Clear localStorage to prevent conflicts
+        localStorage.removeItem('cartItems');
+        localStorage.removeItem('herbtradeCart');
+
+        // Trigger navbar count update
+        window.dispatchEvent(new Event('cartUpdated'));
+
+        // Show success message
+        toast.success(`${productName} removed from cart!`, {
+          position: "top-right",
+          autoClose: 3000,
+          hideProgressBar: false,
+          closeOnClick: true,
+          pauseOnHover: true,
+          draggable: true,
+        });
+      } else {
+        throw new Error(response.data.message || 'Failed to remove item');
+      }
 
     } catch (error) {
       console.error('Error removing from cart:', error);
@@ -277,17 +314,26 @@ function EnhancedCart() {
       }
 
       // Fallback to local removal
+      console.log('Using fallback removal for productId:', productId);
       setCartItems(items => {
         const filteredItems = items.filter(item => {
           const itemProductId = item.product?._id || item.productId || item._id;
-          console.log('Fallback - Comparing:', { itemProductId, productId, shouldKeep: itemProductId !== productId });
-          return itemProductId !== productId;
+          const shouldKeep = itemProductId !== productId;
+          console.log('Fallback filtering:', {
+            itemProductId,
+            productId,
+            shouldKeep,
+            itemName: item.product?.name || item.name
+          });
+          return shouldKeep;
         });
-        
-        // Also update localStorage for consistency
-        localStorage.setItem('cartItems', JSON.stringify(filteredItems));
-        localStorage.setItem('herbtradeCart', JSON.stringify(filteredItems));
-        
+
+        console.log('Fallback: Items after filtering:', filteredItems.length, 'remaining');
+
+        // Clear localStorage to prevent conflicts
+        localStorage.removeItem('cartItems');
+        localStorage.removeItem('herbtradeCart');
+
         return filteredItems;
       });
 
@@ -552,8 +598,7 @@ function EnhancedCart() {
                           onClick={(e) => {
                             e.preventDefault();
                             e.stopPropagation();
-                            console.log('Delete button clicked for product:', product);
-                            handleRemoveClick(product);
+                            handleRemoveClick(item);
                           }}
                           className="w-12 h-12 bg-red-50 hover:bg-red-100 rounded-xl flex items-center justify-center transition-all duration-300 group/btn border border-red-200/50 hover:border-red-300 hover:shadow-lg"
                           title={`Remove ${product.name} from cart`}

@@ -9,8 +9,7 @@ import UploadHerb from "./pages/UploadHerb";
 import HospitalDiscovery from "./pages/HospitalDiscovery";
 import Blog from "./pages/Blog";
 import Discussion from "./pages/Discussion";
-import Cart from "./pages/Cart";
-import Wishlist from "./pages/Wishlist";
+
 import EnhancedWishlist from "./pages/EnhancedWishlist";
 import EnhancedCart from "./pages/EnhancedCart";
 import HospitalBooking from "./pages/HospitalBooking";
