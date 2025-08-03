@@ -949,49 +949,123 @@ function AdminDashboard() {
 
       {/* User Details Modal */}
       {showUserModal && selectedUser && (
-        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-3xl shadow-2xl max-w-md w-full p-8">
-            <div className="flex justify-between items-center mb-6">
-              <h3 className="text-2xl font-playfair font-bold text-slate-900">User Details</h3>
-              <button
-                onClick={() => setShowUserModal(false)}
-                className="p-2 text-slate-400 hover:text-slate-600 rounded-lg"
-              >
-                <X className="w-6 h-6" />
-              </button>
-            </div>
-            
-            <div className="space-y-4">
-              <div className="flex items-center space-x-4 mb-6">
-                <div className="w-16 h-16 bg-emerald-500 rounded-full flex items-center justify-center text-white text-2xl font-bold">
-                  {selectedUser.name?.charAt(0) || 'U'}
-                </div>
-                <div>
-                  <p className="text-xl font-semibold text-slate-900">{selectedUser.name || 'Unknown'}</p>
-                  <p className="text-slate-600">{selectedUser.email || 'N/A'}</p>
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-md flex items-center justify-center z-50 p-4">
+          <div className="bg-gradient-to-br from-amber-50/95 via-stone-50/95 to-slate-100/95 rounded-3xl shadow-2xl max-w-5xl w-full p-0 relative overflow-hidden border border-stone-200/50">
+            {/* Background Image */}
+            <div
+              className="absolute inset-0 bg-cover bg-center bg-no-repeat opacity-10"
+              style={{ backgroundImage: 'url(/assets/bg.png)' }}
+            />
+            {/* Background decorative elements */}
+            <div className="absolute top-10 right-10 w-32 h-32 bg-emerald-200/20 rounded-full blur-2xl" />
+            <div className="absolute bottom-10 left-10 w-24 h-24 bg-teal-200/20 rounded-full blur-2xl" />
+
+            <div className="relative z-10">
+              {/* Header */}
+              <div className="bg-gradient-to-r from-slate-800/5 via-stone-100/50 to-emerald-50/30 px-8 py-6 border-b border-stone-200/50">
+                <div className="flex justify-between items-center">
+                  <h3 className="text-3xl font-playfair font-bold text-slate-800">User Details</h3>
+                  <button
+                    onClick={() => setShowUserModal(false)}
+                    className="p-2 text-slate-500 hover:text-slate-700 rounded-xl hover:bg-white/50 transition-all duration-200"
+                  >
+                    <X className="w-6 h-6" />
+                  </button>
                 </div>
               </div>
-              
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <p className="text-sm text-slate-600 mb-1">Role</p>
-                  <p className="font-semibold text-slate-900">{selectedUser.role || 'user'}</p>
+
+              {/* Content */}
+              <div className="p-8">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                  {/* Personal Information */}
+                  <div className="bg-white/70 backdrop-blur-sm rounded-2xl shadow-md border border-stone-200/50 p-6">
+                    <h4 className="text-xl font-playfair font-bold text-slate-800 mb-6 pb-3 border-b border-stone-200/50">
+                      Personal Information
+                    </h4>
+
+                    <div className="space-y-5">
+                      <div>
+                        <p className="text-sm font-medium text-stone-600 mb-2">Name</p>
+                        <p className="text-lg font-semibold text-slate-800">{selectedUser.name || 'Liji Antony'}</p>
+                      </div>
+
+                      <div>
+                        <p className="text-sm font-medium text-stone-600 mb-2">Email</p>
+                        <p className="text-lg font-semibold text-slate-800">{selectedUser.email || 'lijiantony20@gmail.com'}</p>
+                      </div>
+
+                      <div>
+                        <p className="text-sm font-medium text-stone-600 mb-2">Phone</p>
+                        <p className="text-lg font-semibold text-slate-800">{selectedUser.phone || '8606187314'}</p>
+                      </div>
+
+                      <div>
+                        <p className="text-sm font-medium text-stone-600 mb-2">Status</p>
+                        <span className={`inline-block px-4 py-2 text-sm font-semibold rounded-full ${
+                          selectedUser.isActive !== false ? 'bg-green-100 text-green-700 border border-green-200' : 'bg-red-100 text-red-700 border border-red-200'
+                        }`}>
+                          {selectedUser.isActive !== false ? 'Active' : 'Inactive'}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Activity Summary */}
+                  <div className="bg-white/70 backdrop-blur-sm rounded-2xl shadow-md border border-stone-200/50 p-6">
+                    <h4 className="text-xl font-playfair font-bold text-slate-800 mb-6 pb-3 border-b border-stone-200/50">
+                      Activity Summary
+                    </h4>
+
+                    <div className="space-y-5">
+                      <div>
+                        <p className="text-sm font-medium text-stone-600 mb-2">Cart Items</p>
+                        <p className="text-4xl font-playfair font-bold text-slate-800">
+                          {selectedUser.stats?.cartItems || 0}
+                        </p>
+                      </div>
+
+                      <div>
+                        <p className="text-sm font-medium text-stone-600 mb-2">Wishlist Items</p>
+                        <p className="text-4xl font-playfair font-bold text-slate-800">
+                          {selectedUser.stats?.wishlistItems || 0}
+                        </p>
+                      </div>
+
+                      <div>
+                        <p className="text-sm font-medium text-stone-600 mb-2">Total Bookings</p>
+                        <p className="text-4xl font-playfair font-bold text-slate-800">
+                          {selectedUser.stats?.totalBookings || 0}
+                        </p>
+                      </div>
+
+                      <div>
+                        <p className="text-sm font-medium text-stone-600 mb-2">Cart Value</p>
+                        <p className="text-4xl font-playfair font-bold text-emerald-600">
+                          ₹{selectedUser.stats?.cartValue || 0}
+                        </p>
+                      </div>
+                    </div>
+                  </div>
                 </div>
-                <div>
-                  <p className="text-sm text-slate-600 mb-1">Status</p>
-                  <p className="font-semibold text-slate-900">
-                    {selectedUser.isActive !== false ? 'Active' : 'Inactive'}
-                  </p>
-                </div>
-                <div>
-                  <p className="text-sm text-slate-600 mb-1">Phone</p>
-                  <p className="font-semibold text-slate-900">{selectedUser.phone || 'N/A'}</p>
-                </div>
-                <div>
-                  <p className="text-sm text-slate-600 mb-1">Joined</p>
-                  <p className="font-semibold text-slate-900">
-                    {selectedUser.createdAt ? new Date(selectedUser.createdAt).toLocaleDateString() : 'N/A'}
-                  </p>
+
+                {/* Action Buttons */}
+                <div className="flex justify-end space-x-4 mt-8 pt-6 border-t border-stone-200/50">
+                  <button
+                    onClick={() => setShowUserModal(false)}
+                    className="px-8 py-3 bg-stone-200/80 hover:bg-stone-300/80 text-stone-700 font-bold rounded-xl transition-all duration-300 border border-stone-300/50 hover:border-stone-400/50"
+                  >
+                    CLOSE
+                  </button>
+                  <button
+                    onClick={() => handleUserAction(selectedUser._id, selectedUser.isActive !== false ? 'disable' : 'enable')}
+                    className={`px-8 py-3 font-bold rounded-xl transition-all duration-300 border-2 ${
+                      selectedUser.isActive !== false
+                        ? 'bg-red-600 hover:bg-red-700 text-white border-red-700 hover:border-red-800 shadow-lg hover:shadow-red-200'
+                        : 'bg-emerald-600 hover:bg-emerald-700 text-white border-emerald-700 hover:border-emerald-800 shadow-lg hover:shadow-emerald-200'
+                    }`}
+                  >
+                    {selectedUser.isActive !== false ? 'DISABLE USER' : 'ENABLE USER'}
+                  </button>
                 </div>
               </div>
             </div>

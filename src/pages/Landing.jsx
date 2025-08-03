@@ -93,20 +93,20 @@ function Landing() {
   ];
 
   return (
-    <div className="min-h-screen bg-slate-50">
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-emerald-50/30">
       {/* Hero Section */}
       <section className="relative min-h-screen flex items-center justify-center overflow-hidden bg-gradient-to-br from-emerald-50 via-white to-teal-50 pt-20">
         {/* Background Image */}
         <div
-          className="absolute inset-0 bg-cover bg-center bg-no-repeat"
+          className="absolute inset-0 bg-cover bg-center bg-no-repeat opacity-40"
           style={{ backgroundImage: 'url(/assets/bg.png)' }}
         />
-        {/* Minimal Overlay for text readability */}
-        <div className="absolute inset-0 bg-gradient-to-br from-black/20 via-black/10 to-black/15" />
+        {/* Enhanced Overlay for better text readability */}
+        <div className="absolute inset-0 bg-gradient-to-br from-black/40 via-black/25 to-black/30" />
         {/* Enhanced Decorative Elements */}
-        <div className="absolute top-20 left-10 w-72 h-72 bg-emerald-200/20 rounded-full blur-2xl animate-float" />
-        <div className="absolute bottom-20 right-10 w-96 h-96 bg-teal-200/15 rounded-full blur-2xl animate-float" style={{ animationDelay: '2s' }} />
-        <div className="absolute top-1/2 left-1/3 w-64 h-64 bg-cyan-200/15 rounded-full blur-2xl animate-float" style={{ animationDelay: '4s' }} />
+        <div className="absolute top-20 left-10 w-72 h-72 bg-emerald-200/30 rounded-full blur-3xl animate-float" />
+        <div className="absolute bottom-20 right-10 w-96 h-96 bg-teal-200/20 rounded-full blur-3xl animate-float" style={{ animationDelay: '2s' }} />
+        <div className="absolute top-1/2 left-1/3 w-64 h-64 bg-cyan-200/20 rounded-full blur-3xl animate-float" style={{ animationDelay: '4s' }} />
 
         {/* Floating Icons */}
         <div className="absolute top-32 right-20 animate-bounce-slow">
@@ -119,27 +119,31 @@ function Landing() {
           <Heart className="w-5 h-5 text-pink-400 opacity-70" />
         </div>
 
-        <div className="container-custom relative z-10">
-          <div className="max-w-5xl mx-auto text-center">
+        <div className="container mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
+          <div className="max-w-6xl mx-auto text-center">
             <div className="animate-fade-in">
+              {/* Enhanced Badge */}
+              <div className="inline-flex items-center px-6 py-3 bg-white/20 backdrop-blur-sm text-white rounded-full text-sm font-semibold mb-8 border border-white/30">
+                <Sparkles className="w-4 h-4 mr-2" />
+                Premium Natural Wellness
+              </div>
 
-
-              <h1 className="text-6xl md:text-7xl lg:text-8xl font-playfair font-bold mb-8 leading-tight">
+              <h1 className="text-5xl md:text-6xl lg:text-7xl font-playfair font-bold mb-8 leading-tight">
                 <span className="block animate-slide-up text-white drop-shadow-2xl">Natural Healing</span>
                 <span className="block animate-slide-up drop-shadow-lg" style={{ animationDelay: '0.2s' }}>
-                  <span className="bg-gradient-to-r from-emerald-600 via-teal-600 to-cyan-600 bg-clip-text text-transparent font-extrabold">
+                  <span className="bg-gradient-to-r from-emerald-400 via-teal-400 to-cyan-400 bg-clip-text text-transparent font-extrabold">
                     Made Simple
                   </span>
                 </span>
               </h1>
 
-              <p className="text-xl md:text-2xl text-white mb-12 max-w-4xl mx-auto leading-relaxed animate-fade-in font-medium drop-shadow-lg" style={{ animationDelay: '0.4s' }}>
+              <p className="text-xl md:text-2xl text-white/90 mb-12 max-w-4xl mx-auto leading-relaxed animate-fade-in font-medium drop-shadow-lg" style={{ animationDelay: '0.4s' }}>
                 Discover premium herbal products sourced from trusted farms worldwide.
                 <br />
                 <span className="text-emerald-200 font-semibold">Your wellness journey starts with nature's finest ingredients, backed by science.</span>
               </p>
 
-              <div className="flex justify-center items-center mb-16 animate-fade-in" style={{ animationDelay: '0.6s' }}>
+              <div className="flex flex-col sm:flex-row gap-6 justify-center items-center mb-16 animate-fade-in" style={{ animationDelay: '0.6s' }}>
                 <Link
                   to={user ? "/herbs" : "/signup"}
                   className="group btn-primary text-lg px-12 py-6 flex items-center space-x-3 hover:scale-105 transition-all duration-300 shadow-xl"
@@ -147,23 +151,49 @@ function Landing() {
                   <span>Explore Products</span>
                   <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform duration-300" />
                 </Link>
+                <Link
+                  to="/hospital-discovery"
+                  className="group bg-white/20 backdrop-blur-sm hover:bg-white/30 text-white font-semibold px-10 py-5 rounded-2xl border-2 border-white/40 hover:border-white/60 transition-all duration-300 flex items-center space-x-3 hover:scale-105"
+                >
+                  <Globe className="w-5 h-5 group-hover:rotate-12 transition-transform duration-300" />
+                  <span>Find Hospitals</span>
+                </Link>
               </div>
 
-
+              {/* Trust Indicators */}
+              <div className="flex flex-col sm:flex-row items-center justify-center space-y-4 sm:space-y-0 sm:space-x-8 text-white/80 animate-fade-in" style={{ animationDelay: '0.8s' }}>
+                <div className="flex items-center space-x-2">
+                  <Shield className="w-5 h-5" />
+                  <span className="text-sm font-medium">100% Authentic</span>
+                </div>
+                <div className="flex items-center space-x-2">
+                  <Truck className="w-5 h-5" />
+                  <span className="text-sm font-medium">Free Shipping</span>
+                </div>
+                <div className="flex items-center space-x-2">
+                  <Award className="w-5 h-5" />
+                  <span className="text-sm font-medium">Lab Tested</span>
+                </div>
+              </div>
             </div>
           </div>
         </div>
       </section>
 
       {/* Enhanced Features Section */}
-      <section className="section-padding bg-gradient-to-br from-white via-emerald-50/30 to-teal-50/30 relative overflow-hidden">
+      <section className="py-20 lg:py-32 bg-gradient-to-br from-white via-emerald-50/30 to-teal-50/30 relative overflow-hidden">
         {/* Background Pattern */}
         <div className="absolute inset-0 opacity-5">
           <div className="absolute top-20 left-20 w-32 h-32 bg-emerald-500 rounded-full blur-3xl animate-pulse-slow" />
           <div className="absolute bottom-20 right-20 w-40 h-40 bg-teal-500 rounded-full blur-3xl animate-pulse-slow" style={{ animationDelay: '2s' }} />
         </div>
+        {/* Background Image */}
+        <div
+          className="absolute inset-0 bg-cover bg-center bg-no-repeat opacity-20"
+          style={{ backgroundImage: 'url(/assets/bg.png)' }}
+        />
 
-        <div className="container-custom relative z-10">
+        <div className="container mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
           <div className="text-center mb-20">
             <div className="inline-flex items-center px-4 py-2 bg-emerald-100 text-emerald-700 rounded-full text-sm font-semibold mb-6">
               <Zap className="w-4 h-4 mr-2" />
@@ -183,10 +213,10 @@ function Landing() {
             {features.map((feature, index) => (
               <div
                 key={index}
-                className="group relative"
+                className="group relative animate-fade-in"
                 style={{ animationDelay: `${index * 0.1}s` }}
               >
-                <div className="card-modern p-8 text-center h-full relative overflow-hidden">
+                <div className="bg-white/80 backdrop-blur-sm rounded-3xl shadow-lg hover:shadow-2xl border border-white/50 transition-all duration-500 hover:-translate-y-2 hover:scale-105 overflow-hidden p-8 text-center h-full relative">
                   {/* Gradient Background on Hover */}
                   <div className={`absolute inset-0 bg-gradient-to-br ${feature.gradient} opacity-0 group-hover:opacity-10 transition-opacity duration-500 rounded-3xl`} />
 
@@ -196,7 +226,7 @@ function Landing() {
                         {React.cloneElement(feature.icon, { className: "w-8 h-8 text-white" })}
                       </div>
                     </div>
-                    <h3 className="text-xl font-bold text-slate-900 mb-4 group-hover:text-emerald-600 transition-colors duration-300">
+                    <h3 className="text-xl font-playfair font-bold text-slate-900 mb-4 group-hover:text-emerald-600 transition-colors duration-300">
                       {feature.title}
                     </h3>
                     <p className="text-slate-600 leading-relaxed group-hover:text-slate-700 transition-colors duration-300">
@@ -214,8 +244,17 @@ function Landing() {
       </section>
 
       {/* Benefits Section */}
-      <section className="section-padding bg-gradient-to-br from-emerald-50 to-teal-50">
-        <div className="container-custom">
+      <section className="py-20 lg:py-32 bg-gradient-to-br from-emerald-50 to-teal-50 relative overflow-hidden">
+        {/* Background Image */}
+        <div
+          className="absolute inset-0 bg-cover bg-center bg-no-repeat opacity-15"
+          style={{ backgroundImage: 'url(/assets/bg.png)' }}
+        />
+        {/* Floating decorative elements */}
+        <div className="absolute top-20 left-10 w-72 h-72 bg-emerald-200/30 rounded-full blur-3xl animate-float" />
+        <div className="absolute bottom-20 right-10 w-96 h-96 bg-teal-200/20 rounded-full blur-3xl animate-float" style={{ animationDelay: '2s' }} />
+
+        <div className="container mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-16 items-center">
             <div className="animate-fade-in">
               <h2 className="text-4xl md:text-5xl font-playfair font-bold text-slate-900 mb-6">
@@ -248,11 +287,11 @@ function Landing() {
             </div>
 
             <div className="relative animate-scale-in">
-              <div className="glass-card p-8">
-                <img 
-                  src="/assets/p2.png" 
+              <div className="bg-white/80 backdrop-blur-sm rounded-3xl shadow-lg hover:shadow-2xl border border-white/50 transition-all duration-500 p-8">
+                <img
+                  src="/assets/p2.png"
                   alt="Premium herbs"
-                  className="w-full h-80 object-cover rounded-xl mb-6"
+                  className="w-full h-80 object-cover rounded-2xl mb-6 shadow-lg"
                 />
                 <div className="text-center">
                   <div className="flex justify-center mb-4 space-x-1">
@@ -260,7 +299,7 @@ function Landing() {
                       <Star key={i} className="w-5 h-5 text-yellow-400 fill-current hover:scale-110 transition-transform duration-200" />
                     ))}
                   </div>
-                  <p className="text-slate-700 font-medium italic">
+                  <p className="text-slate-700 font-medium italic text-lg">
                     "The quality exceeded my expectations. Highly recommended!"
                   </p>
                   <p className="text-slate-500 text-sm mt-2 font-medium">- Verified Customer</p>
@@ -272,12 +311,17 @@ function Landing() {
       </section>
 
       {/* Enhanced Testimonials Section */}
-      <section className="section-padding bg-gradient-to-br from-slate-50 to-emerald-50/30 relative overflow-hidden">
+      <section className="py-20 lg:py-32 bg-gradient-to-br from-slate-50 to-emerald-50/30 relative overflow-hidden">
+        {/* Background Image */}
+        <div
+          className="absolute inset-0 bg-cover bg-center bg-no-repeat opacity-15"
+          style={{ backgroundImage: 'url(/assets/bg.png)' }}
+        />
         {/* Background Elements */}
         <div className="absolute top-10 right-10 w-64 h-64 bg-emerald-200/20 rounded-full blur-3xl animate-pulse-slow" />
         <div className="absolute bottom-10 left-10 w-80 h-80 bg-teal-200/15 rounded-full blur-3xl animate-pulse-slow" style={{ animationDelay: '3s' }} />
 
-        <div className="container-custom relative z-10">
+        <div className="container mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
           <div className="text-center mb-20">
             <div className="inline-flex items-center px-4 py-2 bg-gradient-to-r from-emerald-100 to-teal-100 text-emerald-700 rounded-full text-sm font-semibold mb-6">
               <MessageCircle className="w-4 h-4 mr-2" />
@@ -299,7 +343,7 @@ function Landing() {
                 className="group relative animate-scale-in"
                 style={{ animationDelay: `${index * 0.2}s` }}
               >
-                <div className="card-modern p-8 h-full relative overflow-hidden">
+                <div className="bg-white/80 backdrop-blur-sm rounded-3xl shadow-lg hover:shadow-2xl border border-white/50 transition-all duration-500 hover:-translate-y-2 hover:scale-105 overflow-hidden p-8 h-full relative">
                   {/* Gradient overlay on hover */}
                   <div className="absolute inset-0 bg-gradient-to-br from-emerald-500/5 to-teal-500/5 opacity-0 group-hover:opacity-100 transition-opacity duration-500 rounded-3xl" />
 
@@ -324,7 +368,7 @@ function Landing() {
                         </div>
                       </div>
                       <div>
-                        <div className="font-bold text-slate-900 group-hover:text-emerald-600 transition-colors duration-300">{testimonial.name}</div>
+                        <div className="font-playfair font-bold text-slate-900 group-hover:text-emerald-600 transition-colors duration-300">{testimonial.name}</div>
                         <div className="text-slate-500 text-sm font-medium">{testimonial.role}</div>
                       </div>
                     </div>
@@ -340,7 +384,12 @@ function Landing() {
       </section>
 
       {/* Enhanced CTA Section */}
-      <section className="section-padding bg-gradient-to-br from-emerald-600 via-teal-600 to-cyan-600 relative overflow-hidden">
+      <section className="py-20 lg:py-32 bg-gradient-to-br from-emerald-600 via-teal-600 to-cyan-600 relative overflow-hidden">
+        {/* Background Image */}
+        <div
+          className="absolute inset-0 bg-cover bg-center bg-no-repeat opacity-25"
+          style={{ backgroundImage: 'url(/assets/bg.png)' }}
+        />
         {/* Animated Background Elements */}
         <div className="absolute inset-0">
           <div className="absolute top-20 left-20 w-96 h-96 bg-white/10 rounded-full blur-3xl animate-float" />
@@ -359,7 +408,7 @@ function Landing() {
           <Gift className="w-7 h-7 text-white/35" />
         </div>
 
-        <div className="container-custom relative z-10 text-center">
+        <div className="container mx-auto px-4 sm:px-6 lg:px-8 relative z-10 text-center">
           <div className="max-w-4xl mx-auto">
             <div className="inline-flex items-center px-6 py-3 bg-white/20 backdrop-blur-sm text-white rounded-full text-sm font-semibold mb-8">
               <TrendingUp className="w-4 h-4 mr-2" />
@@ -371,7 +420,7 @@ function Landing() {
               <span className="block text-emerald-100">Your Wellness Journey?</span>
             </h2>
 
-            <p className="text-xl md:text-2xl text-emerald-100 mb-12 max-w-3xl mx-auto leading-relaxed">
+            <p className="text-xl md:text-2xl text-emerald-100/90 mb-12 max-w-3xl mx-auto leading-relaxed">
               Join thousands who have discovered the power of premium herbal products.
               Start your natural healing journey today with science-backed solutions.
             </p>

@@ -119,11 +119,38 @@ function Dashboard() {
           )}
           {user.role === 'admin' && (
             <Grid item xs={12} md={3}>
-              <Card>
-                <CardContent>
-                  <FaUserShield size={32} />
-                  <Typography variant="h6" fontWeight={600} mt={2}>Admin Panel</Typography>
-                  <Typography>Manage users, content, and analytics.</Typography>
+              <Card
+                sx={{
+                  cursor: 'pointer',
+                  background: 'rgba(255, 255, 255, 0.8)',
+                  backdropFilter: 'blur(10px)',
+                  borderRadius: '24px',
+                  border: '1px solid rgba(255, 255, 255, 0.5)',
+                  boxShadow: '0 8px 32px rgba(0, 0, 0, 0.1)',
+                  '&:hover': {
+                    transform: 'translateY(-8px) scale(1.02)',
+                    transition: 'all 0.3s',
+                    boxShadow: '0 16px 48px rgba(0, 0, 0, 0.15)'
+                  }
+                }}
+                onClick={() => navigate('/admin-dashboard')}
+              >
+                <CardContent sx={{ p: 4 }}>
+                  <Box sx={{
+                    p: 2,
+                    background: 'linear-gradient(135deg, #059669, #0d9488)',
+                    borderRadius: '16px',
+                    display: 'inline-block',
+                    mb: 2
+                  }}>
+                    <FaUserShield size={32} color="white" />
+                  </Box>
+                  <Typography variant="h6" fontWeight={700} mt={2} sx={{ fontFamily: 'Playfair Display' }}>
+                    Admin Panel
+                  </Typography>
+                  <Typography color="text.secondary">
+                    Manage users, content, and analytics.
+                  </Typography>
                 </CardContent>
               </Card>
             </Grid>
@@ -131,11 +158,34 @@ function Dashboard() {
         </Grid>
         {user.role === 'admin' && (
           <Box sx={{ mt: 4 }}>
-            <Card>
-              <CardContent>
-                <FaChartBar size={32} />
-                <Typography variant="h6" fontWeight={600} mt={2}>Analytics</Typography>
-                <Typography>View sales, user activity, and more.</Typography>
+            <Card sx={{
+              background: 'rgba(255, 255, 255, 0.8)',
+              backdropFilter: 'blur(10px)',
+              borderRadius: '24px',
+              border: '1px solid rgba(255, 255, 255, 0.5)',
+              boxShadow: '0 8px 32px rgba(0, 0, 0, 0.1)',
+              '&:hover': {
+                transform: 'translateY(-4px)',
+                transition: 'all 0.3s',
+                boxShadow: '0 16px 48px rgba(0, 0, 0, 0.15)'
+              }
+            }}>
+              <CardContent sx={{ p: 4 }}>
+                <Box sx={{
+                  p: 2,
+                  background: 'linear-gradient(135deg, #7c3aed, #a855f7)',
+                  borderRadius: '16px',
+                  display: 'inline-block',
+                  mb: 2
+                }}>
+                  <FaChartBar size={32} color="white" />
+                </Box>
+                <Typography variant="h6" fontWeight={700} mt={2} sx={{ fontFamily: 'Playfair Display' }}>
+                  Analytics
+                </Typography>
+                <Typography color="text.secondary">
+                  View sales, user activity, and more.
+                </Typography>
               </CardContent>
             </Card>
           </Box>
