@@ -174,19 +174,21 @@ function Navbar() {
     };
   }, []);
 
-  // Close dropdown when clicking outside - TEMPORARILY DISABLED
-  // useEffect(() => {
-  //   const handleClickOutside = (event) => {
-  //     if (isMenuOpen && !event.target.closest('.user-dropdown') && !event.target.closest('button')) {
-  //       setIsMenuOpen(false);
-  //     }
-  //   };
+  // Close dropdown when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (isMenuOpen && !event.target.closest('.user-dropdown')) {
+        setIsMenuOpen(false);
+      }
+    };
 
-  //   document.addEventListener('mousedown', handleClickOutside);
-  //   return () => {
-  //     document.removeEventListener('mousedown', handleClickOutside);
-  //   };
-  // }, [isMenuOpen]);
+    if (isMenuOpen) {
+      document.addEventListener('mousedown', handleClickOutside);
+      return () => {
+        document.removeEventListener('mousedown', handleClickOutside);
+      };
+    }
+  }, [isMenuOpen]);
 
   const handleLogout = () => {
     // Clear all user-related data
@@ -259,8 +261,15 @@ function Navbar() {
                     <div className="relative user-dropdown">
                       <button
                         onClick={toggleMenu}
-                        className="flex items-center space-x-4 px-6 py-3 rounded-2xl bg-gradient-to-r from-emerald-100/80 to-teal-100/80 hover:from-emerald-200/80 hover:to-teal-200/80 backdrop-blur-sm transition-all duration-500 text-emerald-700 font-semibold shadow-lg hover:shadow-2xl interactive-hover"
-                        style={{ zIndex: 9999 }}
+                        className={`flex items-center space-x-4 px-6 py-3 rounded-2xl backdrop-blur-sm transition-all duration-500 font-semibold shadow-lg hover:shadow-2xl interactive-hover border-2 ${
+                          isMenuOpen 
+                            ? 'bg-gradient-to-r from-emerald-200/90 to-teal-200/90 text-emerald-800 border-emerald-300/50 shadow-emerald-200/50' 
+                            : 'bg-gradient-to-r from-emerald-100/80 to-teal-100/80 hover:from-emerald-200/80 hover:to-teal-200/80 text-emerald-700 border-emerald-200/30 hover:border-emerald-300/50'
+                        }`}
+                        style={{ zIndex: 1000 }}
+                        type="button"
+                        aria-expanded={isMenuOpen}
+                        aria-haspopup="true"
                       >
                         <div className="w-10 h-10 rounded-full bg-gradient-to-br from-emerald-500 via-teal-500 to-cyan-500 flex items-center justify-center text-white font-bold text-sm shadow-lg glow-emerald">
                           {user.name?.charAt(0) || 'A'}
@@ -271,10 +280,14 @@ function Navbar() {
 
                       {/* Admin Dropdown */}
                       {isMenuOpen && (
-                        <div className="absolute right-0 mt-4 w-72 card-ultra py-4 z-50 animate-fade-in-scale shadow-2xl border border-emerald-100/50">
-                          <div className="px-6 py-4 border-b border-slate-200/50 bg-gradient-to-r from-emerald-50/50 to-teal-50/50">
+                        <div 
+                          className="absolute right-0 mt-4 w-72 bg-white/95 backdrop-blur-xl rounded-3xl py-4 shadow-2xl border border-emerald-100/50 animate-fade-in-scale"
+                          style={{ zIndex: 9999 }}
+                          onClick={(e) => e.stopPropagation()}
+                        >
+                          <div className="px-6 py-4 border-b border-slate-200/50 bg-gradient-to-r from-emerald-50/50 to-teal-50/50 rounded-t-3xl">
                             <div className="flex items-center space-x-3">
-                              <div className="w-12 h-12 rounded-full bg-gradient-to-br from-emerald-500 via-teal-500 to-cyan-500 flex items-center justify-center text-white font-bold shadow-lg">
+                              <div className="w-12 h-12 rounded-full bg-gradient-to-br from-emerald-500 via-teal-500 to-cyan-500 flex items-center justify-center text-white font-bold shadow-lg animate-glow-pulse">
                                 {user.name?.charAt(0) || 'A'}
                               </div>
                               <div>
@@ -283,28 +296,37 @@ function Navbar() {
                               </div>
                             </div>
                           </div>
-                          <Link
-                            to="/admin-dashboard"
-                            onClick={() => {
-                              closeMenu();
-                            }}
-                            className="w-full px-6 py-4 text-left text-slate-700 hover:bg-emerald-50/80 hover:text-emerald-700 transition-all duration-300 flex items-center space-x-3 no-underline"
-                          >
-                            <Shield className="w-5 h-5 text-emerald-600" />
-                            <span className="font-medium">Admin Dashboard</span>
-                          </Link>
-                          <hr className="my-2 border-slate-200/50" />
-                          <div
-                            onClick={() => {
-                              closeMenu();
-                              handleLogout();
-                            }}
-                            className="w-full px-6 py-4 text-left text-red-600 hover:bg-red-50/80 transition-all duration-300 flex items-center space-x-3 font-medium cursor-pointer"
-                            role="button"
-                            tabIndex={0}
-                          >
-                            <LogOut className="w-5 h-5" />
-                            <span>Logout</span>
+                          
+                          <div className="py-2">
+                            <Link
+                              to="/admin-dashboard"
+                              onClick={(e) => {
+                                e.preventDefault();
+                                e.stopPropagation();
+                                closeMenu();
+                                navigate('/admin-dashboard');
+                              }}
+                              className="w-full px-6 py-4 text-left text-slate-700 hover:bg-emerald-50/80 hover:text-emerald-700 transition-all duration-300 flex items-center space-x-3 no-underline cursor-pointer group"
+                            >
+                              <Shield className="w-5 h-5 text-emerald-600 group-hover:scale-110 transition-transform duration-300" />
+                              <span className="font-medium">Admin Dashboard</span>
+                            </Link>
+                            
+                            <hr className="my-2 border-slate-200/50 mx-4" />
+                            
+                            <button
+                              onClick={(e) => {
+                                e.preventDefault();
+                                e.stopPropagation();
+                                closeMenu();
+                                handleLogout();
+                              }}
+                              className="w-full px-6 py-4 text-left text-red-600 hover:bg-red-50/80 transition-all duration-300 flex items-center space-x-3 font-medium cursor-pointer group"
+                              type="button"
+                            >
+                              <LogOut className="w-5 h-5 group-hover:scale-110 transition-transform duration-300" />
+                              <span>Logout</span>
+                            </button>
                           </div>
                         </div>
                       )}
@@ -378,8 +400,15 @@ function Navbar() {
                       <div className="relative user-dropdown">
                         <button
                           onClick={toggleMenu}
-                          className="flex items-center space-x-3 px-4 py-3 rounded-2xl bg-slate-100/80 hover:bg-emerald-100/80 backdrop-blur-sm transition-all duration-500 group interactive-hover shadow-sm hover:shadow-lg"
-                          style={{ zIndex: 9999 }}
+                          className={`flex items-center space-x-3 px-4 py-3 rounded-2xl backdrop-blur-sm transition-all duration-500 group interactive-hover shadow-sm hover:shadow-lg border-2 ${
+                            isMenuOpen 
+                              ? 'bg-emerald-100/90 border-emerald-300/50 shadow-emerald-200/50' 
+                              : 'bg-slate-100/80 hover:bg-emerald-100/80 border-slate-200/30 hover:border-emerald-300/50'
+                          }`}
+                          style={{ zIndex: 1000 }}
+                          type="button"
+                          aria-expanded={isMenuOpen}
+                          aria-haspopup="true"
                         >
                           <div className="w-10 h-10 rounded-full bg-gradient-to-br from-emerald-500 via-teal-500 to-cyan-500 flex items-center justify-center text-white font-bold text-sm shadow-lg glow-emerald">
                             {user.name?.charAt(0) || 'U'}
@@ -392,83 +421,99 @@ function Navbar() {
 
                         {/* User Dropdown */}
                         {isMenuOpen && (
-                          <div className="user-dropdown absolute right-0 mt-4 w-72 bg-white rounded-2xl shadow-2xl border border-gray-200 py-2 z-[9999]">
+                          <div 
+                            className="absolute right-0 mt-4 w-72 bg-white/95 backdrop-blur-xl rounded-3xl py-4 shadow-2xl border border-emerald-100/50 animate-fade-in-scale"
+                            style={{ zIndex: 9999 }}
+                            onClick={(e) => e.stopPropagation()}
+                          >
                             {/* User Info Header */}
-                            <div className="px-4 py-3 border-b border-gray-100">
+                            <div className="px-6 py-4 border-b border-slate-200/50 bg-gradient-to-r from-emerald-50/50 to-teal-50/50 rounded-t-3xl">
                               <div className="flex items-center space-x-3">
-                                <div className="w-10 h-10 rounded-full bg-emerald-500 flex items-center justify-center text-white font-bold text-sm">
+                                <div className="w-12 h-12 rounded-full bg-gradient-to-br from-emerald-500 via-teal-500 to-cyan-500 flex items-center justify-center text-white font-bold shadow-lg animate-glow-pulse">
                                   {user.name?.charAt(0) || 'U'}
                                 </div>
                                 <div>
-                                  <p className="text-sm font-semibold text-gray-900">{user.name}</p>
-                                  <p className="text-xs text-gray-500">Premium Member</p>
+                                  <p className="text-sm font-semibold text-slate-900">{user.name}</p>
+                                  <p className="text-xs text-slate-500 font-medium">Premium Member</p>
                                 </div>
                               </div>
                             </div>
 
                             {/* Menu Items */}
                             <div className="py-2">
-                              <div
-                                onClick={() => {
+                              <button
+                                onClick={(e) => {
+                                  e.preventDefault();
+                                  e.stopPropagation();
                                   console.log('🔥 PROFILE CLICKED!');
-                                  setIsMenuOpen(false);
+                                  closeMenu();
                                   navigate('/profile');
                                 }}
-                                className="flex items-center px-4 py-3 text-gray-700 hover:bg-gray-50 cursor-pointer"
+                                className="w-full flex items-center px-6 py-4 text-slate-700 hover:bg-emerald-50/80 hover:text-emerald-700 transition-all duration-300 cursor-pointer group"
+                                type="button"
                               >
-                                <User className="w-5 h-5 text-emerald-600 mr-3" />
-                                <div>
+                                <User className="w-5 h-5 text-emerald-600 mr-3 group-hover:scale-110 transition-transform duration-300" />
+                                <div className="text-left">
                                   <div className="font-medium">My Profile</div>
-                                  <div className="text-xs text-gray-500">View and manage your profile</div>
+                                  <div className="text-xs text-slate-500">View and manage your profile</div>
                                 </div>
-                              </div>
+                              </button>
 
-                              <div
-                                onClick={() => {
+                              <button
+                                onClick={(e) => {
+                                  e.preventDefault();
+                                  e.stopPropagation();
                                   console.log('🔥 BOOKINGS CLICKED!');
-                                  setIsMenuOpen(false);
+                                  closeMenu();
                                   navigate('/view-bookings');
                                 }}
-                                className="flex items-center px-4 py-3 text-gray-700 hover:bg-gray-50 cursor-pointer"
+                                className="w-full flex items-center px-6 py-4 text-slate-700 hover:bg-blue-50/80 hover:text-blue-700 transition-all duration-300 cursor-pointer group"
+                                type="button"
                               >
-                                <Calendar className="w-5 h-5 text-blue-600 mr-3" />
-                                <div>
+                                <Calendar className="w-5 h-5 text-blue-600 mr-3 group-hover:scale-110 transition-transform duration-300" />
+                                <div className="text-left">
                                   <div className="font-medium">My Bookings</div>
-                                  <div className="text-xs text-gray-500">View appointment history</div>
+                                  <div className="text-xs text-slate-500">View appointment history</div>
                                 </div>
-                              </div>
+                              </button>
 
-                              <div
-                                onClick={() => {
+                              <button
+                                onClick={(e) => {
+                                  e.preventDefault();
+                                  e.stopPropagation();
                                   console.log('🔥 EDIT PROFILE CLICKED!');
-                                  setIsMenuOpen(false);
+                                  closeMenu();
                                   navigate('/edit-profile');
                                 }}
-                                className="flex items-center px-4 py-3 text-gray-700 hover:bg-gray-50 cursor-pointer"
+                                className="w-full flex items-center px-6 py-4 text-slate-700 hover:bg-purple-50/80 hover:text-purple-700 transition-all duration-300 cursor-pointer group"
+                                type="button"
                               >
-                                <Settings className="w-5 h-5 text-purple-600 mr-3" />
-                                <div>
+                                <Settings className="w-5 h-5 text-purple-600 mr-3 group-hover:scale-110 transition-transform duration-300" />
+                                <div className="text-left">
                                   <div className="font-medium">Edit Profile</div>
-                                  <div className="text-xs text-gray-500">Update your information</div>
+                                  <div className="text-xs text-slate-500">Update your information</div>
                                 </div>
-                              </div>
+                              </button>
 
-                              <hr className="my-2 border-gray-100" />
+                              <hr className="my-2 border-slate-200/50 mx-4" />
 
-                              <div
-                                onClick={() => {
+                              <button
+                                onClick={(e) => {
+                                  e.preventDefault();
+                                  e.stopPropagation();
                                   console.log('🔥 LOGOUT CLICKED!');
-                                  setIsMenuOpen(false);
+                                  closeMenu();
                                   handleLogout();
                                 }}
-                                className="flex items-center px-4 py-3 text-red-600 hover:bg-red-50 cursor-pointer"
+                                className="w-full flex items-center px-6 py-4 text-red-600 hover:bg-red-50/80 transition-all duration-300 cursor-pointer group"
+                                type="button"
                               >
-                                <LogOut className="w-5 h-5 text-red-600 mr-3" />
-                                <div>
+                                <LogOut className="w-5 h-5 text-red-600 mr-3 group-hover:scale-110 transition-transform duration-300" />
+                                <div className="text-left">
                                   <div className="font-medium">Logout</div>
                                   <div className="text-xs text-red-400">Sign out of your account</div>
                                 </div>
-                              </div>
+                              </button>
                             </div>
                           </div>
                         )}

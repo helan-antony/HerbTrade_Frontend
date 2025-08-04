@@ -296,19 +296,36 @@ function Profile() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-emerald-50 via-teal-50 to-cyan-50 pt-24 pb-12">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+    <div className="min-h-screen bg-gradient-to-br from-emerald-900 via-teal-800 to-cyan-900 pt-24 pb-12 relative overflow-hidden">
+      {/* Background Image */}
+      <div
+        className="absolute inset-0 bg-cover bg-center bg-no-repeat opacity-20"
+        style={{ backgroundImage: 'url(/assets/bg.png)' }}
+      />
+      
+      {/* Enhanced Background Decorative Elements */}
+      <div className="absolute top-20 left-10 w-80 h-80 bg-gradient-to-r from-emerald-400/30 to-teal-400/20 rounded-full blur-3xl animate-float" />
+      <div className="absolute bottom-20 right-10 w-96 h-96 bg-gradient-to-l from-cyan-400/25 to-blue-400/15 rounded-full blur-3xl animate-float" style={{ animationDelay: '2s' }} />
+      <div className="absolute top-1/2 left-1/3 w-72 h-72 bg-gradient-to-br from-pink-400/20 to-purple-400/15 rounded-full blur-3xl animate-float" style={{ animationDelay: '4s' }} />
+
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
         {/* Profile Header */}
-        <div className="card-ultra p-8 mb-8">
+        <div className="bg-white/95 backdrop-blur-2xl rounded-3xl shadow-2xl border border-white/50 p-10 mb-8 relative overflow-hidden">
+          {/* Animated Background Glow */}
+          <div className="absolute inset-0 bg-gradient-to-br from-emerald-500/5 via-transparent to-teal-500/5 opacity-0 hover:opacity-100 transition-opacity duration-700 rounded-3xl"></div>
           <div className="flex flex-col lg:flex-row items-start justify-between gap-8">
             <div className="flex flex-col sm:flex-row items-center sm:items-start gap-6">
               <div className="relative group">
-                <div className="w-32 h-32 bg-gradient-to-br from-emerald-400 via-emerald-500 to-emerald-600 rounded-full flex items-center justify-center shadow-2xl group-hover:shadow-emerald-300/50 transition-all duration-500 border-4 border-white">
-                  <FaUser className="text-white text-4xl" />
+                <div className="w-40 h-40 bg-gradient-to-br from-emerald-400 via-emerald-500 to-emerald-600 rounded-full flex items-center justify-center shadow-2xl group-hover:shadow-emerald-300/50 transition-all duration-500 border-4 border-white animate-glow-pulse relative overflow-hidden">
+                  <div className="absolute inset-0 bg-gradient-to-br from-white/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 rounded-full"></div>
+                  <FaUser className="text-white text-5xl relative z-10 group-hover:scale-110 transition-transform duration-300" />
                 </div>
-                <div className="absolute -bottom-1 -right-1 w-10 h-10 bg-green-500 rounded-full border-4 border-white flex items-center justify-center shadow-lg">
-                  <div className="w-3 h-3 bg-white rounded-full animate-pulse"></div>
+                <div className="absolute -bottom-2 -right-2 w-12 h-12 bg-gradient-to-r from-green-400 to-green-500 rounded-full border-4 border-white flex items-center justify-center shadow-lg animate-bounce-gentle">
+                  <div className="w-4 h-4 bg-white rounded-full animate-pulse"></div>
                 </div>
+                {/* Decorative rings */}
+                <div className="absolute inset-0 rounded-full border-2 border-emerald-300/30 animate-ping"></div>
+                <div className="absolute -inset-2 rounded-full border border-emerald-200/20 animate-pulse"></div>
               </div>
               <div className="text-center sm:text-left">
                 <h1 className="text-4xl lg:text-5xl font-playfair font-bold text-slate-900 mb-3 tracking-tight">
@@ -340,7 +357,7 @@ function Profile() {
                 </div>
               </div>
             </div>
-            <div className="flex gap-4">
+            <div className="flex flex-col sm:flex-row gap-4">
               <button
                 onClick={(e) => {
                   e.preventDefault();
@@ -355,12 +372,14 @@ function Profile() {
                     console.error('Navigation error:', error);
                   }
                 }}
-                className="bg-gradient-to-r from-emerald-500 to-emerald-600 hover:from-emerald-600 hover:to-emerald-700 text-white font-semibold px-8 py-4 rounded-2xl shadow-lg hover:shadow-xl transition-all duration-300 flex items-center gap-3 group cursor-pointer"
+                className="group relative overflow-hidden bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-400 hover:to-teal-500 text-white font-bold px-8 py-4 rounded-2xl shadow-xl hover:shadow-2xl hover:shadow-emerald-500/25 transition-all duration-500 flex items-center gap-3 cursor-pointer hover:scale-105"
                 style={{ pointerEvents: 'auto', zIndex: 10 }}
                 type="button"
               >
-                <FaEdit className="group-hover:rotate-12 transition-transform duration-300" />
-                Edit Profile
+                <div className="absolute inset-0 bg-gradient-to-r from-white/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+                <FaEdit className="group-hover:rotate-12 transition-transform duration-300 relative z-10" />
+                <span className="relative z-10">Edit Profile</span>
+                <div className="absolute inset-0 bg-gradient-to-r from-emerald-600 to-teal-700 opacity-0 group-hover:opacity-20 transition-opacity duration-300 rounded-2xl"></div>
               </button>
               <button
                 onClick={(e) => {
@@ -376,59 +395,74 @@ function Profile() {
                     console.error('Logout error:', error);
                   }
                 }}
-                className="bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 text-white font-semibold px-8 py-4 rounded-2xl shadow-lg hover:shadow-xl transition-all duration-300 flex items-center gap-3 group cursor-pointer"
+                className="group relative overflow-hidden bg-gradient-to-r from-red-500 to-pink-600 hover:from-red-400 hover:to-pink-500 text-white font-bold px-8 py-4 rounded-2xl shadow-xl hover:shadow-2xl hover:shadow-red-500/25 transition-all duration-500 flex items-center gap-3 cursor-pointer hover:scale-105"
                 style={{ pointerEvents: 'auto', zIndex: 10 }}
                 type="button"
               >
-                <FaSignOutAlt className="group-hover:translate-x-1 transition-transform duration-300" />
-                Logout
+                <div className="absolute inset-0 bg-gradient-to-r from-white/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+                <FaSignOutAlt className="group-hover:translate-x-1 transition-transform duration-300 relative z-10" />
+                <span className="relative z-10">Logout</span>
+                <div className="absolute inset-0 bg-gradient-to-r from-red-600 to-pink-700 opacity-0 group-hover:opacity-20 transition-opacity duration-300 rounded-2xl"></div>
               </button>
             </div>
           </div>
         </div>
 
-        {/* Stats Cards */}
+        {/* Enhanced Stats Cards */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-8 mb-12">
-          <div className="card-ultra p-8 text-center group hover:scale-105 transition-all duration-500">
-            <div className="w-20 h-20 bg-gradient-to-br from-blue-400 via-blue-500 to-blue-600 rounded-full flex items-center justify-center mx-auto mb-6 shadow-2xl group-hover:shadow-blue-300/50 transition-all duration-500">
-              <FaShoppingCart className="text-white text-2xl" />
+          <div className="bg-white/95 backdrop-blur-2xl rounded-3xl shadow-2xl border border-white/50 p-8 text-center group hover:scale-105 transition-all duration-500 relative overflow-hidden">
+            <div className="absolute inset-0 bg-gradient-to-br from-blue-500/5 via-transparent to-cyan-500/5 opacity-0 group-hover:opacity-100 transition-opacity duration-700 rounded-3xl"></div>
+            <div className="w-24 h-24 bg-gradient-to-br from-blue-400 via-blue-500 to-blue-600 rounded-full flex items-center justify-center mx-auto mb-6 shadow-2xl group-hover:shadow-blue-300/50 transition-all duration-500 animate-glow-pulse relative">
+              <div className="absolute inset-0 bg-gradient-to-br from-white/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 rounded-full"></div>
+              <FaShoppingCart className="text-white text-3xl relative z-10 group-hover:scale-110 transition-transform duration-300" />
             </div>
-            <h3 className="text-4xl font-bold text-slate-900 mb-2">{cartItems.length}</h3>
-            <p className="text-slate-600 font-medium">Items in Cart</p>
+            <h3 className="text-5xl font-bold text-slate-900 mb-3 relative z-10">{cartItems.length}</h3>
+            <p className="text-slate-600 font-semibold text-lg relative z-10">Items in Cart</p>
+            <div className="absolute -top-2 -right-2 w-16 h-16 bg-gradient-to-br from-blue-300/20 to-cyan-300/15 rounded-full opacity-50 animate-pulse-slow"></div>
           </div>
-          <div className="card-ultra p-8 text-center group hover:scale-105 transition-all duration-500" style={{ animationDelay: '0.1s' }}>
-            <div className="w-20 h-20 bg-gradient-to-br from-pink-400 via-pink-500 to-pink-600 rounded-full flex items-center justify-center mx-auto mb-6 shadow-2xl group-hover:shadow-pink-300/50 transition-all duration-500">
-              <FaHeart className="text-white text-2xl" />
+          <div className="bg-white/95 backdrop-blur-2xl rounded-3xl shadow-2xl border border-white/50 p-8 text-center group hover:scale-105 transition-all duration-500 relative overflow-hidden" style={{ animationDelay: '0.1s' }}>
+            <div className="absolute inset-0 bg-gradient-to-br from-pink-500/5 via-transparent to-rose-500/5 opacity-0 group-hover:opacity-100 transition-opacity duration-700 rounded-3xl"></div>
+            <div className="w-24 h-24 bg-gradient-to-br from-pink-400 via-pink-500 to-pink-600 rounded-full flex items-center justify-center mx-auto mb-6 shadow-2xl group-hover:shadow-pink-300/50 transition-all duration-500 animate-glow-pulse relative">
+              <div className="absolute inset-0 bg-gradient-to-br from-white/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 rounded-full"></div>
+              <FaHeart className="text-white text-3xl relative z-10 group-hover:scale-110 transition-transform duration-300" />
             </div>
-            <h3 className="text-4xl font-bold text-slate-900 mb-2">{wishlistItems.length}</h3>
-            <p className="text-slate-600 font-medium">Wishlist Items</p>
+            <h3 className="text-5xl font-bold text-slate-900 mb-3 relative z-10">{wishlistItems.length}</h3>
+            <p className="text-slate-600 font-semibold text-lg relative z-10">Wishlist Items</p>
+            <div className="absolute -top-2 -right-2 w-16 h-16 bg-gradient-to-br from-pink-300/20 to-rose-300/15 rounded-full opacity-50 animate-pulse-slow"></div>
           </div>
           <div
-            className="card-ultra p-8 text-center group hover:scale-105 transition-all duration-500 cursor-pointer"
+            className="bg-white/95 backdrop-blur-2xl rounded-3xl shadow-2xl border border-white/50 p-8 text-center group hover:scale-105 transition-all duration-500 cursor-pointer relative overflow-hidden"
             style={{ animationDelay: '0.2s' }}
             onClick={() => {
               console.log('Bookings stats card clicked');
               navigate('/view-bookings');
             }}
           >
-            <div className="w-20 h-20 bg-gradient-to-br from-green-400 via-green-500 to-green-600 rounded-full flex items-center justify-center mx-auto mb-6 shadow-2xl group-hover:shadow-green-300/50 transition-all duration-500">
-              <FaCalendarCheck className="text-white text-2xl" />
+            <div className="absolute inset-0 bg-gradient-to-br from-green-500/5 via-transparent to-emerald-500/5 opacity-0 group-hover:opacity-100 transition-opacity duration-700 rounded-3xl"></div>
+            <div className="w-24 h-24 bg-gradient-to-br from-green-400 via-green-500 to-green-600 rounded-full flex items-center justify-center mx-auto mb-6 shadow-2xl group-hover:shadow-green-300/50 transition-all duration-500 animate-glow-pulse relative">
+              <div className="absolute inset-0 bg-gradient-to-br from-white/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 rounded-full"></div>
+              <FaCalendarCheck className="text-white text-3xl relative z-10 group-hover:scale-110 transition-transform duration-300" />
             </div>
-            <h3 className="text-4xl font-bold text-slate-900 mb-2">{appointmentCount}</h3>
-            <p className="text-slate-600 font-medium">My Bookings</p>
+            <h3 className="text-5xl font-bold text-slate-900 mb-3 relative z-10">{appointmentCount}</h3>
+            <p className="text-slate-600 font-semibold text-lg relative z-10">My Bookings</p>
+            <div className="absolute -top-2 -right-2 w-16 h-16 bg-gradient-to-br from-green-300/20 to-emerald-300/15 rounded-full opacity-50 animate-pulse-slow"></div>
           </div>
-          <div className="card-ultra p-8 text-center group hover:scale-105 transition-all duration-500" style={{ animationDelay: '0.3s' }}>
-            <div className="w-20 h-20 bg-gradient-to-br from-amber-400 via-amber-500 to-amber-600 rounded-full flex items-center justify-center mx-auto mb-6 shadow-2xl group-hover:shadow-amber-300/50 transition-all duration-500">
-              <FaStar className="text-white text-2xl" />
+          <div className="bg-white/95 backdrop-blur-2xl rounded-3xl shadow-2xl border border-white/50 p-8 text-center group hover:scale-105 transition-all duration-500 relative overflow-hidden" style={{ animationDelay: '0.3s' }}>
+            <div className="absolute inset-0 bg-gradient-to-br from-amber-500/5 via-transparent to-yellow-500/5 opacity-0 group-hover:opacity-100 transition-opacity duration-700 rounded-3xl"></div>
+            <div className="w-24 h-24 bg-gradient-to-br from-amber-400 via-amber-500 to-amber-600 rounded-full flex items-center justify-center mx-auto mb-6 shadow-2xl group-hover:shadow-amber-300/50 transition-all duration-500 animate-glow-pulse relative">
+              <div className="absolute inset-0 bg-gradient-to-br from-white/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 rounded-full"></div>
+              <FaStar className="text-white text-3xl relative z-10 group-hover:scale-110 transition-transform duration-300" />
             </div>
-            <h3 className="text-4xl font-bold text-slate-900 mb-2">4.8</h3>
-            <p className="text-slate-600 font-medium">Rating</p>
+            <h3 className="text-5xl font-bold text-slate-900 mb-3 relative z-10">4.8</h3>
+            <p className="text-slate-600 font-semibold text-lg relative z-10">Rating</p>
+            <div className="absolute -top-2 -right-2 w-16 h-16 bg-gradient-to-br from-amber-300/20 to-yellow-300/15 rounded-full opacity-50 animate-pulse-slow"></div>
           </div>
         </div>
 
-        {/* Quick Actions */}
-        <div className="bg-white/80 backdrop-blur-sm rounded-3xl shadow-xl border border-white/50 p-8 mb-8">
-          <h2 className="text-3xl font-playfair font-bold text-slate-900 mb-6">Quick Actions</h2>
+        {/* Enhanced Quick Actions */}
+        <div className="bg-white/95 backdrop-blur-2xl rounded-3xl shadow-2xl border border-white/50 p-10 mb-8 relative overflow-hidden">
+          <div className="absolute inset-0 bg-gradient-to-br from-emerald-500/5 via-transparent to-teal-500/5 opacity-0 hover:opacity-100 transition-opacity duration-700 rounded-3xl"></div>
+          <h2 className="text-4xl font-playfair font-bold text-slate-900 mb-8 relative z-10 animate-text-glow">Quick Actions</h2>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             <button
               onClick={() => {

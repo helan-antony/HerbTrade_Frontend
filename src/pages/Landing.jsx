@@ -95,45 +95,85 @@ function Landing() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-emerald-50/30">
       {/* Hero Section */}
-      <section className="relative min-h-screen flex items-center justify-center overflow-hidden bg-gradient-to-br from-emerald-50 via-white to-teal-50 pt-20">
+      <section className="relative min-h-screen flex items-center justify-center overflow-hidden bg-gradient-to-br from-emerald-900 via-teal-800 to-cyan-900 pt-20">
         {/* Background Image */}
         <div
-          className="absolute inset-0 bg-cover bg-center bg-no-repeat opacity-40"
+          className="absolute inset-0 bg-cover bg-center bg-no-repeat opacity-70"
           style={{ backgroundImage: 'url(/assets/bg.png)' }}
         />
-        {/* Enhanced Overlay for better text readability */}
-        <div className="absolute inset-0 bg-gradient-to-br from-black/40 via-black/25 to-black/30" />
-        {/* Enhanced Decorative Elements */}
-        <div className="absolute top-20 left-10 w-72 h-72 bg-emerald-200/30 rounded-full blur-3xl animate-float" />
-        <div className="absolute bottom-20 right-10 w-96 h-96 bg-teal-200/20 rounded-full blur-3xl animate-float" style={{ animationDelay: '2s' }} />
-        <div className="absolute top-1/2 left-1/3 w-64 h-64 bg-cyan-200/20 rounded-full blur-3xl animate-float" style={{ animationDelay: '4s' }} />
+        {/* Enhanced Overlay with more depth */}
+        <div className="absolute inset-0 bg-gradient-to-br from-emerald-900/60 via-teal-800/40 to-cyan-900/50" />
+        <div className="absolute inset-0 bg-gradient-to-t from-black/30 via-transparent to-black/20" />
+        
+        {/* Enhanced Decorative Elements with more variety */}
+        <div className="absolute top-20 left-10 w-80 h-80 bg-gradient-to-r from-emerald-400/30 to-teal-400/20 rounded-full blur-3xl animate-float" />
+        <div className="absolute bottom-20 right-10 w-96 h-96 bg-gradient-to-l from-cyan-400/25 to-blue-400/15 rounded-full blur-3xl animate-float" style={{ animationDelay: '2s' }} />
+        <div className="absolute top-1/2 left-1/3 w-72 h-72 bg-gradient-to-br from-pink-400/20 to-purple-400/15 rounded-full blur-3xl animate-float" style={{ animationDelay: '4s' }} />
+        <div className="absolute top-1/4 right-1/3 w-60 h-60 bg-gradient-to-tl from-yellow-400/20 to-orange-400/15 rounded-full blur-3xl animate-float" style={{ animationDelay: '6s' }} />
 
-        {/* Floating Icons */}
+        {/* Enhanced Floating Icons with glow effects */}
         <div className="absolute top-32 right-20 animate-bounce-slow">
-          <Sparkles className="w-6 h-6 text-emerald-400 opacity-60" />
+          <div className="relative">
+            <div className="absolute inset-0 bg-emerald-400/30 rounded-full blur-lg animate-pulse"></div>
+            <Sparkles className="w-8 h-8 text-emerald-300 relative z-10 drop-shadow-lg" />
+          </div>
         </div>
         <div className="absolute bottom-32 left-20 animate-pulse-slow">
-          <Leaf className="w-8 h-8 text-teal-400 opacity-50" />
+          <div className="relative">
+            <div className="absolute inset-0 bg-teal-400/30 rounded-full blur-lg animate-pulse"></div>
+            <Leaf className="w-10 h-10 text-teal-300 relative z-10 drop-shadow-lg" />
+          </div>
         </div>
         <div className="absolute top-1/3 right-1/4 animate-float" style={{ animationDelay: '1s' }}>
-          <Heart className="w-5 h-5 text-pink-400 opacity-70" />
+          <div className="relative">
+            <div className="absolute inset-0 bg-pink-400/30 rounded-full blur-lg animate-pulse"></div>
+            <Heart className="w-7 h-7 text-pink-300 relative z-10 drop-shadow-lg" />
+          </div>
         </div>
+        <div className="absolute top-1/4 left-1/4 animate-bounce-slow" style={{ animationDelay: '3s' }}>
+          <div className="relative">
+            <div className="absolute inset-0 bg-cyan-400/30 rounded-full blur-lg animate-pulse"></div>
+            <Award className="w-6 h-6 text-cyan-300 relative z-10 drop-shadow-lg" />
+          </div>
+        </div>
+        <div className="absolute bottom-1/4 right-1/3 animate-float" style={{ animationDelay: '5s' }}>
+          <div className="relative">
+            <div className="absolute inset-0 bg-purple-400/30 rounded-full blur-lg animate-pulse"></div>
+            <Globe className="w-7 h-7 text-purple-300 relative z-10 drop-shadow-lg" />
+          </div>
+        </div>
+
+        {/* Floating Particles */}
+        <div className="absolute top-1/4 left-1/6 w-1 h-1 bg-emerald-300 rounded-full animate-particle opacity-70" style={{ animationDelay: '0s' }}></div>
+        <div className="absolute top-1/3 right-1/5 w-1.5 h-1.5 bg-teal-300 rounded-full animate-particle opacity-60" style={{ animationDelay: '2s' }}></div>
+        <div className="absolute bottom-1/3 left-1/3 w-1 h-1 bg-cyan-300 rounded-full animate-particle opacity-80" style={{ animationDelay: '4s' }}></div>
+        <div className="absolute top-2/3 right-1/6 w-1.5 h-1.5 bg-pink-300 rounded-full animate-particle opacity-50" style={{ animationDelay: '6s' }}></div>
+        <div className="absolute bottom-1/5 left-1/5 w-1 h-1 bg-purple-300 rounded-full animate-particle opacity-70" style={{ animationDelay: '8s' }}></div>
 
         <div className="container mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
           <div className="max-w-6xl mx-auto text-center">
             <div className="animate-fade-in">
-              {/* Enhanced Badge */}
-              <div className="inline-flex items-center px-6 py-3 bg-white/20 backdrop-blur-sm text-white rounded-full text-sm font-semibold mb-8 border border-white/30">
-                <Sparkles className="w-4 h-4 mr-2" />
-                Premium Natural Wellness
+              {/* Enhanced Badge with glow effect */}
+              <div className="inline-flex items-center px-8 py-4 bg-gradient-to-r from-emerald-500/20 to-teal-500/20 backdrop-blur-md text-white rounded-full text-sm font-bold mb-8 border border-emerald-300/40 shadow-2xl hover:shadow-emerald-500/25 transition-all duration-300 hover:scale-105">
+                <div className="relative">
+                  <div className="absolute inset-0 bg-emerald-400/50 rounded-full blur-sm animate-pulse"></div>
+                  <Sparkles className="w-5 h-5 mr-3 relative z-10 text-emerald-200" />
+                </div>
+                <span className="bg-gradient-to-r from-white to-emerald-100 bg-clip-text text-transparent font-extrabold">
+                  Premium Natural Wellness
+                </span>
               </div>
 
-              <h1 className="text-5xl md:text-6xl lg:text-7xl font-playfair font-bold mb-8 leading-tight">
-                <span className="block animate-slide-up text-white drop-shadow-2xl">Natural Healing</span>
-                <span className="block animate-slide-up drop-shadow-lg" style={{ animationDelay: '0.2s' }}>
-                  <span className="bg-gradient-to-r from-emerald-400 via-teal-400 to-cyan-400 bg-clip-text text-transparent font-extrabold">
+              <h1 className="text-5xl md:text-6xl lg:text-8xl font-playfair font-bold mb-8 leading-tight">
+                <span className="block animate-slide-up text-white drop-shadow-2xl relative">
+                  <span className="relative z-10">Natural Healing</span>
+                  <div className="absolute inset-0 bg-gradient-to-r from-emerald-400/20 to-teal-400/20 blur-2xl animate-pulse"></div>
+                </span>
+                <span className="block animate-slide-up drop-shadow-lg relative" style={{ animationDelay: '0.2s' }}>
+                  <span className="bg-gradient-to-r from-emerald-300 via-teal-300 to-cyan-300 bg-clip-text text-transparent font-extrabold relative z-10">
                     Made Simple
                   </span>
+                  <div className="absolute inset-0 bg-gradient-to-r from-emerald-400/30 to-cyan-400/30 blur-xl animate-pulse" style={{ animationDelay: '1s' }}></div>
                 </span>
               </h1>
 
@@ -143,36 +183,48 @@ function Landing() {
                 <span className="text-emerald-200 font-semibold">Your wellness journey starts with nature's finest ingredients, backed by science.</span>
               </p>
 
-              <div className="flex flex-col sm:flex-row gap-6 justify-center items-center mb-16 animate-fade-in" style={{ animationDelay: '0.6s' }}>
+              <div className="flex flex-col sm:flex-row gap-8 justify-center items-center mb-16 animate-fade-in" style={{ animationDelay: '0.6s' }}>
                 <Link
                   to={user ? "/herbs" : "/signup"}
-                  className="group btn-primary text-lg px-12 py-6 flex items-center space-x-3 hover:scale-105 transition-all duration-300 shadow-xl"
+                  className="group relative overflow-hidden bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-400 hover:to-teal-500 text-white text-lg font-bold px-14 py-7 rounded-2xl flex items-center space-x-4 hover:scale-110 transition-all duration-500 shadow-2xl hover:shadow-emerald-500/50"
                 >
-                  <span>Explore Products</span>
-                  <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform duration-300" />
+                  <div className="absolute inset-0 bg-gradient-to-r from-white/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+                  <span className="relative z-10">Explore Products</span>
+                  <ArrowRight className="w-6 h-6 group-hover:translate-x-2 transition-transform duration-300 relative z-10" />
+                  <div className="absolute inset-0 bg-gradient-to-r from-emerald-600 to-teal-700 opacity-0 group-hover:opacity-20 transition-opacity duration-300 rounded-2xl"></div>
                 </Link>
                 <Link
                   to="/hospital-discovery"
-                  className="group bg-white/20 backdrop-blur-sm hover:bg-white/30 text-white font-semibold px-10 py-5 rounded-2xl border-2 border-white/40 hover:border-white/60 transition-all duration-300 flex items-center space-x-3 hover:scale-105"
+                  className="group relative overflow-hidden bg-white/10 backdrop-blur-md hover:bg-white/20 text-white font-bold px-12 py-6 rounded-2xl border-2 border-white/30 hover:border-white/50 transition-all duration-500 flex items-center space-x-4 hover:scale-110 shadow-xl hover:shadow-white/25"
                 >
-                  <Globe className="w-5 h-5 group-hover:rotate-12 transition-transform duration-300" />
-                  <span>Find Hospitals</span>
+                  <div className="absolute inset-0 bg-gradient-to-r from-cyan-400/10 to-blue-400/10 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+                  <Globe className="w-6 h-6 group-hover:rotate-12 transition-transform duration-300 relative z-10" />
+                  <span className="relative z-10">Find Hospitals</span>
                 </Link>
               </div>
 
-              {/* Trust Indicators */}
-              <div className="flex flex-col sm:flex-row items-center justify-center space-y-4 sm:space-y-0 sm:space-x-8 text-white/80 animate-fade-in" style={{ animationDelay: '0.8s' }}>
-                <div className="flex items-center space-x-2">
-                  <Shield className="w-5 h-5" />
-                  <span className="text-sm font-medium">100% Authentic</span>
+              {/* Enhanced Trust Indicators */}
+              <div className="flex flex-col sm:flex-row items-center justify-center space-y-6 sm:space-y-0 sm:space-x-12 text-white animate-fade-in" style={{ animationDelay: '0.8s' }}>
+                <div className="group flex items-center space-x-3 bg-white/10 backdrop-blur-sm px-6 py-3 rounded-full border border-white/20 hover:bg-white/20 hover:border-white/40 transition-all duration-300 hover:scale-105">
+                  <div className="relative">
+                    <div className="absolute inset-0 bg-emerald-400/30 rounded-full blur-sm animate-pulse"></div>
+                    <Shield className="w-6 h-6 text-emerald-300 relative z-10" />
+                  </div>
+                  <span className="text-sm font-bold">100% Authentic</span>
                 </div>
-                <div className="flex items-center space-x-2">
-                  <Truck className="w-5 h-5" />
-                  <span className="text-sm font-medium">Free Shipping</span>
+                <div className="group flex items-center space-x-3 bg-white/10 backdrop-blur-sm px-6 py-3 rounded-full border border-white/20 hover:bg-white/20 hover:border-white/40 transition-all duration-300 hover:scale-105">
+                  <div className="relative">
+                    <div className="absolute inset-0 bg-blue-400/30 rounded-full blur-sm animate-pulse"></div>
+                    <Truck className="w-6 h-6 text-blue-300 relative z-10" />
+                  </div>
+                  <span className="text-sm font-bold">Free Shipping</span>
                 </div>
-                <div className="flex items-center space-x-2">
-                  <Award className="w-5 h-5" />
-                  <span className="text-sm font-medium">Lab Tested</span>
+                <div className="group flex items-center space-x-3 bg-white/10 backdrop-blur-sm px-6 py-3 rounded-full border border-white/20 hover:bg-white/20 hover:border-white/40 transition-all duration-300 hover:scale-105">
+                  <div className="relative">
+                    <div className="absolute inset-0 bg-yellow-400/30 rounded-full blur-sm animate-pulse"></div>
+                    <Award className="w-6 h-6 text-yellow-300 relative z-10" />
+                  </div>
+                  <span className="text-sm font-bold">Lab Tested</span>
                 </div>
               </div>
             </div>
@@ -181,31 +233,44 @@ function Landing() {
       </section>
 
       {/* Enhanced Features Section */}
-      <section className="py-20 lg:py-32 bg-gradient-to-br from-white via-emerald-50/30 to-teal-50/30 relative overflow-hidden">
-        {/* Background Pattern */}
-        <div className="absolute inset-0 opacity-5">
-          <div className="absolute top-20 left-20 w-32 h-32 bg-emerald-500 rounded-full blur-3xl animate-pulse-slow" />
-          <div className="absolute bottom-20 right-20 w-40 h-40 bg-teal-500 rounded-full blur-3xl animate-pulse-slow" style={{ animationDelay: '2s' }} />
+      <section className="py-24 lg:py-40 bg-gradient-to-br from-slate-50 via-white to-emerald-50 relative overflow-hidden">
+        {/* Enhanced Background Pattern */}
+        <div className="absolute inset-0 opacity-10">
+          <div className="absolute top-20 left-20 w-40 h-40 bg-gradient-to-r from-emerald-500 to-teal-500 rounded-full blur-3xl animate-pulse-slow" />
+          <div className="absolute bottom-20 right-20 w-48 h-48 bg-gradient-to-l from-cyan-500 to-blue-500 rounded-full blur-3xl animate-pulse-slow" style={{ animationDelay: '2s' }} />
+          <div className="absolute top-1/2 left-1/2 w-36 h-36 bg-gradient-to-br from-purple-500 to-pink-500 rounded-full blur-3xl animate-pulse-slow" style={{ animationDelay: '4s' }} />
         </div>
         {/* Background Image */}
         <div
-          className="absolute inset-0 bg-cover bg-center bg-no-repeat opacity-20"
+          className="absolute inset-0 bg-cover bg-center bg-no-repeat opacity-50"
           style={{ backgroundImage: 'url(/assets/bg.png)' }}
         />
+        
+        {/* Floating particles */}
+        <div className="absolute top-1/4 left-1/4 w-2 h-2 bg-emerald-400 rounded-full animate-float opacity-60"></div>
+        <div className="absolute top-3/4 right-1/4 w-3 h-3 bg-teal-400 rounded-full animate-bounce-slow opacity-50" style={{ animationDelay: '1s' }}></div>
+        <div className="absolute top-1/2 right-1/3 w-2 h-2 bg-cyan-400 rounded-full animate-pulse-slow opacity-70" style={{ animationDelay: '3s' }}></div>
 
         <div className="container mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
-          <div className="text-center mb-20">
-            <div className="inline-flex items-center px-4 py-2 bg-emerald-100 text-emerald-700 rounded-full text-sm font-semibold mb-6">
-              <Zap className="w-4 h-4 mr-2" />
+          <div className="text-center mb-24">
+            <div className="inline-flex items-center px-6 py-3 bg-gradient-to-r from-emerald-100 to-teal-100 text-emerald-700 rounded-full text-sm font-bold mb-8 shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105 border border-emerald-200">
+              <div className="relative">
+                <div className="absolute inset-0 bg-emerald-400/30 rounded-full blur-sm animate-pulse"></div>
+                <Zap className="w-5 h-5 mr-3 relative z-10" />
+              </div>
               Why Choose Us
             </div>
-            <h2 className="text-4xl md:text-5xl lg:text-6xl font-playfair font-bold text-slate-900 mb-6">
-              Experience the
-              <span className="block gradient-text">HerbTrade Difference</span>
+            <h2 className="text-4xl md:text-5xl lg:text-7xl font-playfair font-bold text-slate-900 mb-8 leading-tight">
+              <span className="block">Experience the</span>
+              <span className="block bg-gradient-to-r from-emerald-600 via-teal-600 to-cyan-600 bg-clip-text text-transparent relative">
+                HerbTrade Difference
+                <div className="absolute inset-0 bg-gradient-to-r from-emerald-400/20 to-cyan-400/20 blur-2xl animate-pulse"></div>
+              </span>
             </h2>
-            <p className="text-xl text-slate-600 max-w-3xl mx-auto leading-relaxed">
+            <p className="text-xl md:text-2xl text-slate-600 max-w-4xl mx-auto leading-relaxed font-medium">
               We're committed to delivering the highest quality herbal products with exceptional service,
-              backed by science and trusted by thousands worldwide.
+              <br />
+              <span className="text-emerald-600 font-semibold">backed by science and trusted by thousands worldwide.</span>
             </p>
           </div>
 
@@ -216,26 +281,35 @@ function Landing() {
                 className="group relative animate-fade-in"
                 style={{ animationDelay: `${index * 0.1}s` }}
               >
-                <div className="bg-white/80 backdrop-blur-sm rounded-3xl shadow-lg hover:shadow-2xl border border-white/50 transition-all duration-500 hover:-translate-y-2 hover:scale-105 overflow-hidden p-8 text-center h-full relative">
-                  {/* Gradient Background on Hover */}
-                  <div className={`absolute inset-0 bg-gradient-to-br ${feature.gradient} opacity-0 group-hover:opacity-10 transition-opacity duration-500 rounded-3xl`} />
+                <div className="bg-white/90 backdrop-blur-md rounded-3xl shadow-xl hover:shadow-2xl border border-white/60 transition-all duration-700 hover:-translate-y-4 hover:scale-110 overflow-hidden p-10 text-center h-full relative group-hover:bg-white/95">
+                  {/* Enhanced Gradient Background on Hover */}
+                  <div className={`absolute inset-0 bg-gradient-to-br ${feature.gradient} opacity-0 group-hover:opacity-15 transition-opacity duration-700 rounded-3xl`} />
+                  
+                  {/* Animated Border Glow */}
+                  <div className={`absolute inset-0 rounded-3xl opacity-0 group-hover:opacity-100 transition-opacity duration-700 bg-gradient-to-br ${feature.gradient} blur-xl -z-10`} style={{ padding: '2px' }}></div>
 
                   <div className="relative z-10">
-                    <div className="mb-6 flex justify-center">
-                      <div className={`p-4 bg-gradient-to-br ${feature.gradient} rounded-2xl shadow-lg group-hover:shadow-xl group-hover:scale-110 transition-all duration-300`}>
-                        {React.cloneElement(feature.icon, { className: "w-8 h-8 text-white" })}
+                    <div className="mb-8 flex justify-center">
+                      <div className={`relative p-5 bg-gradient-to-br ${feature.gradient} rounded-3xl shadow-xl group-hover:shadow-2xl group-hover:scale-125 transition-all duration-500 animate-glow-pulse`}>
+                        <div className="absolute inset-0 bg-white/20 rounded-3xl opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+                        {React.cloneElement(feature.icon, { className: "w-10 h-10 text-white relative z-10" })}
                       </div>
                     </div>
-                    <h3 className="text-xl font-playfair font-bold text-slate-900 mb-4 group-hover:text-emerald-600 transition-colors duration-300">
+                    <h3 className="text-2xl font-playfair font-bold text-slate-900 mb-6 group-hover:text-emerald-600 transition-colors duration-300 animate-text-glow">
                       {feature.title}
                     </h3>
-                    <p className="text-slate-600 leading-relaxed group-hover:text-slate-700 transition-colors duration-300">
+                    <p className="text-slate-600 leading-relaxed group-hover:text-slate-700 transition-colors duration-300 text-lg font-medium">
                       {feature.description}
                     </p>
                   </div>
 
-                  {/* Decorative Element */}
-                  <div className="absolute -top-2 -right-2 w-20 h-20 bg-gradient-to-br from-emerald-200 to-teal-200 rounded-full opacity-20 group-hover:opacity-40 transition-opacity duration-300" />
+                  {/* Enhanced Decorative Elements */}
+                  <div className="absolute -top-3 -right-3 w-24 h-24 bg-gradient-to-br from-emerald-300/30 to-teal-300/20 rounded-full opacity-30 group-hover:opacity-60 transition-opacity duration-500 animate-pulse-slow" />
+                  <div className="absolute -bottom-3 -left-3 w-20 h-20 bg-gradient-to-tl from-cyan-300/20 to-blue-300/15 rounded-full opacity-20 group-hover:opacity-50 transition-opacity duration-500 animate-float" />
+                  
+                  {/* Sparkle Effects */}
+                  <div className="absolute top-4 right-4 w-2 h-2 bg-emerald-400 rounded-full opacity-0 group-hover:opacity-100 transition-opacity duration-300 animate-bounce-slow"></div>
+                  <div className="absolute bottom-4 left-4 w-1.5 h-1.5 bg-teal-400 rounded-full opacity-0 group-hover:opacity-100 transition-opacity duration-300 animate-pulse-slow" style={{ animationDelay: '0.5s' }}></div>
                 </div>
               </div>
             ))}
@@ -247,7 +321,7 @@ function Landing() {
       <section className="py-20 lg:py-32 bg-gradient-to-br from-emerald-50 to-teal-50 relative overflow-hidden">
         {/* Background Image */}
         <div
-          className="absolute inset-0 bg-cover bg-center bg-no-repeat opacity-15"
+          className="absolute inset-0 bg-cover bg-center bg-no-repeat opacity-40"
           style={{ backgroundImage: 'url(/assets/bg.png)' }}
         />
         {/* Floating decorative elements */}
@@ -314,7 +388,7 @@ function Landing() {
       <section className="py-20 lg:py-32 bg-gradient-to-br from-slate-50 to-emerald-50/30 relative overflow-hidden">
         {/* Background Image */}
         <div
-          className="absolute inset-0 bg-cover bg-center bg-no-repeat opacity-15"
+          className="absolute inset-0 bg-cover bg-center bg-no-repeat opacity-40"
           style={{ backgroundImage: 'url(/assets/bg.png)' }}
         />
         {/* Background Elements */}

@@ -74,7 +74,7 @@ function Footer() {
                   <Leaf className="w-8 h-8 text-white" />
                 </div>
                 <div>
-                  <h3 className="text-2xl font-playfair font-bold">HerbTrade</h3>
+                  <h3 className="text-emerald-300 text-sm font-medium">HerbTrade</h3>
                   <p className="text-emerald-300 text-sm font-medium">Natural Wellness</p>
                 </div>
               </div>
@@ -133,13 +133,13 @@ function Footer() {
                   <div className="p-2 bg-emerald-500/20 rounded-lg">
                     <Phone className="w-4 h-4 text-emerald-400" />
                   </div>
-                  <span>+1 (555) 123-4567</span>
+                  <span>+91 8765994362</span>
                 </li>
                 <li className="flex items-center space-x-3 text-slate-300">
                   <div className="p-2 bg-emerald-500/20 rounded-lg">
                     <MapPin className="w-4 h-4 text-emerald-400" />
                   </div>
-                  <span>123 Wellness St, Health City</span>
+                  <span>HerbTrade KTPNA</span>
                 </li>
                 <li className="flex items-center space-x-3 text-slate-300">
                   <div className="p-2 bg-emerald-500/20 rounded-lg">

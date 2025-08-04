@@ -318,36 +318,72 @@ function Signup() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-emerald-50 via-white to-teal-50 flex items-center justify-center p-4 pt-24 relative overflow-hidden">
-      {/* Background Decorative Elements */}
-      <div className="absolute top-20 left-10 w-72 h-72 bg-emerald-200/20 rounded-full blur-3xl animate-float" />
-      <div className="absolute bottom-20 right-10 w-96 h-96 bg-teal-200/15 rounded-full blur-3xl animate-float" style={{ animationDelay: '2s' }} />
-      <div className="absolute top-1/2 left-1/3 w-64 h-64 bg-cyan-200/10 rounded-full blur-3xl animate-float" style={{ animationDelay: '4s' }} />
+    <div className="min-h-screen bg-gradient-to-br from-emerald-900 via-teal-800 to-cyan-900 flex items-center justify-center p-4 pt-24 relative overflow-hidden">
+      {/* Background Image */}
+      <div
+        className="absolute inset-0 bg-cover bg-center bg-no-repeat opacity-30"
+        style={{ backgroundImage: 'url(/assets/bg.png)' }}
+      />
+      
+      {/* Enhanced Background Decorative Elements */}
+      <div className="absolute top-20 left-10 w-80 h-80 bg-gradient-to-r from-emerald-400/30 to-teal-400/20 rounded-full blur-3xl animate-float" />
+      <div className="absolute bottom-20 right-10 w-96 h-96 bg-gradient-to-l from-cyan-400/25 to-blue-400/15 rounded-full blur-3xl animate-float" style={{ animationDelay: '2s' }} />
+      <div className="absolute top-1/2 left-1/3 w-72 h-72 bg-gradient-to-br from-pink-400/20 to-purple-400/15 rounded-full blur-3xl animate-float" style={{ animationDelay: '4s' }} />
+      <div className="absolute top-1/4 right-1/3 w-60 h-60 bg-gradient-to-tl from-yellow-400/20 to-orange-400/15 rounded-full blur-3xl animate-float" style={{ animationDelay: '6s' }} />
 
-      {/* Floating Icons */}
+      {/* Enhanced Floating Icons with glow effects */}
       <div className="absolute top-32 right-20 animate-bounce-slow">
-        <Sparkles className="w-6 h-6 text-emerald-400 opacity-60" />
+        <div className="relative">
+          <div className="absolute inset-0 bg-emerald-400/30 rounded-full blur-lg animate-pulse"></div>
+          <Sparkles className="w-8 h-8 text-emerald-300 relative z-10 drop-shadow-lg" />
+        </div>
       </div>
       <div className="absolute bottom-32 left-20 animate-pulse-slow">
-        <Leaf className="w-8 h-8 text-teal-400 opacity-50" />
+        <div className="relative">
+          <div className="absolute inset-0 bg-teal-400/30 rounded-full blur-lg animate-pulse"></div>
+          <Leaf className="w-10 h-10 text-teal-300 relative z-10 drop-shadow-lg" />
+        </div>
       </div>
       <div className="absolute top-1/3 right-1/4 animate-float" style={{ animationDelay: '1s' }}>
-        <Heart className="w-5 h-5 text-pink-400 opacity-70" />
+        <div className="relative">
+          <div className="absolute inset-0 bg-pink-400/30 rounded-full blur-lg animate-pulse"></div>
+          <Heart className="w-7 h-7 text-pink-300 relative z-10 drop-shadow-lg" />
+        </div>
+      </div>
+      <div className="absolute top-1/4 left-1/4 animate-bounce-slow" style={{ animationDelay: '3s' }}>
+        <div className="relative">
+          <div className="absolute inset-0 bg-cyan-400/30 rounded-full blur-lg animate-pulse"></div>
+          <Shield className="w-6 h-6 text-cyan-300 relative z-10 drop-shadow-lg" />
+        </div>
       </div>
 
-      <div className="w-full max-w-md relative z-10">
-        <div className="bg-white rounded-3xl shadow-xl border border-gray-100 p-8 animate-scale-in">
+      {/* Floating Particles */}
+      <div className="absolute top-1/4 left-1/6 w-1 h-1 bg-emerald-300 rounded-full animate-particle opacity-70" style={{ animationDelay: '0s' }}></div>
+      <div className="absolute top-1/3 right-1/5 w-1.5 h-1.5 bg-teal-300 rounded-full animate-particle opacity-60" style={{ animationDelay: '2s' }}></div>
+      <div className="absolute bottom-1/3 left-1/3 w-1 h-1 bg-cyan-300 rounded-full animate-particle opacity-80" style={{ animationDelay: '4s' }}></div>
+      <div className="absolute top-2/3 right-1/6 w-1.5 h-1.5 bg-pink-300 rounded-full animate-particle opacity-50" style={{ animationDelay: '6s' }}></div>
+
+      <div className="w-full max-w-lg relative z-10">
+        <div className="bg-white/95 backdrop-blur-2xl rounded-3xl shadow-2xl border border-white/50 p-10 animate-scale-in relative overflow-hidden">
+          {/* Animated Background Glow */}
+          <div className="absolute inset-0 bg-gradient-to-br from-emerald-500/5 via-transparent to-teal-500/5 opacity-0 hover:opacity-100 transition-opacity duration-700 rounded-3xl"></div>
+          
           {/* Header */}
-          <div className="text-center mb-8">
-            <div className="inline-flex items-center justify-center w-16 h-16 bg-gradient-to-r from-emerald-500 to-teal-500 rounded-2xl mb-4 shadow-lg">
-              <UserPlus className="w-8 h-8 text-white" />
+          <div className="text-center mb-10 relative z-10">
+            <div className="inline-flex items-center justify-center w-20 h-20 bg-gradient-to-r from-emerald-500 to-teal-500 rounded-3xl mb-6 shadow-2xl relative animate-glow-pulse">
+              <div className="absolute inset-0 bg-white/20 rounded-3xl opacity-0 hover:opacity-100 transition-opacity duration-300"></div>
+              <UserPlus className="w-10 h-10 text-white relative z-10" />
             </div>
-            <h1 className="text-3xl font-playfair font-bold text-gray-900 mb-2">
+            <h1 className="text-4xl font-playfair font-bold text-gray-900 mb-3 animate-text-glow">
               Create Account
             </h1>
-            <p className="text-gray-600">
+            <p className="text-gray-600 text-lg font-medium">
               Join thousands in their wellness journey
             </p>
+            
+            {/* Decorative Elements */}
+            <div className="absolute -top-2 -right-2 w-16 h-16 bg-gradient-to-br from-emerald-300/20 to-teal-300/15 rounded-full opacity-50 animate-pulse-slow"></div>
+            <div className="absolute -bottom-2 -left-2 w-12 h-12 bg-gradient-to-tl from-cyan-300/15 to-blue-300/10 rounded-full opacity-40 animate-float"></div>
           </div>
 
           {/* Google Sign Up */}
@@ -378,10 +414,10 @@ function Signup() {
                   type="text"
                   value={name}
                   onChange={e => handleFieldChange('name', e.target.value)}
-                  className={`w-full pl-12 pr-4 py-4 bg-white border rounded-xl focus:ring-2 transition-all duration-300 placeholder:text-gray-400 text-gray-700 ${
+                  className={`w-full pl-12 pr-4 py-5 bg-white/90 backdrop-blur-sm border-2 rounded-2xl focus:ring-4 transition-all duration-500 placeholder:text-gray-400 text-gray-700 shadow-sm hover:shadow-md focus:shadow-lg font-medium ${
                     validationErrors.name 
-                      ? 'border-red-300 focus:ring-red-500 focus:border-red-500' 
-                      : 'border-gray-200 focus:ring-emerald-500 focus:border-emerald-500'
+                      ? 'border-red-300 focus:ring-red-300/30 focus:border-red-500' 
+                      : 'border-gray-200/50 focus:ring-emerald-300/30 focus:border-emerald-500'
                   }`}
                   placeholder="Enter your full name"
                 />
@@ -405,10 +441,10 @@ function Signup() {
                   type="email"
                   value={email}
                   onChange={e => handleFieldChange('email', e.target.value)}
-                  className={`w-full pl-12 pr-4 py-4 bg-white border rounded-xl focus:ring-2 transition-all duration-300 placeholder:text-gray-400 text-gray-700 ${
+                  className={`w-full pl-12 pr-4 py-5 bg-white/90 backdrop-blur-sm border-2 rounded-2xl focus:ring-4 transition-all duration-500 placeholder:text-gray-400 text-gray-700 shadow-sm hover:shadow-md focus:shadow-lg font-medium ${
                     validationErrors.email 
-                      ? 'border-red-300 focus:ring-red-500 focus:border-red-500' 
-                      : 'border-gray-200 focus:ring-emerald-500 focus:border-emerald-500'
+                      ? 'border-red-300 focus:ring-red-300/30 focus:border-red-500' 
+                      : 'border-gray-200/50 focus:ring-emerald-300/30 focus:border-emerald-500'
                   }`}
                   placeholder="Enter your email address"
                 />
@@ -430,7 +466,7 @@ function Signup() {
                   <select
                     value={countryCode}
                     onChange={e => setCountryCode(e.target.value)}
-                    className="appearance-none bg-white border border-gray-200 rounded-xl px-3 py-4 pr-8 focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 transition-all duration-300 text-gray-700 font-medium"
+                    className="appearance-none bg-white/90 backdrop-blur-sm border-2 border-gray-200/50 rounded-2xl px-4 py-5 pr-10 focus:ring-4 focus:ring-emerald-300/30 focus:border-emerald-500 transition-all duration-500 text-gray-700 font-medium shadow-sm hover:shadow-md focus:shadow-lg"
                   >
                     {countryCodes.map(country => (
                       <option key={country.code} value={country.code}>
@@ -454,10 +490,10 @@ function Signup() {
                     type="tel"
                     value={phone}
                     onChange={e => handleFieldChange('phone', e.target.value)}
-                    className={`w-full pl-12 pr-4 py-4 bg-white border rounded-xl focus:ring-2 transition-all duration-300 placeholder:text-gray-400 text-gray-700 ${
+                    className={`w-full pl-12 pr-4 py-5 bg-white/90 backdrop-blur-sm border-2 rounded-2xl focus:ring-4 transition-all duration-500 placeholder:text-gray-400 text-gray-700 shadow-sm hover:shadow-md focus:shadow-lg font-medium ${
                       validationErrors.phone 
-                        ? 'border-red-300 focus:ring-red-500 focus:border-red-500' 
-                        : 'border-gray-200 focus:ring-emerald-500 focus:border-emerald-500'
+                        ? 'border-red-300 focus:ring-red-300/30 focus:border-red-500' 
+                        : 'border-gray-200/50 focus:ring-emerald-300/30 focus:border-emerald-500'
                     }`}
                     placeholder="Enter your phone number"
                     maxLength="10"
@@ -483,10 +519,10 @@ function Signup() {
                   type={showPassword ? "text" : "password"}
                   value={password}
                   onChange={e => handleFieldChange('password', e.target.value)}
-                  className={`w-full pl-12 pr-12 py-4 bg-white border rounded-xl focus:ring-2 transition-all duration-300 placeholder:text-gray-400 text-gray-700 ${
+                  className={`w-full pl-12 pr-12 py-5 bg-white/90 backdrop-blur-sm border-2 rounded-2xl focus:ring-4 transition-all duration-500 placeholder:text-gray-400 text-gray-700 shadow-sm hover:shadow-md focus:shadow-lg font-medium ${
                     validationErrors.password 
-                      ? 'border-red-300 focus:ring-red-500 focus:border-red-500' 
-                      : 'border-gray-200 focus:ring-emerald-500 focus:border-emerald-500'
+                      ? 'border-red-300 focus:ring-red-300/30 focus:border-red-500' 
+                      : 'border-gray-200/50 focus:ring-emerald-300/30 focus:border-emerald-500'
                   }`}
                   placeholder="Create a strong password"
                 />
@@ -540,10 +576,10 @@ function Signup() {
                   type={showConfirm ? "text" : "password"}
                   value={confirmPassword}
                   onChange={e => handleFieldChange('confirmPassword', e.target.value)}
-                  className={`w-full pl-12 pr-12 py-4 bg-white border rounded-xl focus:ring-2 transition-all duration-300 placeholder:text-gray-400 text-gray-700 ${
+                  className={`w-full pl-12 pr-12 py-5 bg-white/90 backdrop-blur-sm border-2 rounded-2xl focus:ring-4 transition-all duration-500 placeholder:text-gray-400 text-gray-700 shadow-sm hover:shadow-md focus:shadow-lg font-medium ${
                     validationErrors.confirmPassword 
-                      ? 'border-red-300 focus:ring-red-500 focus:border-red-500' 
-                      : 'border-gray-200 focus:ring-emerald-500 focus:border-emerald-500'
+                      ? 'border-red-300 focus:ring-red-300/30 focus:border-red-500' 
+                      : 'border-gray-200/50 focus:ring-emerald-300/30 focus:border-emerald-500'
                   }`}
                   placeholder="Confirm your password"
                 />
@@ -564,20 +600,27 @@ function Signup() {
             </div>
           </div>
 
-          {/* Submit Button */}
+          {/* Enhanced Submit Button */}
           <button
             onClick={handleSignup}
             disabled={isLoading}
-            className="w-full py-4 px-6 bg-emerald-600 hover:bg-emerald-700 disabled:bg-gray-300 disabled:cursor-not-allowed text-white font-semibold rounded-xl transition-all duration-300 shadow-md hover:shadow-lg disabled:shadow-none mt-8"
+            className="group relative w-full py-5 px-8 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 disabled:from-gray-300 disabled:to-gray-400 disabled:cursor-not-allowed text-white font-bold rounded-2xl transition-all duration-500 shadow-xl hover:shadow-2xl hover:shadow-emerald-500/25 disabled:shadow-none mt-10 text-lg overflow-hidden hover:scale-105"
           >
-            {isLoading ? (
-              <div className="flex items-center justify-center space-x-2">
-                <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white"></div>
-                <span>Creating Account...</span>
-              </div>
-            ) : (
-              'Create Account'
-            )}
+            <div className="absolute inset-0 bg-gradient-to-r from-white/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+            <div className="relative z-10 flex items-center justify-center space-x-3">
+              {isLoading ? (
+                <>
+                  <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-white"></div>
+                  <span>Creating Account...</span>
+                </>
+              ) : (
+                <>
+                  <span>Create Account</span>
+                  <UserPlus className="w-5 h-5 group-hover:translate-x-1 transition-transform duration-300" />
+                </>
+              )}
+            </div>
+            <div className="absolute inset-0 bg-gradient-to-r from-emerald-700 to-teal-700 opacity-0 group-hover:opacity-20 transition-opacity duration-300 rounded-2xl"></div>
           </button>
 
           {/* Success Message */}
