@@ -145,10 +145,8 @@ function Login() {
         // Navigate based on user role
         if (data.user.role === 'admin') {
           navigate('/admin-dashboard');
-        } else if (data.user.role === 'seller') {
+        } else if (['seller', 'employee', 'manager', 'supervisor'].includes(data.user.role)) {
           navigate('/seller-dashboard');
-        } else if (data.user.role === 'employee') {
-          navigate('/employee-dashboard');
         } else {
           navigate('/herbs');
         }
@@ -193,10 +191,8 @@ function Login() {
         setTimeout(() => {
           if (data.user.role === 'admin') {
             navigate('/admin-dashboard');
-          } else if (data.user.role === 'seller') {
+          } else if (['seller', 'employee', 'manager', 'supervisor'].includes(data.user.role)) {
             navigate('/seller-dashboard');
-          } else if (data.user.role === 'employee') {
-            navigate('/employee-dashboard');
           } else {
             navigate('/herbs');
           }
@@ -395,12 +391,14 @@ function Login() {
           </button>
 
           {/* Links */}
-          <div className="mt-8 space-y-4 text-center">
+          <div className="mt-8 space-y-4 text-center relative z-20">
             <p className="text-gray-600">
               Don't have an account?{' '}
               <Link
                 to="/signup"
-                className="text-emerald-600 hover:text-emerald-700 font-semibold hover:underline transition-all duration-200"
+                className="text-emerald-600 hover:text-emerald-700 font-semibold hover:underline transition-all duration-200 cursor-pointer relative z-30 inline-block px-2 py-1 rounded hover:bg-emerald-50"
+                onClick={() => navigate('/signup')}
+                style={{ pointerEvents: 'auto' }}
               >
                 Sign up here
               </Link>
@@ -408,7 +406,9 @@ function Login() {
 
             <Link
               to="/forgot-password"
-              className="block text-gray-500 hover:text-emerald-600 text-sm hover:underline transition-all duration-200"
+              className="block text-gray-500 hover:text-emerald-600 text-sm hover:underline transition-all duration-200 cursor-pointer relative z-30 inline-block px-2 py-1 rounded hover:bg-gray-50"
+              onClick={() => navigate('/forgot-password')}
+              style={{ pointerEvents: 'auto' }}
             >
               Forgot your password?
             </Link>

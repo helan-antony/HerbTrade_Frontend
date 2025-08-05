@@ -42,7 +42,6 @@ function Navbar() {
           const count = data.data.items?.reduce((total, item) => total + (item.quantity || 1), 0) || 0;
           setCartCount(count);
         } else if (response.status === 401) {
-          // Token is invalid, clear auth data
           localStorage.removeItem('token');
           localStorage.removeItem('user');
           setUser(null);
@@ -70,7 +69,6 @@ function Navbar() {
           const data = await response.json();
           setWishlistCount(data.data.items?.length || 0);
         } else if (response.status === 401) {
-          // Token is invalid, clear auth data
           localStorage.removeItem('token');
           localStorage.removeItem('user');
           setUser(null);
@@ -115,7 +113,6 @@ function Navbar() {
     };
 
     const updateCounts = () => {
-      // Only fetch counts if user is authenticated
       const token = localStorage.getItem('token');
       const user = localStorage.getItem('user');
       if (token && user) {
@@ -124,7 +121,6 @@ function Navbar() {
       }
     };
 
-    // Only call updateCounts if user is authenticated
     if (storedUser && token) {
       updateCounts();
     }
@@ -174,7 +170,6 @@ function Navbar() {
     };
   }, []);
 
-  // Close dropdown when clicking outside
   useEffect(() => {
     const handleClickOutside = (event) => {
       if (isMenuOpen && !event.target.closest('.user-dropdown')) {
@@ -191,7 +186,6 @@ function Navbar() {
   }, [isMenuOpen]);
 
   const handleLogout = () => {
-    // Clear all user-related data
     localStorage.removeItem('user');
     localStorage.removeItem('token');
     localStorage.removeItem('cartItems');
@@ -199,23 +193,19 @@ function Navbar() {
     localStorage.removeItem('herbtradeCart');
     localStorage.removeItem('herbtradeWishlist');
     
-    // Reset state
     setUser(null);
     setCartCount(0);
     setWishlistCount(0);
     setIsMenuOpen(false);
     
-    // Dispatch events to update other components
     window.dispatchEvent(new Event('userChanged'));
     window.dispatchEvent(new Event('cartUpdated'));
     window.dispatchEvent(new Event('wishlistUpdated'));
     
-    // Navigate to login
     navigate('/login');
     
-    // Show success message
     setTimeout(() => {
-      window.location.reload(); // Force refresh to clear any cached data
+      window.location.reload();
     }, 100);
   };
 
@@ -231,7 +221,6 @@ function Navbar() {
     <nav className="nav-ultra fixed top-0 left-0 right-0 z-50">
       <div className="container-ultra px-6 sm:px-8 lg:px-12">
         <div className="flex items-center justify-between h-20">
-          {/* Logo Section */}
           <Link
             to="/"
             className="flex items-center space-x-4 group interactive-hover"
@@ -251,12 +240,10 @@ function Navbar() {
             </div>
           </Link>
 
-          {/* Desktop Navigation */}
           <div className="hidden lg:flex items-center space-x-1">
             {user ? (
               <>
                 {user.role === 'admin' ? (
-                  /* Admin Navigation */
                   <div className="flex items-center space-x-4">
                     <div className="relative user-dropdown">
                       <button
@@ -278,7 +265,6 @@ function Navbar() {
                         <ChevronDown className={`w-5 h-5 transition-transform duration-500 ${isMenuOpen ? 'rotate-180' : ''}`} />
                       </button>
 
-                      {/* Admin Dropdown */}
                       {isMenuOpen && (
                         <div 
                           className="absolute right-0 mt-4 w-72 bg-white/95 backdrop-blur-xl rounded-3xl py-4 shadow-2xl border border-emerald-100/50 animate-fade-in-scale"
@@ -332,10 +318,125 @@ function Navbar() {
                       )}
                     </div>
                   </div>
+                ) : ['seller', 'employee', 'manager', 'supervisor'].includes(user.role) ? (
+                  <div className="flex items-center space-x-4">
+                    <div className="relative user-dropdown">
+                      <button
+                        onClick={toggleMenu}
+                        className={`flex items-center space-x-4 px-6 py-3 rounded-2xl backdrop-blur-sm transition-all duration-500 font-semibold shadow-lg hover:shadow-2xl interactive-hover border-2 ${
+                          isMenuOpen 
+                            ? 'bg-gradient-to-r from-orange-200/90 to-amber-200/90 text-orange-800 border-orange-300/50 shadow-orange-200/50' 
+                            : 'bg-gradient-to-r from-orange-100/80 to-amber-100/80 hover:from-orange-200/80 hover:to-amber-200/80 text-orange-700 border-orange-200/30 hover:border-orange-300/50'
+                        }`}
+                        style={{ zIndex: 1000 }}
+                        type="button"
+                        aria-expanded={isMenuOpen}
+                        aria-haspopup="true"
+                      >
+                        <div className="w-10 h-10 rounded-full bg-gradient-to-br from-orange-500 via-amber-500 to-yellow-500 flex items-center justify-center text-white font-bold text-sm shadow-lg glow-orange">
+                          {user.name?.charAt(0) || 'S'}
+                        </div>
+                        <span className="text-sm">Seller Panel</span>
+                        <ChevronDown className={`w-5 h-5 transition-transform duration-500 ${isMenuOpen ? 'rotate-180' : ''}`} />
+                      </button>
+
+                      {isMenuOpen && (
+                        <div 
+                          className="absolute right-0 mt-4 w-72 bg-white/95 backdrop-blur-xl rounded-3xl py-4 shadow-2xl border border-orange-100/50 animate-fade-in-scale"
+                          style={{ zIndex: 9999 }}
+                          onClick={(e) => e.stopPropagation()}
+                        >
+                          <div className="px-6 py-4 border-b border-slate-200/50 bg-gradient-to-r from-orange-50/50 to-amber-50/50 rounded-t-3xl">
+                            <div className="flex items-center space-x-3">
+                              <div className="w-12 h-12 rounded-full bg-gradient-to-br from-orange-500 via-amber-500 to-yellow-500 flex items-center justify-center text-white font-bold shadow-lg animate-glow-pulse">
+                                {user.name?.charAt(0) || 'S'}
+                              </div>
+                              <div>
+                                <p className="text-sm font-semibold text-slate-900">{user.name}</p>
+                                <p className="text-xs text-slate-500 font-medium">
+                                  {user.role.charAt(0).toUpperCase() + user.role.slice(1)}
+                                </p>
+                              </div>
+                            </div>
+                          </div>
+                          
+                          <div className="py-2">
+                            <button
+                              onClick={(e) => {
+                                e.preventDefault();
+                                e.stopPropagation();
+                                closeMenu();
+                                navigate('/seller-dashboard');
+                              }}
+                              className="w-full flex items-center px-6 py-4 text-slate-700 hover:bg-orange-50/80 hover:text-orange-700 transition-all duration-300 cursor-pointer group"
+                              type="button"
+                            >
+                              <Package className="w-5 h-5 text-orange-600 mr-3 group-hover:scale-110 transition-transform duration-300" />
+                              <div className="text-left">
+                                <div className="font-medium">Seller Dashboard</div>
+                                <div className="text-xs text-slate-500">Manage products & orders</div>
+                              </div>
+                            </button>
+
+                            <button
+                              onClick={(e) => {
+                                e.preventDefault();
+                                e.stopPropagation();
+                                closeMenu();
+                                navigate('/seller-dashboard?tab=profile');
+                              }}
+                              className="w-full flex items-center px-6 py-4 text-slate-700 hover:bg-emerald-50/80 hover:text-emerald-700 transition-all duration-300 cursor-pointer group"
+                              type="button"
+                            >
+                              <User className="w-5 h-5 text-emerald-600 mr-3 group-hover:scale-110 transition-transform duration-300" />
+                              <div className="text-left">
+                                <div className="font-medium">My Profile</div>
+                                <div className="text-xs text-slate-500">View profile information</div>
+                              </div>
+                            </button>
+
+                            <button
+                              onClick={(e) => {
+                                e.preventDefault();
+                                e.stopPropagation();
+                                closeMenu();
+                                navigate('/edit-profile');
+                              }}
+                              className="w-full flex items-center px-6 py-4 text-slate-700 hover:bg-purple-50/80 hover:text-purple-700 transition-all duration-300 cursor-pointer group"
+                              type="button"
+                            >
+                              <Settings className="w-5 h-5 text-purple-600 mr-3 group-hover:scale-110 transition-transform duration-300" />
+                              <div className="text-left">
+                                <div className="font-medium">Edit Profile</div>
+                                <div className="text-xs text-slate-500">Update information & password</div>
+                              </div>
+                            </button>
+                            
+                            <hr className="my-2 border-slate-200/50 mx-4" />
+                            
+                            <button
+                              onClick={(e) => {
+                                e.preventDefault();
+                                e.stopPropagation();
+                                closeMenu();
+                                handleLogout();
+                              }}
+                              className="w-full flex items-center px-6 py-4 text-red-600 hover:bg-red-50/80 transition-all duration-300 cursor-pointer group"
+                              type="button"
+                            >
+                              <LogOut className="w-5 h-5 text-red-600 mr-3 group-hover:scale-110 transition-transform duration-300" />
+                              <div className="text-left">
+                                <div className="font-medium">Logout</div>
+                                <div className="text-xs text-red-400">Sign out of your account</div>
+                              </div>
+                            </button>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  </div>
                 ) : (
-                  /* Regular User Navigation */
                   <div className="flex items-center space-x-2">
-                    {/* Navigation Links */}
                     <Link
                       to="/herbs"
                       className="nav-link flex items-center space-x-3 px-4 py-3 group"
@@ -368,9 +469,7 @@ function Navbar() {
                       <span className="font-medium">Discuss</span>
                     </Link>
 
-                    {/* Action Icons */}
                     <div className="flex items-center space-x-3 ml-6">
-                      {/* Wishlist */}
                       <Link
                         to="/wishlist"
                         className="relative p-3 rounded-2xl bg-slate-100/80 hover:bg-rose-100/80 backdrop-blur-sm transition-all duration-500 group interactive-hover shadow-sm hover:shadow-lg"
@@ -383,7 +482,6 @@ function Navbar() {
                         )}
                       </Link>
 
-                      {/* Cart */}
                       <Link
                         to="/cart"
                         className="relative p-3 rounded-2xl bg-slate-100/80 hover:bg-emerald-100/80 backdrop-blur-sm transition-all duration-500 group interactive-hover shadow-sm hover:shadow-lg"
@@ -396,7 +494,6 @@ function Navbar() {
                         )}
                       </Link>
 
-                      {/* User Profile */}
                       <div className="relative user-dropdown">
                         <button
                           onClick={toggleMenu}
@@ -419,14 +516,12 @@ function Navbar() {
                           <ChevronDown className={`w-5 h-5 text-slate-600 group-hover:text-emerald-600 transition-all duration-500 ${isMenuOpen ? 'rotate-180' : ''}`} />
                         </button>
 
-                        {/* User Dropdown */}
                         {isMenuOpen && (
                           <div 
                             className="absolute right-0 mt-4 w-72 bg-white/95 backdrop-blur-xl rounded-3xl py-4 shadow-2xl border border-emerald-100/50 animate-fade-in-scale"
                             style={{ zIndex: 9999 }}
                             onClick={(e) => e.stopPropagation()}
                           >
-                            {/* User Info Header */}
                             <div className="px-6 py-4 border-b border-slate-200/50 bg-gradient-to-r from-emerald-50/50 to-teal-50/50 rounded-t-3xl">
                               <div className="flex items-center space-x-3">
                                 <div className="w-12 h-12 rounded-full bg-gradient-to-br from-emerald-500 via-teal-500 to-cyan-500 flex items-center justify-center text-white font-bold shadow-lg animate-glow-pulse">
@@ -434,12 +529,15 @@ function Navbar() {
                                 </div>
                                 <div>
                                   <p className="text-sm font-semibold text-slate-900">{user.name}</p>
-                                  <p className="text-xs text-slate-500 font-medium">Premium Member</p>
+                                  <p className="text-xs text-slate-500 font-medium">
+                                    {['seller', 'employee', 'manager', 'supervisor'].includes(user.role) 
+                                      ? user.role.charAt(0).toUpperCase() + user.role.slice(1) 
+                                      : 'Premium Member'}
+                                  </p>
                                 </div>
                               </div>
                             </div>
 
-                            {/* Menu Items */}
                             <div className="py-2">
                               <button
                                 onClick={(e) => {
@@ -523,7 +621,6 @@ function Navbar() {
                 )}
               </>
             ) : (
-              /* Guest Navigation */
               <div className="flex items-center space-x-1">
                 <Link
                   to="/herbs"
@@ -575,7 +672,6 @@ function Navbar() {
             )}
           </div>
 
-          {/* Mobile Menu Button */}
           <div className="lg:hidden">
             <button
               onClick={toggleMenu}
@@ -590,7 +686,6 @@ function Navbar() {
           </div>
         </div>
 
-        {/* Enhanced Mobile Menu */}
         {isMenuOpen && (
           <div className="lg:hidden absolute top-20 left-0 right-0 bg-white/95 backdrop-blur-xl border-t border-gray-200 shadow-2xl animate-slide-up">
             <div className="px-6 py-8 space-y-2">
@@ -734,7 +829,6 @@ function Navbar() {
         )}
       </div>
 
-      {/* Click outside to close menu */}
       {isMenuOpen && (
         <div
           className="fixed inset-0 z-40 bg-black/20 backdrop-blur-sm lg:hidden"

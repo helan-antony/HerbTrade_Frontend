@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { FaArrowLeft, FaUser, FaPhone, FaImage, FaEnvelope, FaSave, FaTimes, FaUpload, FaTrash } from 'react-icons/fa';
+import { FaArrowLeft, FaUser, FaPhone, FaImage, FaEnvelope, FaSave, FaTimes, FaUpload, FaTrash, FaLock, FaEye, FaEyeSlash } from 'react-icons/fa';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'react-toastify';
 
@@ -11,6 +11,16 @@ function EditProfile() {
   const [previewUrl, setPreviewUrl] = useState('');
   const [loading, setLoading] = useState(false);
   const [user, setUser] = useState({});
+  
+  // Password change states
+  const [currentPassword, setCurrentPassword] = useState('');
+  const [newPassword, setNewPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+  const [showCurrentPassword, setShowCurrentPassword] = useState(false);
+  const [showNewPassword, setShowNewPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const [isChangingPassword, setIsChangingPassword] = useState(false);
+  
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -81,15 +91,70 @@ function EditProfile() {
     });
   };
 
+  // Handle password change
+  const handlePasswordChange = async () => {
+    if (!currentPassword || !newPassword || !confirmPassword) {
+      toast.error('Please fill in all password fields');
+      return;
+    }
+
+    if (newPassword !== confirmPassword) {
+      toast.error('New passwords do not match');
+      return;
+    }
+
+    if (newPassword.length < 6) {
+      toast.error('New password must be at least 6 characters long');
+      return;
+    }
+
+    setLoading(true);
+    try {
+      const token = localStorage.getItem('token');
+      const res = await fetch('http://localhost:5000/api/auth/change-password', {
+        method: 'POST',
+        headers: { 
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({ 
+          currentPassword, 
+          newPassword 
+        })
+      });
+      
+      const data = await res.json();
+      if (res.ok) {
+        toast.success('Password changed successfully!');
+        setCurrentPassword('');
+        setNewPassword('');
+        setConfirmPassword('');
+        setIsChangingPassword(false);
+      } else {
+        toast.error(data.error || 'Password change failed');
+      }
+    } catch (err) {
+      toast.error('Password change failed');
+    } finally {
+      setLoading(false);
+    }
+  };
+
   async function handleSave() {
     setLoading(true);
     try {
       const user = JSON.parse(localStorage.getItem('user'));
+      const token = localStorage.getItem('token');
+      
       const res = await fetch('http://localhost:5000/api/auth/profile', {
         method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
         body: JSON.stringify({ name, phone, profilePic, email: user.email })
       });
+      
       const data = await res.json();
       if (data.user) {
         localStorage.setItem('user', JSON.stringify(data.user));
@@ -125,9 +190,9 @@ function EditProfile() {
       if (userRole === 'admin') {
         console.log('User is admin - navigating to admin dashboard');
         navigate('/admin-dashboard');
-      } else if (userRole === 'employee' || userRole === 'manager' || userRole === 'supervisor') {
-        console.log('User is employee/manager/supervisor - navigating to employee dashboard');
-        navigate('/employee-dashboard');
+      } else if (['seller', 'employee', 'manager', 'supervisor'].includes(userRole)) {
+        console.log('User is seller/employee/manager/supervisor - navigating to seller dashboard');
+        navigate('/seller-dashboard?tab=profile');
       } else {
         console.log('User is regular user - navigating to profile page');
         navigate('/profile');
@@ -314,6 +379,129 @@ function EditProfile() {
                 disabled
                 className="w-full px-6 py-4 bg-slate-100/80 border-2 border-slate-200/50 rounded-2xl text-slate-500 cursor-not-allowed shadow-sm"
               />
+            </div>
+
+            {/* Password Change Section */}
+            <div className="border-t border-slate-200 pt-8 mt-8">
+              <div className="flex items-center justify-between mb-6">
+                <h3 className="text-lg font-semibold text-slate-700 flex items-center">
+                  <FaLock className="mr-2 text-emerald-600" />
+                  Change Password
+                </h3>
+                <button
+                  type="button"
+                  onClick={() => setIsChangingPassword(!isChangingPassword)}
+                  className="text-emerald-600 hover:text-emerald-700 font-medium text-sm transition-colors duration-200"
+                >
+                  {isChangingPassword ? 'Cancel' : 'Change Password'}
+                </button>
+              </div>
+
+              {isChangingPassword && (
+                <div className="space-y-4 bg-slate-50/50 p-6 rounded-2xl border border-slate-200/50">
+                  <div>
+                    <label className="flex items-center text-sm font-medium text-slate-600 mb-2">
+                      <FaLock className="mr-2" />
+                      Current Password
+                    </label>
+                    <div className="relative">
+                      <input
+                        type={showCurrentPassword ? "text" : "password"}
+                        value={currentPassword}
+                        onChange={(e) => setCurrentPassword(e.target.value)}
+                        className="w-full px-6 py-3 bg-white border-2 border-slate-200/50 rounded-xl focus:ring-4 focus:ring-emerald-300/30 focus:border-emerald-500 transition-all duration-300 text-slate-700 pr-12"
+                        placeholder="Enter current password"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setShowCurrentPassword(!showCurrentPassword)}
+                        className="absolute right-3 top-1/2 transform -translate-y-1/2 text-slate-400 hover:text-slate-600 transition-colors duration-200"
+                      >
+                        {showCurrentPassword ? <FaEyeSlash /> : <FaEye />}
+                      </button>
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="flex items-center text-sm font-medium text-slate-600 mb-2">
+                      <FaLock className="mr-2" />
+                      New Password
+                    </label>
+                    <div className="relative">
+                      <input
+                        type={showNewPassword ? "text" : "password"}
+                        value={newPassword}
+                        onChange={(e) => setNewPassword(e.target.value)}
+                        className="w-full px-6 py-3 bg-white border-2 border-slate-200/50 rounded-xl focus:ring-4 focus:ring-emerald-300/30 focus:border-emerald-500 transition-all duration-300 text-slate-700 pr-12"
+                        placeholder="Enter new password (min 6 characters)"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setShowNewPassword(!showNewPassword)}
+                        className="absolute right-3 top-1/2 transform -translate-y-1/2 text-slate-400 hover:text-slate-600 transition-colors duration-200"
+                      >
+                        {showNewPassword ? <FaEyeSlash /> : <FaEye />}
+                      </button>
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="flex items-center text-sm font-medium text-slate-600 mb-2">
+                      <FaLock className="mr-2" />
+                      Confirm New Password
+                    </label>
+                    <div className="relative">
+                      <input
+                        type={showConfirmPassword ? "text" : "password"}
+                        value={confirmPassword}
+                        onChange={(e) => setConfirmPassword(e.target.value)}
+                        className="w-full px-6 py-3 bg-white border-2 border-slate-200/50 rounded-xl focus:ring-4 focus:ring-emerald-300/30 focus:border-emerald-500 transition-all duration-300 text-slate-700 pr-12"
+                        placeholder="Confirm new password"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                        className="absolute right-3 top-1/2 transform -translate-y-1/2 text-slate-400 hover:text-slate-600 transition-colors duration-200"
+                      >
+                        {showConfirmPassword ? <FaEyeSlash /> : <FaEye />}
+                      </button>
+                    </div>
+                  </div>
+
+                  <div className="flex gap-3 pt-4">
+                    <button
+                      type="button"
+                      onClick={handlePasswordChange}
+                      disabled={loading || !currentPassword || !newPassword || !confirmPassword}
+                      className="flex-1 bg-emerald-600 hover:bg-emerald-700 disabled:bg-slate-300 disabled:cursor-not-allowed text-white py-3 px-6 rounded-xl font-medium transition-all duration-300 flex items-center justify-center gap-2"
+                    >
+                      {loading ? (
+                        <>
+                          <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                          Changing...
+                        </>
+                      ) : (
+                        <>
+                          <FaLock />
+                          Change Password
+                        </>
+                      )}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setIsChangingPassword(false);
+                        setCurrentPassword('');
+                        setNewPassword('');
+                        setConfirmPassword('');
+                      }}
+                      className="px-6 py-3 bg-slate-200 hover:bg-slate-300 text-slate-700 rounded-xl font-medium transition-all duration-300"
+                    >
+                      Cancel
+                    </button>
+                  </div>
+                </div>
+              )}
             </div>
 
             {/* Action Buttons */}

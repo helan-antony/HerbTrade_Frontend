@@ -24,7 +24,6 @@ function Footer() {
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
-  // Simple footer for authentication pages
   if (isAuthPage) {
     return (
       <footer className="bg-white border-t border-gray-200 py-6">
@@ -52,10 +51,8 @@ function Footer() {
     );
   }
 
-  // Full footer for other pages
   return (
     <footer className="bg-gradient-to-br from-slate-900 via-slate-800 to-emerald-900 text-white relative overflow-hidden">
-      {/* Background Pattern */}
       <div className="absolute inset-0 opacity-5">
         <div className="absolute top-10 left-10 w-32 h-32 bg-emerald-500 rounded-full blur-3xl animate-pulse-slow" />
         <div className="absolute bottom-10 right-10 w-40 h-40 bg-teal-500 rounded-full blur-3xl animate-pulse-slow" style={{ animationDelay: '2s' }} />
@@ -63,11 +60,9 @@ function Footer() {
       </div>
 
       <div className="relative z-10">
-        {/* Main Footer Content */}
         <div className="max-w-6xl mx-auto px-6 py-16">
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-12">
 
-            {/* Brand Section */}
             <div className="lg:col-span-1">
               <div className="flex items-center space-x-3 mb-6">
                 <div className="p-3 bg-gradient-to-r from-emerald-500 to-teal-500 rounded-2xl shadow-lg">
@@ -88,7 +83,6 @@ function Footer() {
               </div>
             </div>
 
-            {/* Quick Links */}
             <div>
               <h4 className="text-lg font-bold mb-6 text-white">Quick Links</h4>
               <ul className="space-y-3">
@@ -119,7 +113,6 @@ function Footer() {
               </ul>
             </div>
 
-            {/* Contact Info */}
             <div>
               <h4 className="text-lg font-bold mb-6 text-white">Contact Us</h4>
               <ul className="space-y-4">
@@ -150,7 +143,6 @@ function Footer() {
               </ul>
             </div>
 
-            {/* Trust Badges */}
             <div>
               <h4 className="text-lg font-bold mb-6 text-white">Why Choose Us</h4>
               <div className="space-y-4">
@@ -174,7 +166,6 @@ function Footer() {
                 </div>
               </div>
 
-              {/* Social Links */}
               <div className="mt-8">
                 <h5 className="text-sm font-semibold mb-4 text-white">Follow Us</h5>
                 <div className="flex space-x-3">
@@ -196,7 +187,6 @@ function Footer() {
           </div>
         </div>
 
-        {/* Bottom Bar */}
         <div className="border-t border-slate-700/50">
           <div className="max-w-6xl mx-auto px-6 py-6">
             <div className="flex flex-col md:flex-row items-center justify-between space-y-4 md:space-y-0">
@@ -219,7 +209,6 @@ function Footer() {
                 </Link>
               </div>
 
-              {/* Scroll to Top Button */}
               <button
                 onClick={scrollToTop}
                 className="p-2 bg-emerald-500/20 hover:bg-emerald-500/30 rounded-xl transition-all duration-300 group"

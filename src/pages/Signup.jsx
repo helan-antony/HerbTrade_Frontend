@@ -240,10 +240,8 @@ function Signup() {
         setTimeout(() => {
           if (data.user.role === 'admin') {
             navigate('/admin');
-          } else if (data.user.role === 'seller') {
+          } else if (['seller', 'employee', 'manager', 'supervisor'].includes(data.user.role)) {
             navigate('/seller-dashboard');
-          } else if (data.user.role === 'employee') {
-            navigate('/employee-dashboard');
           } else {
             navigate('/herbs');
           }
@@ -648,12 +646,14 @@ function Signup() {
           )}
 
           {/* Login Link */}
-          <div className="mt-8 text-center">
+          <div className="mt-8 text-center relative z-20">
             <p className="text-slate-600">
               Already have an account?{' '}
               <Link
                 to="/login"
-                className="text-emerald-600 hover:text-emerald-700 font-semibold hover:underline transition-all duration-200"
+                className="text-emerald-600 hover:text-emerald-700 font-semibold hover:underline transition-all duration-200 cursor-pointer relative z-30 inline-block px-2 py-1 rounded hover:bg-emerald-50"
+                onClick={() => navigate('/login')}
+                style={{ pointerEvents: 'auto' }}
               >
                 Sign in here
               </Link>

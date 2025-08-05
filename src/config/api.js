@@ -18,12 +18,9 @@ export const GOOGLE_CLIENT_ID = '402168891475-ag50v1vdjblsjhd317v8mrn2v9q3dc02.a
 //    - http://localhost:5174
 // 5. Copy the new client ID and replace the one above
 
-// API Endpoints
 export const API_ENDPOINTS = {
-  // Base URL
   BASE: API_BASE_URL,
   
-  // Authentication endpoints
   AUTH: {
     LOGIN: `${API_BASE_URL}/api/auth/login`,
     REGISTER: `${API_BASE_URL}/api/auth/register`,
@@ -33,7 +30,6 @@ export const API_ENDPOINTS = {
     GOOGLE_AUTH: `${API_BASE_URL}/api/auth/google-login`,
   },
   
-  // Cart endpoints
   CART: {
     BASE: `${API_BASE_URL}/api/cart`,
     ADD: `${API_BASE_URL}/api/cart/add`,
@@ -42,7 +38,6 @@ export const API_ENDPOINTS = {
     CLEAR: `${API_BASE_URL}/api/cart/clear`,
   },
   
-  // Wishlist endpoints
   WISHLIST: {
     BASE: `${API_BASE_URL}/api/wishlist`,
     ADD: `${API_BASE_URL}/api/wishlist/add`,
@@ -50,7 +45,6 @@ export const API_ENDPOINTS = {
     CLEAR: `${API_BASE_URL}/api/wishlist/clear`,
   },
   
-  // Products endpoints
   PRODUCTS: {
     BASE: `${API_BASE_URL}/api/products`,
     BY_ID: (productId) => `${API_BASE_URL}/api/products/${productId}`,
@@ -58,7 +52,6 @@ export const API_ENDPOINTS = {
     CATEGORIES: `${API_BASE_URL}/api/products/categories`,
   },
   
-  // Hospital endpoints
   HOSPITALS: {
     BASE: `${API_BASE_URL}/api/hospitals`,
     BY_ID: (hospitalId) => `${API_BASE_URL}/api/hospitals/${hospitalId}`,
@@ -67,7 +60,6 @@ export const API_ENDPOINTS = {
     BOOK: `${API_BASE_URL}/api/hospital-bookings/book`,
   },
   
-  // Appointments endpoints
   APPOINTMENTS: {
     BASE: `${API_BASE_URL}/api/appointments`,
     USER: `${API_BASE_URL}/api/appointments/user`,
@@ -76,21 +68,18 @@ export const API_ENDPOINTS = {
     DELETE: (appointmentId) => `${API_BASE_URL}/api/appointments/${appointmentId}`,
   },
   
-  // Blog endpoints
   BLOG: {
     BASE: `${API_BASE_URL}/api/blog`,
     BY_ID: (blogId) => `${API_BASE_URL}/api/blog/${blogId}`,
     COMMENTS: (blogId) => `${API_BASE_URL}/api/blog/${blogId}/comments`,
   },
   
-  // Discussion endpoints
   DISCUSSIONS: {
     BASE: `${API_BASE_URL}/api/discussions`,
     BY_ID: (discussionId) => `${API_BASE_URL}/api/discussions/${discussionId}`,
     REPLIES: (discussionId) => `${API_BASE_URL}/api/discussions/${discussionId}/replies`,
   },
   
-  // Admin endpoints
   ADMIN: {
     BASE: `${API_BASE_URL}/api/admin`,
     USERS: `${API_BASE_URL}/api/admin/users`,
@@ -100,7 +89,6 @@ export const API_ENDPOINTS = {
     ANALYTICS: `${API_BASE_URL}/api/admin/analytics`,
   },
   
-  // Orders endpoints
   ORDERS: {
     BASE: `${API_BASE_URL}/api/orders`,
     BY_ID: (orderId) => `${API_BASE_URL}/api/orders/${orderId}`,
@@ -108,13 +96,11 @@ export const API_ENDPOINTS = {
     CREATE: `${API_BASE_URL}/api/orders/create`,
   },
   
-  // Google Places endpoints
   GOOGLE_PLACES: {
     SEARCH: (place) => `${API_BASE_URL}/api/google-places/search-hospitals/${place}`,
     DETAILS: (placeId) => `${API_BASE_URL}/api/google-places/details/${placeId}`,
   },
   
-  // Comments endpoints
   COMMENTS: {
     BASE: `${API_BASE_URL}/api/comments`,
     BY_POST: (postId) => `${API_BASE_URL}/api/comments/post/${postId}`,
@@ -123,18 +109,15 @@ export const API_ENDPOINTS = {
     DELETE: (commentId) => `${API_BASE_URL}/api/comments/${commentId}`,
   },
   
-  // Health check
   HEALTH: `${API_BASE_URL}/api/health`,
   TEST: `${API_BASE_URL}/api/test`,
 };
 
-// Helper function to get authorization headers
 export const getAuthHeaders = () => {
   const token = localStorage.getItem('token');
   return token ? { 'Authorization': `Bearer ${token}` } : {};
 };
 
-// Helper function to make authenticated API calls
 export const apiCall = async (url, options = {}) => {
   const defaultOptions = {
     headers: {
@@ -146,7 +129,6 @@ export const apiCall = async (url, options = {}) => {
 
   const response = await fetch(url, { ...defaultOptions, ...options });
   
-  // Handle authentication errors
   if (response.status === 401) {
     localStorage.removeItem('token');
     localStorage.removeItem('user');
@@ -157,7 +139,6 @@ export const apiCall = async (url, options = {}) => {
   return response;
 };
 
-// Export the base URL for direct use
 export const API_BASE = API_BASE_URL;
 
 export default API_ENDPOINTS;
