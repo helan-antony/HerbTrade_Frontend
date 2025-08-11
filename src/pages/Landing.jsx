@@ -269,10 +269,10 @@ function Landing() {
                 className="group relative animate-fade-in"
                 style={{ animationDelay: `${index * 0.1}s` }}
               >
-                <div className="bg-white/90 backdrop-blur-md rounded-3xl shadow-xl hover:shadow-2xl border border-white/60 transition-all duration-700 hover:-translate-y-4 hover:scale-110 overflow-hidden p-10 text-center h-full relative group-hover:bg-white/95">
-                  <div className={`absolute inset-0 bg-gradient-to-br ${feature.gradient} opacity-0 group-hover:opacity-15 transition-opacity duration-700 rounded-3xl`} />
+                <div className="bg-white/90 backdrop-blur-md rounded-3xl shadow-xl hover:shadow-2xl border border-white/60 transition-all duration-700 hover:-translate-y-4 hover:scale-110 overflow-hidden p-10 text-center h-full relative">
+                  <div className={`absolute inset-0 bg-gradient-to-br ${feature.gradient} opacity-0 transition-opacity duration-700 rounded-3xl`} />
                   
-                  <div className={`absolute inset-0 rounded-3xl opacity-0 group-hover:opacity-100 transition-opacity duration-700 bg-gradient-to-br ${feature.gradient} blur-xl -z-10`} style={{ padding: '2px' }}></div>
+                  <div className={`absolute inset-0 rounded-3xl opacity-0 transition-opacity duration-700 bg-gradient-to-br ${feature.gradient} blur-xl -z-10`} style={{ padding: '2px' }}></div>
 
                   <div className="relative z-10">
                     <div className="mb-8 flex justify-center">

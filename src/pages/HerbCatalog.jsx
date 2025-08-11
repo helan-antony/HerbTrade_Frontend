@@ -32,6 +32,21 @@ function HerbCatalog() {
     fetchCategories();
     loadCartFromStorage();
     loadWishlistFromStorage();
+
+    // Listen for product updates from seller dashboard
+    const handleProductUpdate = () => {
+      fetchProducts();
+    };
+
+    window.addEventListener('productAdded', handleProductUpdate);
+    window.addEventListener('productUpdated', handleProductUpdate);
+    window.addEventListener('productDeleted', handleProductUpdate);
+
+    return () => {
+      window.removeEventListener('productAdded', handleProductUpdate);
+      window.removeEventListener('productUpdated', handleProductUpdate);
+      window.removeEventListener('productDeleted', handleProductUpdate);
+    };
   }, [search, selectedCategory, sortBy]);
 
   const fetchProducts = async () => {
@@ -397,6 +412,17 @@ function HerbCatalog() {
                     {product.quality}
                   </div>
 
+                  {/* Grade Badge */}
+                  {product.grade && (
+                    <div className={`absolute top-14 left-4 px-2 py-1 rounded-full text-xs font-bold text-white ${
+                      product.grade === 'Premium' ? 'bg-purple-500' :
+                      product.grade === 'A+' ? 'bg-emerald-500' :
+                      'bg-teal-500'
+                    }`}>
+                      {product.grade}
+                    </div>
+                  )}
+
                   {/* Gradient Overlay */}
                   <div className="absolute inset-0 bg-gradient-to-t from-black/20 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
                 </div>
@@ -410,7 +436,7 @@ function HerbCatalog() {
                   </h3>
 
                   <p className="text-slate-600 text-sm mb-4 flex-grow leading-relaxed">
-                    {product.description.substring(0, 100)}...
+                    {(product.description || '').substring(0, 100)}...
                   </p>
 
                   {/* Rating */}
@@ -430,7 +456,7 @@ function HerbCatalog() {
 
                   {/* Uses Tags */}
                   <div className="flex flex-wrap gap-2 mb-4">
-                    {product.uses.slice(0, 2).map(use => (
+                    {(product.uses || []).slice(0, 2).map(use => (
                       <span
                         key={use}
                         className="px-3 py-1 bg-emerald-100 text-emerald-700 text-xs font-medium rounded-full border border-emerald-200"
@@ -476,7 +502,10 @@ function HerbCatalog() {
                   {/* Stock Warning */}
                   {product.inStock < 10 && (
                     <div className="mt-3 text-xs text-red-600 font-medium bg-red-50 px-3 py-2 rounded-lg border border-red-200">
-                      ⚠️ Only {product.inStock} left in stock!
+                      ⚠️ Only {product.category === 'Medicines' 
+                        ? `${product.inStock} ${product.dosageForm || 'units'}` 
+                        : (product.inStock < 1000 ? `${product.inStock}g` : `${(product.inStock/1000).toFixed(1)}kg`)
+                      } left in stock!
                     </div>
                   )}
                 </div>
@@ -543,12 +572,24 @@ function HerbCatalog() {
                   </span>
                 </div>
 
-                <div className={`inline-block px-4 py-2 rounded-full text-white font-semibold ${
-                  selectedProduct.quality === 'Organic' ? 'bg-green-500' :
-                  selectedProduct.quality === 'Premium' ? 'bg-orange-500' :
-                  'bg-blue-500'
-                }`}>
-                  {selectedProduct.quality}
+                <div className="flex items-center space-x-3">
+                  <div className={`inline-block px-4 py-2 rounded-full text-white font-semibold ${
+                    selectedProduct.quality === 'Organic' ? 'bg-green-500' :
+                    selectedProduct.quality === 'Premium' ? 'bg-orange-500' :
+                    'bg-blue-500'
+                  }`}>
+                    {selectedProduct.quality}
+                  </div>
+                  
+                  {selectedProduct.grade && (
+                    <div className={`inline-block px-4 py-2 rounded-full text-white font-semibold ${
+                      selectedProduct.grade === 'Premium' ? 'bg-purple-500' :
+                      selectedProduct.grade === 'A+' ? 'bg-emerald-500' :
+                      'bg-teal-500'
+                    }`}>
+                      Grade {selectedProduct.grade}
+                    </div>
+                  )}
                 </div>
 
                 <p className="text-slate-700 leading-relaxed">
@@ -558,7 +599,7 @@ function HerbCatalog() {
                 <div>
                   <h3 className="text-lg font-semibold text-slate-900 mb-3">Uses:</h3>
                   <div className="flex flex-wrap gap-2">
-                    {selectedProduct.uses.map(use => (
+                    {(selectedProduct.uses || []).map(use => (
                       <span
                         key={use}
                         className="px-3 py-1 bg-emerald-100 text-emerald-700 text-sm font-medium rounded-full border border-emerald-200"
@@ -569,8 +610,114 @@ function HerbCatalog() {
                   </div>
                 </div>
 
+                {/* Medicine-specific details */}
+                {selectedProduct.category === 'Medicines' && (
+                  <div className="bg-purple-50 border border-purple-200 rounded-xl p-6 space-y-4">
+                    <h3 className="text-lg font-semibold text-purple-800 mb-4">Medicine Information</h3>
+                    
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      {selectedProduct.dosageForm && (
+                        <div>
+                          <span className="text-sm font-medium text-slate-600">Dosage Form:</span>
+                          <p className="text-slate-900 capitalize">{selectedProduct.dosageForm}</p>
+                        </div>
+                      )}
+                      
+                      {selectedProduct.strength && (
+                        <div>
+                          <span className="text-sm font-medium text-slate-600">Strength:</span>
+                          <p className="text-slate-900">{selectedProduct.strength}</p>
+                        </div>
+                      )}
+                      
+                      {selectedProduct.manufacturer && (
+                        <div>
+                          <span className="text-sm font-medium text-slate-600">Manufacturer:</span>
+                          <p className="text-slate-900">{selectedProduct.manufacturer}</p>
+                        </div>
+                      )}
+                      
+                      {selectedProduct.batchNumber && (
+                        <div>
+                          <span className="text-sm font-medium text-slate-600">Batch Number:</span>
+                          <p className="text-slate-900">{selectedProduct.batchNumber}</p>
+                        </div>
+                      )}
+                      
+                      {selectedProduct.expiryDate && (
+                        <div>
+                          <span className="text-sm font-medium text-slate-600">Expiry Date:</span>
+                          <p className="text-slate-900">{new Date(selectedProduct.expiryDate).toLocaleDateString()}</p>
+                        </div>
+                      )}
+                    </div>
+
+                    {selectedProduct.activeIngredients && selectedProduct.activeIngredients.length > 0 && (
+                      <div>
+                        <span className="text-sm font-medium text-slate-600">Active Ingredients:</span>
+                        <div className="flex flex-wrap gap-2 mt-2">
+                          {selectedProduct.activeIngredients.map(ingredient => (
+                            <span
+                              key={ingredient}
+                              className="px-3 py-1 bg-green-100 text-green-700 text-sm font-medium rounded-full border border-green-200"
+                            >
+                              {ingredient}
+                            </span>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
+                    {selectedProduct.indications && selectedProduct.indications.length > 0 && (
+                      <div>
+                        <span className="text-sm font-medium text-slate-600">Indications:</span>
+                        <div className="flex flex-wrap gap-2 mt-2">
+                          {selectedProduct.indications.map(indication => (
+                            <span
+                              key={indication}
+                              className="px-3 py-1 bg-blue-100 text-blue-700 text-sm font-medium rounded-full border border-blue-200"
+                            >
+                              {indication}
+                            </span>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
+                    {selectedProduct.dosage && (
+                      <div>
+                        <span className="text-sm font-medium text-slate-600">Dosage Instructions:</span>
+                        <p className="text-slate-900 bg-white p-3 rounded-lg border border-slate-200 mt-1">
+                          {selectedProduct.dosage}
+                        </p>
+                      </div>
+                    )}
+
+                    {selectedProduct.contraindications && (
+                      <div>
+                        <span className="text-sm font-medium text-slate-600">Contraindications:</span>
+                        <p className="text-slate-900 bg-yellow-50 p-3 rounded-lg border border-yellow-200 mt-1">
+                          ⚠️ {selectedProduct.contraindications}
+                        </p>
+                      </div>
+                    )}
+
+                    {selectedProduct.sideEffects && (
+                      <div>
+                        <span className="text-sm font-medium text-slate-600">Side Effects:</span>
+                        <p className="text-slate-900 bg-red-50 p-3 rounded-lg border border-red-200 mt-1">
+                          ⚠️ {selectedProduct.sideEffects}
+                        </p>
+                      </div>
+                    )}
+                  </div>
+                )}
+
                 <div className="text-sm text-slate-600 bg-slate-50 p-4 rounded-xl">
-                  📦 Stock: {selectedProduct.inStock} units available
+                  📦 Stock: {selectedProduct.category === 'Medicines' 
+                    ? `${selectedProduct.inStock} ${selectedProduct.dosageForm || 'units'}` 
+                    : (selectedProduct.inStock < 1000 ? `${selectedProduct.inStock}g` : `${(selectedProduct.inStock/1000).toFixed(1)}kg`)
+                  } available
                 </div>
               </div>
             </div>
@@ -657,7 +804,7 @@ function HerbCatalog() {
                           {item.product.name}
                         </h4>
                         <p className="text-sm text-slate-600">
-                          ₹{item.product.price} each
+                          ₹{item.product.price} per gram
                         </p>
                         <div className="flex items-center mt-2 space-x-2">
                           <button
@@ -666,8 +813,8 @@ function HerbCatalog() {
                           >
                             <FaMinus className="text-xs text-emerald-600" />
                           </button>
-                          <span className="w-8 text-center font-semibold text-slate-900">
-                            {item.quantity}
+                          <span className="w-12 text-center font-semibold text-slate-900 text-xs">
+                            {item.quantity < 1000 ? `${item.quantity}g` : `${(item.quantity/1000).toFixed(1)}kg`}
                           </span>
                           <button
                             onClick={() => updateCartQuantity(item.product._id, item.quantity + 1)}

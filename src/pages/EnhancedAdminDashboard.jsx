@@ -48,6 +48,10 @@ function EnhancedAdminDashboard() {
   const [selectedBooking, setSelectedBooking] = useState(null);
   const [bookingDetailsDialog, setBookingDetailsDialog] = useState(false);
   const [editBookingDialog, setEditBookingDialog] = useState(false);
+  const [leaves, setLeaves] = useState([]);
+  const [selectedLeave, setSelectedLeave] = useState(null);
+  const [leaveDetailsDialog, setLeaveDetailsDialog] = useState(false);
+  const [leaveStats, setLeaveStats] = useState({});
   const [deleteBookingDialog, setDeleteBookingDialog] = useState(false);
   const [bookingToDelete, setBookingToDelete] = useState(null);
   const [actionLoading, setActionLoading] = useState(false);
@@ -98,7 +102,7 @@ function EnhancedAdminDashboard() {
         return;
       }
 
-      const [usersRes, employeesRes, statsRes, bookingsRes] = await Promise.all([
+      const [usersRes, employeesRes, statsRes, bookingsRes, leavesRes, leaveStatsRes] = await Promise.all([
         fetch('http://localhost:5000/api/admin/users', {
           headers: { 'Authorization': `Bearer ${token}` }
         }),
@@ -109,6 +113,12 @@ function EnhancedAdminDashboard() {
           headers: { 'Authorization': `Bearer ${token}` }
         }),
         fetch('http://localhost:5000/api/admin/hospital-bookings', {
+          headers: { 'Authorization': `Bearer ${token}` }
+        }),
+        fetch('http://localhost:5000/api/admin/leaves', {
+          headers: { 'Authorization': `Bearer ${token}` }
+        }),
+        fetch('http://localhost:5000/api/admin/leaves/stats', {
           headers: { 'Authorization': `Bearer ${token}` }
         })
       ]);
@@ -163,6 +173,16 @@ function EnhancedAdminDashboard() {
             createdAt: new Date().toISOString()
           }
         ]);
+      }
+
+      if (leavesRes.ok) {
+        const leavesData = await leavesRes.json();
+        setLeaves(leavesData);
+      }
+
+      if (leaveStatsRes.ok) {
+        const leaveStatsData = await leaveStatsRes.json();
+        setLeaveStats(leaveStatsData);
       }
 
     } catch (error) {
@@ -779,6 +799,103 @@ function EnhancedAdminDashboard() {
     }
   };
 
+  // Leave Management Functions
+  const handleLeaveAction = async (leaveId, status, adminComment = '') => {
+    try {
+      setActionLoading(true);
+      const token = localStorage.getItem('token');
+
+      const response = await fetch(`http://localhost:5000/api/admin/leaves/${leaveId}/status`, {
+        method: 'PUT',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ status, adminComment })
+      });
+
+      if (response.ok) {
+        const result = await response.json();
+        setLeaves(prev => prev.map(leave =>
+          leave._id === leaveId ? result.leave : leave
+        ));
+        setLeaveDetailsDialog(false);
+        toast.success(result.message);
+        
+        // Refresh leave stats
+        const statsResponse = await fetch('http://localhost:5000/api/admin/leaves/stats', {
+          headers: { 'Authorization': `Bearer ${token}` }
+        });
+        if (statsResponse.ok) {
+          const statsData = await statsResponse.json();
+          setLeaveStats(statsData);
+        }
+      } else {
+        const error = await response.json();
+        throw new Error(error.error || 'Failed to update leave status');
+      }
+    } catch (error) {
+      console.error('Error updating leave status:', error);
+      toast.error(error.message || 'Failed to update leave status');
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
+  const getLeaveStatusColor = (status) => {
+    switch (status) {
+      case 'approved': return 'success';
+      case 'pending': return 'warning';
+      case 'rejected': return 'error';
+      default: return 'default';
+    }
+  };
+
+  const getLeaveTypeColor = (type) => {
+    switch (type) {
+      case 'sick': return 'error';
+      case 'personal': return 'info';
+      case 'vacation': return 'success';
+      case 'emergency': return 'warning';
+      default: return 'default';
+    }
+  };
+
+  const exportLeaves = () => {
+    try {
+      const headers = ['Employee Name', 'Email', 'Type', 'Reason', 'Start Date', 'End Date', 'Status', 'Admin Comment', 'Applied Date'];
+      const csvContent = [
+        headers.join(','),
+        ...leaves.map(leave => [
+          `"${leave.seller?.name || 'N/A'}"`,
+          `"${leave.seller?.email || 'N/A'}"`,
+          `"${leave.type.charAt(0).toUpperCase() + leave.type.slice(1)}"`,
+          `"${leave.reason}"`,
+          `"${new Date(leave.startDate).toLocaleDateString()}"`,
+          `"${new Date(leave.endDate).toLocaleDateString()}"`,
+          `"${leave.status.charAt(0).toUpperCase() + leave.status.slice(1)}"`,
+          `"${leave.adminComment || 'N/A'}"`,
+          `"${new Date(leave.createdAt).toLocaleDateString()}"`
+        ].join(','))
+      ].join('\n');
+
+      const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+      const link = document.createElement('a');
+      const url = URL.createObjectURL(blob);
+      link.setAttribute('href', url);
+      link.setAttribute('download', `leave_applications_${new Date().toISOString().split('T')[0]}.csv`);
+      link.style.visibility = 'hidden';
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+
+      toast.success('Leave applications exported successfully!');
+    } catch (error) {
+      console.error('Error exporting leaves:', error);
+      toast.error('Failed to export leave applications');
+    }
+  };
+
   const getStatusColor = (status) => {
     switch (status) {
       case 'Confirmed': return 'success';
@@ -1132,6 +1249,17 @@ function EnhancedAdminDashboard() {
                   : 'bg-slate-100 hover:bg-slate-200 text-slate-700 hover:scale-105'
               }`}
             >
+              <FaCalendarAlt className="w-4 h-4" />
+              <span>Leave Management</span>
+            </button>
+            <button
+              onClick={() => setTabValue(4)}
+              className={`px-6 py-3 rounded-2xl font-semibold transition-all duration-300 flex items-center space-x-2 ${
+                tabValue === 4
+                  ? 'bg-gradient-to-r from-emerald-600 to-teal-600 text-white shadow-lg'
+                  : 'bg-slate-100 hover:bg-slate-200 text-slate-700 hover:scale-105'
+              }`}
+            >
               <FaChartLine className="w-4 h-4" />
               <span>Analytics</span>
             </button>
@@ -1448,8 +1576,156 @@ function EnhancedAdminDashboard() {
 
 
 
-        {/* Analytics Tab */}
+        {/* Leave Management Tab */}
         {tabValue === 3 && (
+          <div className="bg-white/80 backdrop-blur-sm rounded-3xl shadow-xl border border-white/50 p-6">
+            <div className="flex justify-between items-center mb-6">
+              <h2 className="text-2xl font-playfair font-bold text-slate-900">
+                Leave Management ({leaves.length})
+              </h2>
+              <div className="flex space-x-4">
+                <button
+                  onClick={exportLeaves}
+                  className="flex items-center space-x-2 px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-semibold rounded-xl transition-all duration-300 hover:scale-105 shadow-lg"
+                >
+                  <FaDownload className="w-4 h-4" />
+                  <span>Export</span>
+                </button>
+              </div>
+            </div>
+
+            {/* Leave Statistics */}
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+              <div className="bg-gradient-to-r from-blue-500 to-blue-600 rounded-2xl p-4 text-white">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-blue-100 text-sm">Total Applications</p>
+                    <p className="text-2xl font-bold">{leaveStats.totalLeaves || 0}</p>
+                  </div>
+                  <FaCalendarAlt className="w-8 h-8 text-blue-200" />
+                </div>
+              </div>
+              <div className="bg-gradient-to-r from-yellow-500 to-orange-500 rounded-2xl p-4 text-white">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-yellow-100 text-sm">Pending Review</p>
+                    <p className="text-2xl font-bold">{leaveStats.pendingLeaves || 0}</p>
+                  </div>
+                  <FaBell className="w-8 h-8 text-yellow-200" />
+                </div>
+              </div>
+              <div className="bg-gradient-to-r from-green-500 to-emerald-500 rounded-2xl p-4 text-white">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-green-100 text-sm">Approved</p>
+                    <p className="text-2xl font-bold">
+                      {leaveStats.statusStats?.find(s => s._id === 'approved')?.count || 0}
+                    </p>
+                  </div>
+                  <FaUserCheck className="w-8 h-8 text-green-200" />
+                </div>
+              </div>
+              <div className="bg-gradient-to-r from-red-500 to-pink-500 rounded-2xl p-4 text-white">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-red-100 text-sm">Rejected</p>
+                    <p className="text-2xl font-bold">
+                      {leaveStats.statusStats?.find(s => s._id === 'rejected')?.count || 0}
+                    </p>
+                  </div>
+                  <FaUserTimes className="w-8 h-8 text-red-200" />
+                </div>
+              </div>
+            </div>
+
+            {/* Leave Applications Table */}
+            <div className="overflow-x-auto">
+              <table className="w-full">
+                <thead>
+                  <tr className="border-b border-slate-200">
+                    <th className="text-left py-3 px-4 font-semibold text-slate-700">Employee</th>
+                    <th className="text-left py-3 px-4 font-semibold text-slate-700">Type</th>
+                    <th className="text-left py-3 px-4 font-semibold text-slate-700">Duration</th>
+                    <th className="text-left py-3 px-4 font-semibold text-slate-700">Reason</th>
+                    <th className="text-left py-3 px-4 font-semibold text-slate-700">Status</th>
+                    <th className="text-left py-3 px-4 font-semibold text-slate-700">Applied</th>
+                    <th className="text-left py-3 px-4 font-semibold text-slate-700">Actions</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {leaves.map((leave) => (
+                    <tr key={leave._id} className="border-b border-slate-100 hover:bg-slate-50 transition-colors">
+                      <td className="py-4 px-4">
+                        <div>
+                          <div className="font-semibold text-slate-900">{leave.seller?.name || 'N/A'}</div>
+                          <div className="text-sm text-slate-600">{leave.seller?.email || 'N/A'}</div>
+                          <div className="text-xs text-slate-500">{leave.seller?.department || 'General'}</div>
+                        </div>
+                      </td>
+                      <td className="py-4 px-4">
+                        <Chip
+                          label={leave.type.charAt(0).toUpperCase() + leave.type.slice(1)}
+                          color={getLeaveTypeColor(leave.type)}
+                          size="small"
+                        />
+                      </td>
+                      <td className="py-4 px-4">
+                        <div className="text-sm">
+                          <div>{new Date(leave.startDate).toLocaleDateString()}</div>
+                          <div className="text-slate-600">to {new Date(leave.endDate).toLocaleDateString()}</div>
+                          <div className="text-xs text-slate-500">
+                            {Math.ceil((new Date(leave.endDate) - new Date(leave.startDate)) / (1000 * 60 * 60 * 24)) + 1} days
+                          </div>
+                        </div>
+                      </td>
+                      <td className="py-4 px-4">
+                        <div className="text-sm text-slate-700 max-w-xs truncate" title={leave.reason}>
+                          {leave.reason}
+                        </div>
+                      </td>
+                      <td className="py-4 px-4">
+                        <Chip
+                          label={leave.status.charAt(0).toUpperCase() + leave.status.slice(1)}
+                          color={getLeaveStatusColor(leave.status)}
+                          size="small"
+                        />
+                      </td>
+                      <td className="py-4 px-4">
+                        <div className="text-sm text-slate-600">
+                          {new Date(leave.createdAt).toLocaleDateString()}
+                        </div>
+                      </td>
+                      <td className="py-4 px-4">
+                        <div className="flex space-x-2">
+                          <IconButton
+                            size="small"
+                            onClick={() => {
+                              setSelectedLeave(leave);
+                              setLeaveDetailsDialog(true);
+                            }}
+                            className="text-blue-600 hover:bg-blue-50"
+                          >
+                            <FaEye />
+                          </IconButton>
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+              
+              {leaves.length === 0 && (
+                <div className="text-center py-12">
+                  <FaCalendarAlt className="w-16 h-16 text-slate-300 mx-auto mb-4" />
+                  <p className="text-slate-500 text-lg">No leave applications found</p>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* Analytics Tab */}
+        {tabValue === 4 && (
           <div className="space-y-6">
             <h2 className="text-2xl font-playfair font-bold text-slate-900">Platform Analytics</h2>
 
@@ -3045,6 +3321,237 @@ function EnhancedAdminDashboard() {
             }}
           >
             {actionLoading ? 'DELETING...' : 'DELETE BOOKING'}
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* Leave Details Dialog */}
+      <Dialog
+        open={leaveDetailsDialog}
+        onClose={() => setLeaveDetailsDialog(false)}
+        maxWidth="md"
+        fullWidth
+        PaperProps={{
+          sx: {
+            borderRadius: '24px',
+            background: 'linear-gradient(135deg, rgba(255, 255, 255, 0.95), rgba(255, 255, 255, 0.85))',
+            backdropFilter: 'blur(20px)',
+            border: '1px solid rgba(255, 255, 255, 0.3)',
+            boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25)'
+          }
+        }}
+      >
+        <DialogTitle sx={{ 
+          background: 'linear-gradient(135deg, #10b981, #059669)', 
+          color: 'white', 
+          fontWeight: 700,
+          fontSize: '1.5rem',
+          textAlign: 'center',
+          py: 3
+        }}>
+          Leave Application Details
+        </DialogTitle>
+        <DialogContent sx={{ p: 4 }}>
+          {selectedLeave && (
+            <div className="space-y-6">
+              {/* Employee Information */}
+              <div className="bg-slate-50 rounded-2xl p-4">
+                <h3 className="text-lg font-semibold text-slate-900 mb-3">Employee Information</h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <span className="text-sm font-medium text-slate-600">Name:</span>
+                    <p className="text-slate-900 font-semibold">{selectedLeave.seller?.name || 'N/A'}</p>
+                  </div>
+                  <div>
+                    <span className="text-sm font-medium text-slate-600">Email:</span>
+                    <p className="text-slate-900">{selectedLeave.seller?.email || 'N/A'}</p>
+                  </div>
+                  <div>
+                    <span className="text-sm font-medium text-slate-600">Role:</span>
+                    <p className="text-slate-900 capitalize">{selectedLeave.seller?.role || 'N/A'}</p>
+                  </div>
+                  <div>
+                    <span className="text-sm font-medium text-slate-600">Department:</span>
+                    <p className="text-slate-900">{selectedLeave.seller?.department || 'General'}</p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Leave Details */}
+              <div className="bg-blue-50 rounded-2xl p-4">
+                <h3 className="text-lg font-semibold text-slate-900 mb-3">Leave Details</h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <span className="text-sm font-medium text-slate-600">Type:</span>
+                    <Chip
+                      label={selectedLeave.type.charAt(0).toUpperCase() + selectedLeave.type.slice(1)}
+                      color={getLeaveTypeColor(selectedLeave.type)}
+                      size="small"
+                      sx={{ ml: 1 }}
+                    />
+                  </div>
+                  <div>
+                    <span className="text-sm font-medium text-slate-600">Status:</span>
+                    <Chip
+                      label={selectedLeave.status.charAt(0).toUpperCase() + selectedLeave.status.slice(1)}
+                      color={getLeaveStatusColor(selectedLeave.status)}
+                      size="small"
+                      sx={{ ml: 1 }}
+                    />
+                  </div>
+                  <div>
+                    <span className="text-sm font-medium text-slate-600">Start Date:</span>
+                    <p className="text-slate-900 font-semibold">{new Date(selectedLeave.startDate).toLocaleDateString()}</p>
+                  </div>
+                  <div>
+                    <span className="text-sm font-medium text-slate-600">End Date:</span>
+                    <p className="text-slate-900 font-semibold">{new Date(selectedLeave.endDate).toLocaleDateString()}</p>
+                  </div>
+                  <div className="md:col-span-2">
+                    <span className="text-sm font-medium text-slate-600">Duration:</span>
+                    <p className="text-slate-900 font-semibold">
+                      {Math.ceil((new Date(selectedLeave.endDate) - new Date(selectedLeave.startDate)) / (1000 * 60 * 60 * 24)) + 1} days
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Reason and Description */}
+              <div className="bg-green-50 rounded-2xl p-4">
+                <h3 className="text-lg font-semibold text-slate-900 mb-3">Reason & Description</h3>
+                <div className="space-y-3">
+                  <div>
+                    <span className="text-sm font-medium text-slate-600">Reason:</span>
+                    <p className="text-slate-900 font-semibold">{selectedLeave.reason}</p>
+                  </div>
+                  <div>
+                    <span className="text-sm font-medium text-slate-600">Description:</span>
+                    <p className="text-slate-900 bg-white p-3 rounded-lg border border-slate-200">
+                      {selectedLeave.description}
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Admin Review Section */}
+              {selectedLeave.status !== 'pending' && (
+                <div className="bg-purple-50 rounded-2xl p-4">
+                  <h3 className="text-lg font-semibold text-slate-900 mb-3">Admin Review</h3>
+                  <div className="space-y-3">
+                    <div>
+                      <span className="text-sm font-medium text-slate-600">Reviewed By:</span>
+                      <p className="text-slate-900 font-semibold">{selectedLeave.reviewedBy?.name || 'N/A'}</p>
+                    </div>
+                    <div>
+                      <span className="text-sm font-medium text-slate-600">Review Date:</span>
+                      <p className="text-slate-900">{selectedLeave.reviewedAt ? new Date(selectedLeave.reviewedAt).toLocaleDateString() : 'N/A'}</p>
+                    </div>
+                    {selectedLeave.adminComment && (
+                      <div>
+                        <span className="text-sm font-medium text-slate-600">Admin Comment:</span>
+                        <p className="text-slate-900 bg-white p-3 rounded-lg border border-slate-200">
+                          {selectedLeave.adminComment}
+                        </p>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
+
+              {/* Admin Action Section for Pending Leaves */}
+              {selectedLeave.status === 'pending' && (
+                <div className="bg-yellow-50 rounded-2xl p-4">
+                  <h3 className="text-lg font-semibold text-slate-900 mb-3">Admin Action Required</h3>
+                  <TextField
+                    fullWidth
+                    multiline
+                    rows={3}
+                    label="Admin Comment (Optional)"
+                    placeholder="Add any comments about this leave application..."
+                    value={selectedLeave.tempAdminComment || ''}
+                    onChange={(e) => setSelectedLeave(prev => ({ ...prev, tempAdminComment: e.target.value }))}
+                    sx={{ mb: 3 }}
+                  />
+                  <div className="flex space-x-3">
+                    <Button
+                      onClick={() => handleLeaveAction(selectedLeave._id, 'approved', selectedLeave.tempAdminComment)}
+                      disabled={actionLoading}
+                      variant="contained"
+                      color="success"
+                      startIcon={<FaUserCheck />}
+                      sx={{ 
+                        px: 4, 
+                        py: 1.5, 
+                        borderRadius: '12px',
+                        fontWeight: 600,
+                        textTransform: 'none'
+                      }}
+                    >
+                      {actionLoading ? 'Processing...' : 'Approve Leave'}
+                    </Button>
+                    <Button
+                      onClick={() => handleLeaveAction(selectedLeave._id, 'rejected', selectedLeave.tempAdminComment)}
+                      disabled={actionLoading}
+                      variant="contained"
+                      color="error"
+                      startIcon={<FaUserTimes />}
+                      sx={{ 
+                        px: 4, 
+                        py: 1.5, 
+                        borderRadius: '12px',
+                        fontWeight: 600,
+                        textTransform: 'none'
+                      }}
+                    >
+                      {actionLoading ? 'Processing...' : 'Reject Leave'}
+                    </Button>
+                  </div>
+                </div>
+              )}
+
+              {/* Application Timeline */}
+              <div className="bg-gray-50 rounded-2xl p-4">
+                <h3 className="text-lg font-semibold text-slate-900 mb-3">Application Timeline</h3>
+                <div className="space-y-2">
+                  <div className="flex items-center space-x-3">
+                    <div className="w-3 h-3 bg-blue-500 rounded-full"></div>
+                    <span className="text-sm text-slate-600">Applied on {new Date(selectedLeave.createdAt).toLocaleDateString()}</span>
+                  </div>
+                  {selectedLeave.reviewedAt && (
+                    <div className="flex items-center space-x-3">
+                      <div className={`w-3 h-3 rounded-full ${selectedLeave.status === 'approved' ? 'bg-green-500' : 'bg-red-500'}`}></div>
+                      <span className="text-sm text-slate-600">
+                        {selectedLeave.status === 'approved' ? 'Approved' : 'Rejected'} on {new Date(selectedLeave.reviewedAt).toLocaleDateString()}
+                      </span>
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+          )}
+        </DialogContent>
+        <DialogActions sx={{ p: 3, justifyContent: 'center' }}>
+          <Button
+            onClick={() => setLeaveDetailsDialog(false)}
+            sx={{
+              px: 6,
+              py: 2,
+              backgroundColor: '#6b7280',
+              color: 'white',
+              fontWeight: 700,
+              borderRadius: '12px',
+              border: '2px solid #4b5563',
+              textTransform: 'uppercase',
+              fontSize: '0.875rem',
+              boxShadow: '0 4px 14px 0 rgba(107, 114, 128, 0.2)',
+              '&:hover': {
+                backgroundColor: '#4b5563',
+                border: '2px solid #374151',
+                boxShadow: '0 6px 20px 0 rgba(107, 114, 128, 0.3)'
+              }
+            }}
+          >
+            Close
           </Button>
         </DialogActions>
       </Dialog>

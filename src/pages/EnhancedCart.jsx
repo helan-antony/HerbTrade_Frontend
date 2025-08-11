@@ -574,7 +574,9 @@ function EnhancedCart() {
                           >
                             <FaMinus className="text-slate-600 group-hover/btn:scale-110 transition-transform duration-300" />
                           </button>
-                          <span className="w-16 text-center font-bold text-xl text-slate-900">{item.quantity}</span>
+                          <span className="w-16 text-center font-bold text-lg text-slate-900">
+                            {item.quantity < 1000 ? `${item.quantity}g` : `${(item.quantity/1000).toFixed(1)}kg`}
+                          </span>
                           <button 
                             onClick={() => updateQuantity(product._id, item.quantity + 1)}
                             className="w-12 h-12 bg-emerald-500 hover:bg-emerald-600 rounded-xl flex items-center justify-center transition-all duration-300 shadow-md hover:shadow-lg group/btn"
@@ -589,7 +591,7 @@ function EnhancedCart() {
                             ₹{(product.price * item.quantity).toFixed(2)}
                           </div>
                           <div className="text-sm text-slate-500 font-medium">
-                            ₹{product.price} each
+                            ₹{product.price} per gram
                           </div>
                         </div>
 

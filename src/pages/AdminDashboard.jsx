@@ -43,18 +43,26 @@ function AdminDashboard() {
   const [orders, setOrders] = useState([]);
   const [products, setProducts] = useState([]);
   const [appointments, setAppointments] = useState([]);
+  const [leaves, setLeaves] = useState([]);
   const [stats, setStats] = useState({
     totalUsers: 0,
     totalOrders: 0,
     totalProducts: 0,
     totalRevenue: 0,
     pendingOrders: 0,
-    activeUsers: 0
+    activeUsers: 0,
+    totalLeaves: 0,
+    pendingLeaves: 0
   });
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedUser, setSelectedUser] = useState(null);
   const [showUserModal, setShowUserModal] = useState(false);
+  const [selectedLeave, setSelectedLeave] = useState(null);
+  const [showLeaveModal, setShowLeaveModal] = useState(false);
+  const [leaveComment, setLeaveComment] = useState('');
+  const [notifications, setNotifications] = useState([]);
+  const [showNotifications, setShowNotifications] = useState(false);
 
   useEffect(() => {
     // Check if user is admin
@@ -73,7 +81,7 @@ function AdminDashboard() {
       const token = localStorage.getItem('token');
       
       // Fetch all data in parallel
-      const [usersRes, ordersRes, productsRes, hospitalBookingsRes] = await Promise.all([
+      const [usersRes, ordersRes, productsRes, hospitalBookingsRes, leavesRes, leaveStatsRes] = await Promise.all([
         fetch('http://localhost:5000/api/admin/users', {
           headers: { 'Authorization': `Bearer ${token}` }
         }),
@@ -84,6 +92,12 @@ function AdminDashboard() {
           headers: { 'Authorization': `Bearer ${token}` }
         }),
         fetch('http://localhost:5000/api/admin/hospital-bookings', {
+          headers: { 'Authorization': `Bearer ${token}` }
+        }),
+        fetch('http://localhost:5000/api/admin/leaves', {
+          headers: { 'Authorization': `Bearer ${token}` }
+        }),
+        fetch('http://localhost:5000/api/admin/leaves/stats', {
           headers: { 'Authorization': `Bearer ${token}` }
         })
       ]);
@@ -129,6 +143,28 @@ function AdminDashboard() {
         setAppointments([]);
       }
 
+      if (leavesRes.ok) {
+        const leavesData = await leavesRes.json();
+        setLeaves(leavesData);
+        
+        // Create notifications for pending leaves
+        const pendingLeaves = leavesData.filter(leave => leave.status === 'pending');
+        const leaveNotifications = pendingLeaves.map(leave => ({
+          id: leave._id,
+          type: 'leave',
+          title: 'New Leave Application',
+          message: `${leave.seller.name} has applied for ${leave.type} leave`,
+          timestamp: new Date(leave.createdAt),
+          data: leave
+        }));
+        setNotifications(leaveNotifications);
+      }
+
+      let leaveStats = { totalLeaves: 0, pendingLeaves: 0 };
+      if (leaveStatsRes.ok) {
+        leaveStats = await leaveStatsRes.json();
+      }
+
       // Calculate stats
       const totalRevenue = orders.reduce((sum, order) => sum + (order.total || 0), 0);
       const pendingOrders = orders.filter(order => order.status === 'pending').length;
@@ -140,7 +176,9 @@ function AdminDashboard() {
         totalProducts: products.length,
         totalRevenue,
         pendingOrders,
-        activeUsers
+        activeUsers,
+        totalLeaves: leaveStats.totalLeaves,
+        pendingLeaves: leaveStats.pendingLeaves
       });
 
     } catch (error) {
@@ -211,6 +249,79 @@ function AdminDashboard() {
       console.error('Error updating booking status:', error);
       toast.error('Failed to update booking status');
     }
+  };
+
+  // Leave management functions
+  const handleLeaveAction = async (leaveId, status, comment = '') => {
+    try {
+      const token = localStorage.getItem('token');
+      const response = await fetch(`http://localhost:5000/api/admin/leaves/${leaveId}/status`, {
+        method: 'PUT',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ status, adminComment: comment })
+      });
+
+      if (response.ok) {
+        const result = await response.json();
+        toast.success(result.message || `Leave application ${status} successfully`);
+        
+        // Update local state
+        setLeaves(prev =>
+          prev.map(leave =>
+            leave._id === leaveId
+              ? { ...leave, status, adminComment: comment, reviewedAt: new Date() }
+              : leave
+          )
+        );
+
+        // Remove from notifications
+        setNotifications(prev => prev.filter(notif => notif.id !== leaveId));
+        
+        // Close modal
+        setShowLeaveModal(false);
+        setSelectedLeave(null);
+        setLeaveComment('');
+        
+        // Refresh data
+        fetchDashboardData();
+      } else {
+        const error = await response.json();
+        toast.error(error.error || `Failed to ${status} leave application`);
+      }
+    } catch (error) {
+      console.error(`Error ${status} leave:`, error);
+      toast.error(`Failed to ${status} leave application`);
+    }
+  };
+
+  const openLeaveModal = (leave) => {
+    setSelectedLeave(leave);
+    setLeaveComment('');
+    setShowLeaveModal(true);
+  };
+
+  const closeLeaveModal = () => {
+    setSelectedLeave(null);
+    setLeaveComment('');
+    setShowLeaveModal(false);
+  };
+
+  // Notification functions
+  const unreadCount = notifications.length;
+  
+  const markAllNotificationsAsRead = () => {
+    setNotifications([]);
+  };
+
+  const handleNotificationClick = (notification) => {
+    if (notification.type === 'leave') {
+      setActiveTab('leaves');
+      openLeaveModal(notification.data);
+    }
+    setShowNotifications(false);
   };
 
   const StatCard = ({ title, value, icon: Icon, color, change }) => (
@@ -344,21 +455,22 @@ function AdminDashboard() {
                     ) : (
                       notifications.map((notification) => (
                         <div
-                          key={notification._id}
-                          className={`p-4 border-b border-slate-100 hover:bg-slate-50 cursor-pointer transition-colors duration-200 ${
-                            !notification.read ? 'bg-emerald-50/50' : ''
-                          }`}
-                          onClick={() => markNotificationAsRead(notification._id)}
+                          key={notification.id}
+                          className="p-4 border-b border-slate-100 hover:bg-slate-50 cursor-pointer transition-colors duration-200 bg-emerald-50/50"
+                          onClick={() => handleNotificationClick(notification)}
                         >
                           <div className="flex items-start space-x-3">
-                            <div className={`w-2 h-2 rounded-full mt-2 ${!notification.read ? 'bg-emerald-500' : 'bg-slate-300'}`} />
+                            <div className="w-2 h-2 rounded-full mt-2 bg-emerald-500" />
                             <div className="flex-1">
                               <p className="font-medium text-slate-900">{notification.title}</p>
                               <p className="text-sm text-slate-600 mt-1">{notification.message}</p>
                               <p className="text-xs text-slate-400 mt-2">
-                                {new Date(notification.createdAt).toLocaleString()}
+                                {notification.timestamp.toLocaleString()}
                               </p>
                             </div>
+                            {notification.type === 'leave' && (
+                              <Clock className="w-4 h-4 text-emerald-600 mt-1" />
+                            )}
                           </div>
                         </div>
                       ))
@@ -452,6 +564,14 @@ function AdminDashboard() {
               isActive={activeTab === 'appointments'}
               onClick={setActiveTab}
               badge={appointments.filter(apt => apt.bookingStatus === 'Pending').length}
+            />
+            <TabButton
+              id="leaves"
+              label="Leave Management"
+              icon={Clock}
+              isActive={activeTab === 'leaves'}
+              onClick={setActiveTab}
+              badge={stats.pendingLeaves}
             />
           </div>
         </div>
@@ -944,6 +1064,190 @@ function AdminDashboard() {
               </div>
             </div>
           )}
+
+          {/* Leave Management Tab */}
+          {activeTab === 'leaves' && (
+            <div className="space-y-6">
+              <div className="flex justify-between items-center">
+                <h2 className="text-2xl font-playfair font-bold text-slate-900">Leave Management</h2>
+                <div className="flex items-center space-x-4">
+                  <span className="text-sm text-slate-600">
+                    Total: {stats.totalLeaves} | Pending: {stats.pendingLeaves}
+                  </span>
+                  <button
+                    onClick={fetchDashboardData}
+                    className="p-2 bg-emerald-500 hover:bg-emerald-600 text-white rounded-lg transition-colors duration-200"
+                    title="Refresh leaves"
+                  >
+                    <RefreshCw className="w-4 h-4" />
+                  </button>
+                </div>
+              </div>
+
+              {/* Leave Statistics Cards */}
+              <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+                <div className="bg-gradient-to-r from-blue-50 to-blue-100 p-4 rounded-xl border border-blue-200">
+                  <div className="flex items-center space-x-3">
+                    <div className="p-2 bg-blue-500 rounded-lg">
+                      <Clock className="w-5 h-5 text-white" />
+                    </div>
+                    <div>
+                      <p className="text-blue-600 font-semibold">Total Leaves</p>
+                      <p className="text-2xl font-bold text-blue-800">{stats.totalLeaves}</p>
+                    </div>
+                  </div>
+                </div>
+                
+                <div className="bg-gradient-to-r from-yellow-50 to-yellow-100 p-4 rounded-xl border border-yellow-200">
+                  <div className="flex items-center space-x-3">
+                    <div className="p-2 bg-yellow-500 rounded-lg">
+                      <AlertCircle className="w-5 h-5 text-white" />
+                    </div>
+                    <div>
+                      <p className="text-yellow-600 font-semibold">Pending</p>
+                      <p className="text-2xl font-bold text-yellow-800">{stats.pendingLeaves}</p>
+                    </div>
+                  </div>
+                </div>
+                
+                <div className="bg-gradient-to-r from-green-50 to-green-100 p-4 rounded-xl border border-green-200">
+                  <div className="flex items-center space-x-3">
+                    <div className="p-2 bg-green-500 rounded-lg">
+                      <CheckCircle className="w-5 h-5 text-white" />
+                    </div>
+                    <div>
+                      <p className="text-green-600 font-semibold">Approved</p>
+                      <p className="text-2xl font-bold text-green-800">
+                        {leaves.filter(leave => leave.status === 'approved').length}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+                
+                <div className="bg-gradient-to-r from-red-50 to-red-100 p-4 rounded-xl border border-red-200">
+                  <div className="flex items-center space-x-3">
+                    <div className="p-2 bg-red-500 rounded-lg">
+                      <X className="w-5 h-5 text-white" />
+                    </div>
+                    <div>
+                      <p className="text-red-600 font-semibold">Rejected</p>
+                      <p className="text-2xl font-bold text-red-800">
+                        {leaves.filter(leave => leave.status === 'rejected').length}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Leave Applications List */}
+              <div className="space-y-4">
+                {leaves.length === 0 ? (
+                  <div className="text-center py-12 bg-slate-50 rounded-2xl">
+                    <Clock className="w-16 h-16 text-slate-300 mx-auto mb-4" />
+                    <p className="text-slate-500 text-lg">No leave applications found</p>
+                    <p className="text-slate-400 text-sm">Leave applications will appear here when sellers submit them</p>
+                  </div>
+                ) : (
+                  leaves.map((leave) => (
+                    <div key={leave._id} className="p-6 bg-white rounded-2xl border border-slate-200 shadow-sm hover:shadow-md transition-shadow duration-200">
+                      <div className="flex justify-between items-start mb-4">
+                        <div className="flex-1 space-y-3">
+                          {/* Seller Information */}
+                          <div className="flex items-center space-x-3">
+                            <div className="w-10 h-10 bg-emerald-100 rounded-full flex items-center justify-center">
+                              <Users className="w-5 h-5 text-emerald-600" />
+                            </div>
+                            <div>
+                              <p className="font-semibold text-slate-900 text-lg">
+                                {leave.seller?.name || 'Unknown Seller'}
+                              </p>
+                              <p className="text-sm text-slate-500">
+                                {leave.seller?.email || 'No email'}
+                              </p>
+                            </div>
+                          </div>
+
+                          {/* Leave Details */}
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
+                            <div className="space-y-2">
+                              <div className="flex items-center space-x-2">
+                                <Calendar className="w-4 h-4 text-slate-400" />
+                                <span className="text-sm text-slate-600">
+                                  <strong>Type:</strong> {leave.type.charAt(0).toUpperCase() + leave.type.slice(1)}
+                                </span>
+                              </div>
+                              <div className="flex items-center space-x-2">
+                                <Clock className="w-4 h-4 text-slate-400" />
+                                <span className="text-sm text-slate-600">
+                                  <strong>Duration:</strong> {new Date(leave.startDate).toLocaleDateString()} - {new Date(leave.endDate).toLocaleDateString()}
+                                </span>
+                              </div>
+                              <div className="flex items-center space-x-2">
+                                <AlertCircle className="w-4 h-4 text-slate-400" />
+                                <span className="text-sm text-slate-600">
+                                  <strong>Reason:</strong> {leave.reason}
+                                </span>
+                              </div>
+                            </div>
+                            <div className="space-y-2">
+                              <div className="flex items-center space-x-2">
+                                <span className={`px-3 py-1 rounded-full text-xs font-medium ${
+                                  leave.status === 'pending' ? 'bg-yellow-100 text-yellow-800' :
+                                  leave.status === 'approved' ? 'bg-green-100 text-green-800' :
+                                  'bg-red-100 text-red-800'
+                                }`}>
+                                  {leave.status.charAt(0).toUpperCase() + leave.status.slice(1)}
+                                </span>
+                              </div>
+                              {leave.reviewedBy && (
+                                <div className="text-sm text-slate-500">
+                                  <strong>Reviewed:</strong> {new Date(leave.reviewedAt).toLocaleDateString()}
+                                </div>
+                              )}
+                            </div>
+                          </div>
+
+                          {/* Description */}
+                          <div className="mt-4 p-3 bg-slate-50 rounded-lg">
+                            <p className="text-sm text-slate-700">
+                              <strong>Description:</strong> {leave.description}
+                            </p>
+                          </div>
+
+                          {/* Admin Comment */}
+                          {leave.adminComment && (
+                            <div className="mt-4 p-3 bg-blue-50 rounded-lg border border-blue-200">
+                              <p className="text-sm text-blue-700">
+                                <strong>Admin Comment:</strong> {leave.adminComment}
+                              </p>
+                            </div>
+                          )}
+                        </div>
+
+                        {/* Action Buttons */}
+                        {leave.status === 'pending' && (
+                          <div className="flex flex-col space-y-2 ml-4">
+                            <button
+                              onClick={() => openLeaveModal(leave)}
+                              className="px-4 py-2 bg-emerald-500 hover:bg-emerald-600 text-white rounded-lg transition-colors duration-200 flex items-center space-x-2"
+                            >
+                              <CheckCircle className="w-4 h-4" />
+                              <span>Review</span>
+                            </button>
+                          </div>
+                        )}
+                      </div>
+
+                      {/* Application Date */}
+                      <div className="text-xs text-slate-400 border-t border-slate-100 pt-3">
+                        Applied on: {new Date(leave.createdAt).toLocaleString()}
+                      </div>
+                    </div>
+                  ))
+                )}
+              </div>
+            </div>
+          )}
         </div>
       </div>
 
@@ -1065,6 +1369,122 @@ function AdminDashboard() {
                     }`}
                   >
                     {selectedUser.isActive !== false ? 'DISABLE USER' : 'ENABLE USER'}
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Leave Review Modal */}
+      {showLeaveModal && selectedLeave && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-md flex items-center justify-center z-50 p-4">
+          <div className="bg-gradient-to-br from-amber-50/95 via-stone-50/95 to-slate-100/95 rounded-3xl shadow-2xl max-w-2xl w-full p-0 relative overflow-hidden border border-stone-200/50">
+            {/* Background Image */}
+            <div
+              className="absolute inset-0 bg-cover bg-center bg-no-repeat opacity-10"
+              style={{ backgroundImage: 'url(/assets/bg.png)' }}
+            />
+            {/* Background decorative elements */}
+            <div className="absolute top-10 right-10 w-32 h-32 bg-emerald-200/20 rounded-full blur-2xl" />
+            <div className="absolute bottom-10 left-10 w-24 h-24 bg-teal-200/20 rounded-full blur-2xl" />
+
+            <div className="relative z-10">
+              {/* Header */}
+              <div className="bg-gradient-to-r from-slate-800/5 via-stone-100/50 to-emerald-50/30 px-8 py-6 border-b border-stone-200/50">
+                <div className="flex justify-between items-center">
+                  <h3 className="text-3xl font-playfair font-bold text-slate-800">Review Leave Application</h3>
+                  <button
+                    onClick={closeLeaveModal}
+                    className="p-2 text-slate-500 hover:text-slate-700 rounded-xl hover:bg-white/50 transition-all duration-200"
+                  >
+                    <X className="w-6 h-6" />
+                  </button>
+                </div>
+              </div>
+
+              {/* Content */}
+              <div className="p-8">
+                {/* Leave Details */}
+                <div className="space-y-6">
+                  {/* Seller Info */}
+                  <div className="flex items-center space-x-4 p-4 bg-white/60 rounded-xl border border-stone-200/50">
+                    <div className="w-12 h-12 bg-emerald-100 rounded-full flex items-center justify-center">
+                      <Users className="w-6 h-6 text-emerald-600" />
+                    </div>
+                    <div>
+                      <p className="font-semibold text-slate-900 text-lg">{selectedLeave.seller?.name}</p>
+                      <p className="text-sm text-slate-600">{selectedLeave.seller?.email}</p>
+                    </div>
+                  </div>
+
+                  {/* Leave Information */}
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div className="space-y-4">
+                      <div className="p-4 bg-white/60 rounded-xl border border-stone-200/50">
+                        <p className="text-sm text-slate-600 mb-1">Leave Type</p>
+                        <p className="font-semibold text-slate-900 capitalize">{selectedLeave.type}</p>
+                      </div>
+                      <div className="p-4 bg-white/60 rounded-xl border border-stone-200/50">
+                        <p className="text-sm text-slate-600 mb-1">Duration</p>
+                        <p className="font-semibold text-slate-900">
+                          {new Date(selectedLeave.startDate).toLocaleDateString()} - {new Date(selectedLeave.endDate).toLocaleDateString()}
+                        </p>
+                      </div>
+                    </div>
+                    <div className="space-y-4">
+                      <div className="p-4 bg-white/60 rounded-xl border border-stone-200/50">
+                        <p className="text-sm text-slate-600 mb-1">Reason</p>
+                        <p className="font-semibold text-slate-900">{selectedLeave.reason}</p>
+                      </div>
+                      <div className="p-4 bg-white/60 rounded-xl border border-stone-200/50">
+                        <p className="text-sm text-slate-600 mb-1">Applied On</p>
+                        <p className="font-semibold text-slate-900">
+                          {new Date(selectedLeave.createdAt).toLocaleDateString()}
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Description */}
+                  <div className="p-4 bg-white/60 rounded-xl border border-stone-200/50">
+                    <p className="text-sm text-slate-600 mb-2">Description</p>
+                    <p className="text-slate-900">{selectedLeave.description}</p>
+                  </div>
+
+                  {/* Admin Comment */}
+                  <div className="p-4 bg-white/60 rounded-xl border border-stone-200/50">
+                    <label className="block text-sm text-slate-600 mb-2">Admin Comment (Optional)</label>
+                    <textarea
+                      value={leaveComment}
+                      onChange={(e) => setLeaveComment(e.target.value)}
+                      className="w-full px-4 py-3 border border-stone-300/50 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 bg-white/80 backdrop-blur-sm"
+                      rows="3"
+                      placeholder="Add a comment about your decision..."
+                    />
+                  </div>
+                </div>
+
+                {/* Action Buttons */}
+                <div className="flex justify-end space-x-4 mt-8 pt-6 border-t border-stone-200/50">
+                  <button
+                    onClick={closeLeaveModal}
+                    className="px-8 py-3 bg-stone-200/80 hover:bg-stone-300/80 text-stone-700 font-bold rounded-xl transition-all duration-300 border border-stone-300/50 hover:border-stone-400/50"
+                  >
+                    CANCEL
+                  </button>
+                  <button
+                    onClick={() => handleLeaveAction(selectedLeave._id, 'rejected', leaveComment)}
+                    className="px-8 py-3 bg-red-600 hover:bg-red-700 text-white font-bold rounded-xl transition-all duration-300 border-2 border-red-700 hover:border-red-800 shadow-lg hover:shadow-red-200"
+                  >
+                    REJECT
+                  </button>
+                  <button
+                    onClick={() => handleLeaveAction(selectedLeave._id, 'approved', leaveComment)}
+                    className="px-8 py-3 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl transition-all duration-300 border-2 border-emerald-700 hover:border-emerald-800 shadow-lg hover:shadow-emerald-200"
+                  >
+                    APPROVE
                   </button>
                 </div>
               </div>

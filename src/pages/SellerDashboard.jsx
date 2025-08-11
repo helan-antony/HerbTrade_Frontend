@@ -6,7 +6,7 @@ import {
   Calendar, Clock, MapPin, Phone, Mail, Camera, Lock, Search,
   Filter, Download, Upload, RefreshCw, AlertCircle, Info,
   ChevronDown, ChevronUp, MoreVertical, Edit, Delete,
-  Store, Heart
+  Store, Heart, CalendarDays, FileText, Image
 } from 'lucide-react';
 import { toast } from 'react-toastify';
 
@@ -19,8 +19,23 @@ const SellerDashboard = () => {
   const [openProductDialog, setOpenProductDialog] = useState(false);
   const [editingProduct, setEditingProduct] = useState(null);
   const [newProduct, setNewProduct] = useState({
-    name: '', category: '', price: '', inStock: '', description: '', image: '', uses: [], quality: 'Standard'
+    name: '', category: '', price: '', inStock: '', description: '', image: '', uses: [], quality: 'Standard', grade: 'A',
+    // Medicine-specific fields
+    dosageForm: '', // tablet, capsule, syrup, powder, oil
+    strength: '', // e.g., 500mg, 10ml
+    activeIngredients: [], // main ingredients
+    indications: [], // what it treats
+    dosage: '', // how to take
+    contraindications: '', // when not to use
+    sideEffects: '', // possible side effects
+    expiryDate: '',
+    batchNumber: '',
+    manufacturer: '',
+    licenseNumber: '',
+    quantityUnit: 'grams' // grams for herbs, count for medicines
   });
+  const [selectedImageFile, setSelectedImageFile] = useState(null);
+  const [imagePreviewUrl, setImagePreviewUrl] = useState('');
   const [sellerProfile, setSellerProfile] = useState(null);
   const [editingProfile, setEditingProfile] = useState(false);
   const [profileForm, setProfileForm] = useState({
@@ -35,6 +50,18 @@ const SellerDashboard = () => {
   const [sortBy, setSortBy] = useState('name');
   const [sortOrder, setSortOrder] = useState('asc');
   const [snackbar, setSnackbar] = useState({ open: false, message: '', severity: 'success' });
+  
+  // Leave management states
+  const [leaves, setLeaves] = useState([]);
+  const [openLeaveDialog, setOpenLeaveDialog] = useState(false);
+  const [leaveForm, setLeaveForm] = useState({
+    startDate: '',
+    endDate: '',
+    reason: '',
+    type: 'sick', // sick, personal, vacation, emergency
+    description: ''
+  });
+  
   const navigate = useNavigate();
   const location = useLocation();
 
@@ -55,16 +82,18 @@ const SellerDashboard = () => {
       const token = localStorage.getItem('token');
       const headers = { 'Authorization': `Bearer ${token}` };
 
-      const [productsRes, ordersRes, statsRes, profileRes] = await Promise.all([
+      const [productsRes, ordersRes, statsRes, profileRes, leavesRes] = await Promise.all([
         fetch('http://localhost:5000/api/seller/products', { headers }),
         fetch('http://localhost:5000/api/seller/orders', { headers }),
         fetch('http://localhost:5000/api/seller/stats', { headers }),
-        fetch('http://localhost:5000/api/seller/profile', { headers })
+        fetch('http://localhost:5000/api/seller/profile', { headers }),
+        fetch('http://localhost:5000/api/seller/leaves', { headers })
       ]);
 
       if (productsRes.ok) setProducts(await productsRes.json());
       if (ordersRes.ok) setOrders(await ordersRes.json());
       if (statsRes.ok) setStats(await statsRes.json());
+      if (leavesRes.ok) setLeaves(await leavesRes.json());
       if (profileRes.ok) {
         const profile = await profileRes.json();
         setSellerProfile(profile);
@@ -93,7 +122,123 @@ const SellerDashboard = () => {
     setSnackbar({ ...snackbar, open: false });
   };
 
+  // Handle image file selection
+  const handleImageFileSelect = (event) => {
+    const file = event.target.files[0];
+    processImageFile(file);
+  };
+
+  // Process image file (used by both file input and drag & drop)
+  const processImageFile = (file) => {
+    if (!file) return;
+
+    // Validate file type
+    if (!file.type.startsWith('image/')) {
+      showSnackbar('Please select an image file', 'error');
+      return;
+    }
+
+    // Validate file size (max 5MB)
+    if (file.size > 5 * 1024 * 1024) {
+      showSnackbar('File size must be less than 5MB', 'error');
+      return;
+    }
+
+    setSelectedImageFile(file);
+
+    // Create preview URL
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      setImagePreviewUrl(e.target.result);
+      setNewProduct({ ...newProduct, image: e.target.result });
+    };
+    reader.readAsDataURL(file);
+  };
+
+  // Handle drag and drop
+  const handleDragOver = (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+  };
+
+  const handleDragEnter = (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+  };
+
+  const handleDragLeave = (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+  };
+
+  const handleDrop = (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    
+    const files = e.dataTransfer.files;
+    if (files && files[0]) {
+      processImageFile(files[0]);
+    }
+  };
+
+  // Remove selected image file
+  const handleRemoveImageFile = () => {
+    setSelectedImageFile(null);
+    setImagePreviewUrl('');
+    setNewProduct({ ...newProduct, image: '' });
+  };
+
+  // Convert file to base64 for upload
+  const convertToBase64 = (file) => {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.readAsDataURL(file);
+      reader.onload = () => resolve(reader.result);
+      reader.onerror = (error) => reject(error);
+    });
+  };
+
   const handleAddProduct = async () => {
+    // Basic validation
+    if (!newProduct.name || !newProduct.category || !newProduct.price || !newProduct.inStock || !newProduct.description) {
+      showSnackbar('Please fill in all required fields', 'error');
+      return;
+    }
+
+    // Image validation - require either uploaded file or URL
+    if (!selectedImageFile && !newProduct.image) {
+      showSnackbar('Please upload an image or provide an image URL', 'error');
+      return;
+    }
+
+    // Medicine-specific validation
+    if (newProduct.category === 'Medicines') {
+      if (!newProduct.dosageForm || !newProduct.strength || !newProduct.manufacturer || 
+          !newProduct.licenseNumber || !newProduct.batchNumber || !newProduct.expiryDate ||
+          !newProduct.activeIngredients.length || !newProduct.indications.length || !newProduct.dosage) {
+        showSnackbar('Please fill in all required medicine fields', 'error');
+        return;
+      }
+
+      // Check expiry date is in future
+      const expiryDate = new Date(newProduct.expiryDate);
+      const today = new Date();
+      if (expiryDate <= today) {
+        showSnackbar('Expiry date must be in the future', 'error');
+        return;
+      }
+    }
+
+    if (parseFloat(newProduct.price) <= 0) {
+      showSnackbar('Price must be greater than 0', 'error');
+      return;
+    }
+
+    if (parseInt(newProduct.inStock) < 0) {
+      showSnackbar(newProduct.category === 'Medicines' ? 'Stock quantity cannot be negative' : 'Stock weight cannot be negative', 'error');
+      return;
+    }
+
     try {
       const token = localStorage.getItem('token');
       const response = await fetch('http://localhost:5000/api/products', {
@@ -108,9 +253,21 @@ const SellerDashboard = () => {
       if (response.ok) {
         const product = await response.json();
         setProducts([product, ...products]);
-        setNewProduct({ name: '', category: '', price: '', inStock: '', description: '', image: '', uses: [], quality: 'Standard' });
+        setNewProduct({ 
+          name: '', category: '', price: '', inStock: '', description: '', image: '', uses: [], quality: 'Standard', grade: 'A',
+          dosageForm: '', strength: '', activeIngredients: [], indications: [], dosage: '', contraindications: '', 
+          sideEffects: '', expiryDate: '', batchNumber: '', manufacturer: '', licenseNumber: '', quantityUnit: 'grams'
+        });
+        
+        // Clear image upload states
+        setSelectedImageFile(null);
+        setImagePreviewUrl('');
+        
         setOpenProductDialog(false);
         showSnackbar('Product added successfully!');
+        
+        // Notify other components about the new product
+        window.dispatchEvent(new Event('productAdded'));
       } else {
         const error = await response.json();
         showSnackbar(error.error || 'Failed to add product', 'error');
@@ -122,6 +279,46 @@ const SellerDashboard = () => {
   };
 
   const handleEditProduct = async () => {
+    // Basic validation
+    if (!newProduct.name || !newProduct.category || !newProduct.price || !newProduct.inStock || !newProduct.description) {
+      showSnackbar('Please fill in all required fields', 'error');
+      return;
+    }
+
+    // Image validation - require either uploaded file or URL
+    if (!selectedImageFile && !newProduct.image) {
+      showSnackbar('Please upload an image or provide an image URL', 'error');
+      return;
+    }
+
+    // Medicine-specific validation
+    if (newProduct.category === 'Medicines') {
+      if (!newProduct.dosageForm || !newProduct.strength || !newProduct.manufacturer || 
+          !newProduct.licenseNumber || !newProduct.batchNumber || !newProduct.expiryDate ||
+          !newProduct.activeIngredients.length || !newProduct.indications.length || !newProduct.dosage) {
+        showSnackbar('Please fill in all required medicine fields', 'error');
+        return;
+      }
+
+      // Check expiry date is in future
+      const expiryDate = new Date(newProduct.expiryDate);
+      const today = new Date();
+      if (expiryDate <= today) {
+        showSnackbar('Expiry date must be in the future', 'error');
+        return;
+      }
+    }
+
+    if (parseFloat(newProduct.price) <= 0) {
+      showSnackbar('Price must be greater than 0', 'error');
+      return;
+    }
+
+    if (parseInt(newProduct.inStock) < 0) {
+      showSnackbar(newProduct.category === 'Medicines' ? 'Stock quantity cannot be negative' : 'Stock weight cannot be negative', 'error');
+      return;
+    }
+
     try {
       const token = localStorage.getItem('token');
       const response = await fetch(`http://localhost:5000/api/seller/products/${editingProduct._id}`, {
@@ -137,9 +334,21 @@ const SellerDashboard = () => {
         const updatedProduct = await response.json();
         setProducts(products.map(p => p._id === updatedProduct._id ? updatedProduct : p));
         setEditingProduct(null);
-        setNewProduct({ name: '', category: '', price: '', inStock: '', description: '', image: '', uses: [], quality: 'Standard' });
+        setNewProduct({ 
+          name: '', category: '', price: '', inStock: '', description: '', image: '', uses: [], quality: 'Standard', grade: 'A',
+          dosageForm: '', strength: '', activeIngredients: [], indications: [], dosage: '', contraindications: '', 
+          sideEffects: '', expiryDate: '', batchNumber: '', manufacturer: '', licenseNumber: '', quantityUnit: 'grams'
+        });
+        
+        // Clear image upload states
+        setSelectedImageFile(null);
+        setImagePreviewUrl('');
+        
         setOpenProductDialog(false);
         showSnackbar('Product updated successfully!');
+        
+        // Notify other components about the product update
+        window.dispatchEvent(new Event('productUpdated'));
       } else {
         const error = await response.json();
         showSnackbar(error.error || 'Failed to update product', 'error');
@@ -163,6 +372,9 @@ const SellerDashboard = () => {
       if (response.ok) {
         setProducts(products.filter(p => p._id !== productId));
         showSnackbar('Product deleted successfully!');
+        
+        // Notify other components about the product deletion
+        window.dispatchEvent(new Event('productDeleted'));
       } else {
         const error = await response.json();
         showSnackbar(error.error || 'Failed to delete product', 'error');
@@ -210,14 +422,48 @@ const SellerDashboard = () => {
       description: product.description,
       image: product.image,
       uses: product.uses || [],
-      quality: product.quality || 'Standard'
+      quality: product.quality || 'Standard',
+      grade: product.grade || 'A',
+      // Medicine-specific fields
+      dosageForm: product.dosageForm || '',
+      strength: product.strength || '',
+      activeIngredients: product.activeIngredients || [],
+      indications: product.indications || [],
+      dosage: product.dosage || '',
+      contraindications: product.contraindications || '',
+      sideEffects: product.sideEffects || '',
+      expiryDate: product.expiryDate ? product.expiryDate.split('T')[0] : '',
+      batchNumber: product.batchNumber || '',
+      manufacturer: product.manufacturer || '',
+      licenseNumber: product.licenseNumber || '',
+      quantityUnit: product.quantityUnit || 'grams'
     });
+    
+    // Clear file upload states and set image preview if product has image URL
+    setSelectedImageFile(null);
+    if (product.image && product.image.startsWith('http')) {
+      setImagePreviewUrl('');
+    } else if (product.image) {
+      setImagePreviewUrl(product.image);
+    } else {
+      setImagePreviewUrl('');
+    }
+    
     setOpenProductDialog(true);
   };
 
   const resetProductForm = () => {
     setEditingProduct(null);
-    setNewProduct({ name: '', category: '', price: '', inStock: '', description: '', image: '', uses: [], quality: 'Standard' });
+    setNewProduct({ 
+      name: '', category: '', price: '', inStock: '', description: '', image: '', uses: [], quality: 'Standard', grade: 'A',
+      dosageForm: '', strength: '', activeIngredients: [], indications: [], dosage: '', contraindications: '', 
+      sideEffects: '', expiryDate: '', batchNumber: '', manufacturer: '', licenseNumber: '', quantityUnit: 'grams'
+    });
+    
+    // Clear image upload states
+    setSelectedImageFile(null);
+    setImagePreviewUrl('');
+    
     setOpenProductDialog(false);
   };
 
@@ -294,6 +540,99 @@ const SellerDashboard = () => {
       console.error('Error changing password:', error);
       showSnackbar('Failed to change password', 'error');
     }
+  };
+
+  // Leave management functions
+  const handleApplyLeave = async () => {
+    // Validation
+    if (!leaveForm.startDate || !leaveForm.endDate || !leaveForm.reason || !leaveForm.description) {
+      showSnackbar('Please fill in all required fields', 'error');
+      return;
+    }
+
+    const startDate = new Date(leaveForm.startDate);
+    const endDate = new Date(leaveForm.endDate);
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    if (startDate < today) {
+      showSnackbar('Start date cannot be in the past', 'error');
+      return;
+    }
+
+    if (endDate < startDate) {
+      showSnackbar('End date cannot be before start date', 'error');
+      return;
+    }
+
+    try {
+      const token = localStorage.getItem('token');
+      const response = await fetch('http://localhost:5000/api/seller/leaves', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(leaveForm)
+      });
+
+      if (response.ok) {
+        const newLeave = await response.json();
+        setLeaves([newLeave, ...leaves]);
+        setLeaveForm({
+          startDate: '',
+          endDate: '',
+          reason: '',
+          type: 'sick',
+          description: ''
+        });
+        setOpenLeaveDialog(false);
+        showSnackbar('Leave application submitted successfully! Admin will review and send email notification.');
+      } else {
+        const error = await response.json();
+        showSnackbar(error.error || 'Failed to apply for leave', 'error');
+      }
+    } catch (error) {
+      console.error('Error applying for leave:', error);
+      showSnackbar('Failed to apply for leave', 'error');
+    }
+  };
+
+  const resetLeaveForm = () => {
+    setLeaveForm({
+      startDate: '',
+      endDate: '',
+      reason: '',
+      type: 'sick',
+      description: ''
+    });
+    setOpenLeaveDialog(false);
+  };
+
+  const getLeaveStatusColor = (status) => {
+    switch (status) {
+      case 'approved': return 'bg-green-100 text-green-800';
+      case 'rejected': return 'bg-red-100 text-red-800';
+      case 'pending': return 'bg-yellow-100 text-yellow-800';
+      default: return 'bg-gray-100 text-gray-800';
+    }
+  };
+
+  const getLeaveTypeColor = (type) => {
+    switch (type) {
+      case 'sick': return 'bg-red-100 text-red-800';
+      case 'personal': return 'bg-blue-100 text-blue-800';
+      case 'vacation': return 'bg-green-100 text-green-800';
+      case 'emergency': return 'bg-orange-100 text-orange-800';
+      default: return 'bg-gray-100 text-gray-800';
+    }
+  };
+
+  const calculateLeaveDays = (startDate, endDate) => {
+    const start = new Date(startDate);
+    const end = new Date(endDate);
+    const timeDiff = end.getTime() - start.getTime();
+    return Math.ceil(timeDiff / (1000 * 3600 * 24)) + 1;
   };
 
   // Filter and sort products
@@ -428,6 +767,7 @@ const SellerDashboard = () => {
                 { id: 'products', label: 'Products', icon: Package },
                 { id: 'orders', label: 'Orders', icon: ShoppingCart },
                 { id: 'analytics', label: 'Analytics', icon: TrendingUp },
+                { id: 'leaves', label: 'Leave Management', icon: CalendarDays },
                 { id: 'profile', label: 'Profile', icon: User }
               ].map((tab) => (
                 <button
@@ -569,7 +909,7 @@ const SellerDashboard = () => {
                   <option value="name-desc">Name Z-A</option>
                   <option value="price-asc">Price Low-High</option>
                   <option value="price-desc">Price High-Low</option>
-                  <option value="inStock-desc">Stock High-Low</option>
+                  <option value="inStock-desc">Weight High-Low</option>
                 </select>
               </div>
             </div>
@@ -581,6 +921,8 @@ const SellerDashboard = () => {
                   <tr>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Product</th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Category</th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Quality</th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Grade</th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Price</th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Stock</th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
@@ -590,7 +932,7 @@ const SellerDashboard = () => {
                 <tbody className="bg-white divide-y divide-gray-200">
                   {filteredProducts.length === 0 ? (
                     <tr>
-                      <td colSpan={6} className="px-6 py-12 text-center text-gray-500">
+                      <td colSpan={8} className="px-6 py-12 text-center text-gray-500">
                         No products found
                       </td>
                     </tr>
@@ -617,11 +959,27 @@ const SellerDashboard = () => {
                               {product.category}
                             </span>
                           </td>
+                          <td className="px-6 py-4 whitespace-nowrap">
+                            <span className="inline-flex px-2 py-1 text-xs font-medium bg-blue-100 text-blue-800 rounded-full">
+                              {product.quality || 'Standard'}
+                            </span>
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap">
+                            <span className="inline-flex px-2 py-1 text-xs font-medium bg-emerald-100 text-emerald-800 rounded-full">
+                              {product.grade || 'A'}
+                            </span>
+                          </td>
                           <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                            ${product.price}
+                            ₹{product.price}
                           </td>
                           <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                            {product.inStock || product.stock || 0}
+                            {(() => {
+                              const stock = product.inStock || product.stock || 0;
+                              if (product.category === 'Medicines') {
+                                return `${stock} ${product.dosageForm || 'units'}`;
+                              }
+                              return stock < 1000 ? `${stock}g` : `${(stock/1000).toFixed(1)}kg`;
+                            })()}
                           </td>
                           <td className="px-6 py-4 whitespace-nowrap">
                             <span className={`inline-flex px-2 py-1 text-xs font-medium rounded-full ${stockStatus.color}`}>
@@ -1008,6 +1366,139 @@ const SellerDashboard = () => {
             </div>
           </div>
         )}
+
+        {/* Leave Management Tab */}
+        {activeTab === 'leaves' && (
+          <div className="bg-white rounded-2xl shadow-lg p-6">
+            <div className="flex items-center justify-between mb-6">
+              <h2 className="text-xl font-bold text-gray-900 flex items-center">
+                <CalendarDays className="w-6 h-6 mr-2 text-emerald-600" />
+                Leave Management
+              </h2>
+              <button
+                onClick={() => setOpenLeaveDialog(true)}
+                className="bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 rounded-lg flex items-center space-x-2 transition-colors"
+              >
+                <Plus className="w-4 h-4" />
+                <span>Apply for Leave</span>
+              </button>
+            </div>
+
+            {/* Leave Statistics */}
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+              <div className="bg-blue-50 p-4 rounded-xl">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-blue-600 text-sm font-medium">Total Applied</p>
+                    <p className="text-2xl font-bold text-blue-700">{leaves.length}</p>
+                  </div>
+                  <FileText className="w-8 h-8 text-blue-500" />
+                </div>
+              </div>
+              <div className="bg-green-50 p-4 rounded-xl">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-green-600 text-sm font-medium">Approved</p>
+                    <p className="text-2xl font-bold text-green-700">
+                      {leaves.filter(leave => leave.status === 'approved').length}
+                    </p>
+                  </div>
+                  <CheckCircle className="w-8 h-8 text-green-500" />
+                </div>
+              </div>
+              <div className="bg-yellow-50 p-4 rounded-xl">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-yellow-600 text-sm font-medium">Pending</p>
+                    <p className="text-2xl font-bold text-yellow-700">
+                      {leaves.filter(leave => leave.status === 'pending').length}
+                    </p>
+                  </div>
+                  <Clock className="w-8 h-8 text-yellow-500" />
+                </div>
+              </div>
+              <div className="bg-red-50 p-4 rounded-xl">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-red-600 text-sm font-medium">Rejected</p>
+                    <p className="text-2xl font-bold text-red-700">
+                      {leaves.filter(leave => leave.status === 'rejected').length}
+                    </p>
+                  </div>
+                  <X className="w-8 h-8 text-red-500" />
+                </div>
+              </div>
+            </div>
+
+            {/* Leave Applications List */}
+            <div className="overflow-x-auto">
+              <table className="w-full">
+                <thead className="bg-gray-50">
+                  <tr>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Type</th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Dates</th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Days</th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Reason</th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Applied On</th>
+                  </tr>
+                </thead>
+                <tbody className="bg-white divide-y divide-gray-200">
+                  {leaves.length === 0 ? (
+                    <tr>
+                      <td colSpan={6} className="px-6 py-12 text-center text-gray-500">
+                        <CalendarDays className="w-12 h-12 text-gray-300 mx-auto mb-4" />
+                        <p className="text-lg font-medium">No leave applications yet</p>
+                        <p className="text-sm">Click "Apply for Leave" to submit your first application</p>
+                      </td>
+                    </tr>
+                  ) : (
+                    leaves.map((leave) => (
+                      <tr key={leave._id} className="hover:bg-gray-50">
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <span className={`inline-flex px-2 py-1 text-xs font-medium rounded-full ${getLeaveTypeColor(leave.type)}`}>
+                            {leave.type.charAt(0).toUpperCase() + leave.type.slice(1)}
+                          </span>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                          <div>
+                            <div className="font-medium">
+                              {new Date(leave.startDate).toLocaleDateString()} - {new Date(leave.endDate).toLocaleDateString()}
+                            </div>
+                          </div>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                          {calculateLeaveDays(leave.startDate, leave.endDate)} days
+                        </td>
+                        <td className="px-6 py-4 text-sm text-gray-900">
+                          <div className="max-w-xs">
+                            <div className="font-medium">{leave.reason}</div>
+                            {leave.description && (
+                              <div className="text-gray-500 text-xs mt-1 truncate">{leave.description}</div>
+                            )}
+                          </div>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <span className={`inline-flex px-2 py-1 text-xs font-medium rounded-full ${getLeaveStatusColor(leave.status)}`}>
+                            {leave.status.charAt(0).toUpperCase() + leave.status.slice(1)}
+                          </span>
+                          {leave.adminComment && (
+                            <div className="text-xs text-gray-500 mt-1">
+                              Admin: {leave.adminComment}
+                            </div>
+                          )}
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                          {new Date(leave.createdAt).toLocaleDateString()}
+                        </td>
+                      </tr>
+                    ))
+                  )}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Product Dialog */}
@@ -1023,34 +1514,48 @@ const SellerDashboard = () => {
             <div className="p-6 space-y-4">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Product Name</label>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Product Name <span className="text-red-500">*</span>
+                  </label>
                   <input
                     type="text"
                     value={newProduct.name}
                     onChange={(e) => setNewProduct({ ...newProduct, name: e.target.value })}
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
                     placeholder="Enter product name"
+                    required
                   />
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Category</label>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Category <span className="text-red-500">*</span>
+                  </label>
                   <select
                     value={newProduct.category}
-                    onChange={(e) => setNewProduct({ ...newProduct, category: e.target.value })}
+                    onChange={(e) => setNewProduct({ 
+                      ...newProduct, 
+                      category: e.target.value,
+                      quantityUnit: e.target.value === 'Medicines' ? 'count' : 'grams'
+                    })}
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
                   >
                     <option value="">Select Category</option>
                     <option value="Herbs">Herbs</option>
                     <option value="Spices">Spices</option>
+                    <option value="Roots">Roots</option>
+                    <option value="Leaves">Leaves</option>
                     <option value="Medicinal">Medicinal</option>
-                    <option value="Organic">Organic</option>
+                    <option value="Medicines">Ayurvedic Medicines</option>
                     <option value="Essential Oils">Essential Oils</option>
+                    <option value="Organic">Organic</option>
                   </select>
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Price ($)</label>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Price (₹) <span className="text-red-500">*</span>
+                  </label>
                   <input
                     type="number"
                     step="0.01"
@@ -1062,14 +1567,22 @@ const SellerDashboard = () => {
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Stock Quantity</label>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    {newProduct.category === 'Medicines' ? 'Stock Quantity (count)' : 'Stock Weight (grams)'} <span className="text-red-500">*</span>
+                  </label>
                   <input
                     type="number"
                     value={newProduct.inStock}
                     onChange={(e) => setNewProduct({ ...newProduct, inStock: e.target.value })}
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
-                    placeholder="0"
+                    placeholder={newProduct.category === 'Medicines' ? 'Enter quantity (e.g., 100 tablets)' : 'Enter weight in grams (e.g., 500)'}
                   />
+                  <p className="text-sm text-gray-500 mt-1">
+                    {newProduct.category === 'Medicines' 
+                      ? 'Enter number of units (tablets, capsules, bottles, etc.)'
+                      : 'Enter weight in grams (1000g = 1kg)'
+                    }
+                  </p>
                 </div>
 
                 <div>
@@ -1086,19 +1599,129 @@ const SellerDashboard = () => {
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Image URL</label>
-                  <input
-                    type="url"
-                    value={newProduct.image}
-                    onChange={(e) => setNewProduct({ ...newProduct, image: e.target.value })}
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Grade</label>
+                  <select
+                    value={newProduct.grade}
+                    onChange={(e) => setNewProduct({ ...newProduct, grade: e.target.value })}
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
-                    placeholder="https://example.com/image.jpg"
-                  />
+                  >
+                    <option value="A">Grade A</option>
+                    <option value="A+">Grade A+</option>
+                    <option value="Premium">Premium Grade</option>
+                  </select>
+                </div>
+
+                <div className="md:col-span-2">
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Product Image <span className="text-red-500">*</span>
+                  </label>
+                  
+                  {/* File Upload Area */}
+                  <div 
+                    className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center hover:border-emerald-500 transition-colors"
+                    onDragOver={handleDragOver}
+                    onDragEnter={handleDragEnter}
+                    onDragLeave={handleDragLeave}
+                    onDrop={handleDrop}
+                  >
+                    {!imagePreviewUrl ? (
+                      <div>
+                        <Image className="mx-auto h-12 w-12 text-gray-400 mb-4" />
+                        <div className="space-y-2">
+                          <p className="text-sm text-gray-600">
+                            <label htmlFor="image-upload" className="cursor-pointer text-emerald-600 hover:text-emerald-500 font-medium">
+                              Click to upload
+                            </label>
+                            {' '}or drag and drop
+                          </p>
+                          <p className="text-xs text-gray-500">PNG, JPG, GIF up to 5MB</p>
+                        </div>
+                        <input
+                          id="image-upload"
+                          type="file"
+                          accept="image/*"
+                          onChange={handleImageFileSelect}
+                          className="hidden"
+                        />
+                      </div>
+                    ) : (
+                      <div className="space-y-4">
+                        <div className="relative inline-block">
+                          <img
+                            src={imagePreviewUrl}
+                            alt="Product preview"
+                            className="w-32 h-32 object-cover rounded-lg border border-gray-200"
+                          />
+                          <button
+                            type="button"
+                            onClick={handleRemoveImageFile}
+                            className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full p-1 hover:bg-red-600 transition-colors"
+                          >
+                            <X className="w-4 h-4" />
+                          </button>
+                        </div>
+                        <div>
+                          <p className="text-sm text-gray-600 mb-2">
+                            {selectedImageFile?.name}
+                          </p>
+                          <label htmlFor="image-upload-replace" className="cursor-pointer text-emerald-600 hover:text-emerald-500 font-medium text-sm">
+                            Replace image
+                          </label>
+                          <input
+                            id="image-upload-replace"
+                            type="file"
+                            accept="image/*"
+                            onChange={handleImageFileSelect}
+                            className="hidden"
+                          />
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                  
+                  {/* Alternative: Image URL input (optional) */}
+                  <div className="mt-4">
+                    <div className="flex items-center justify-between mb-2">
+                      <label className="block text-sm font-medium text-gray-700">
+                        Or enter image URL
+                      </label>
+                      <span className="text-xs text-gray-500">Optional</span>
+                    </div>
+                    <input
+                      type="url"
+                      value={!selectedImageFile ? newProduct.image : ''}
+                      onChange={(e) => {
+                        if (!selectedImageFile) {
+                          setNewProduct({ ...newProduct, image: e.target.value });
+                        }
+                      }}
+                      disabled={!!selectedImageFile}
+                      className={`w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 ${
+                        selectedImageFile ? 'bg-gray-100 cursor-not-allowed' : ''
+                      }`}
+                      placeholder="https://example.com/image.jpg"
+                    />
+                    {newProduct.image && !selectedImageFile && (
+                      <div className="mt-2">
+                        <p className="text-sm text-gray-600 mb-1">URL Preview:</p>
+                        <img
+                          src={newProduct.image}
+                          alt="Product preview"
+                          className="w-20 h-20 object-cover rounded-lg border border-gray-200"
+                          onError={(e) => {
+                            e.target.style.display = 'none';
+                          }}
+                        />
+                      </div>
+                    )}
+                  </div>
                 </div>
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Description</label>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Description <span className="text-red-500">*</span>
+                </label>
                 <textarea
                   rows={3}
                   value={newProduct.description}
@@ -1122,6 +1745,205 @@ const SellerDashboard = () => {
                 />
                 <p className="text-sm text-gray-500 mt-1">Enter uses separated by commas</p>
               </div>
+
+              {/* Medicine-specific fields */}
+              {newProduct.category === 'Medicines' && (
+                <div className="bg-purple-50 border border-purple-200 rounded-lg p-6 space-y-4">
+                  <h4 className="text-lg font-semibold text-purple-800 mb-4 flex items-center">
+                    <FileText className="w-5 h-5 mr-2" />
+                    Ayurvedic Medicine Details
+                  </h4>
+                  
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                        Dosage Form <span className="text-red-500">*</span>
+                      </label>
+                      <select
+                        value={newProduct.dosageForm}
+                        onChange={(e) => setNewProduct({ ...newProduct, dosageForm: e.target.value })}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
+                        required
+                      >
+                        <option value="">Select Dosage Form</option>
+                        <option value="tablet">Tablet</option>
+                        <option value="capsule">Capsule</option>
+                        <option value="syrup">Syrup</option>
+                        <option value="powder">Powder</option>
+                        <option value="oil">Oil</option>
+                        <option value="churna">Churna</option>
+                        <option value="vati">Vati</option>
+                        <option value="kashayam">Kashayam</option>
+                        <option value="ghrita">Ghrita</option>
+                        <option value="asava">Asava/Arishta</option>
+                      </select>
+                    </div>
+
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                        Strength <span className="text-red-500">*</span>
+                      </label>
+                      <input
+                        type="text"
+                        value={newProduct.strength}
+                        onChange={(e) => setNewProduct({ ...newProduct, strength: e.target.value })}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
+                        placeholder="e.g., 500mg, 10ml, 250mg per tablet"
+                        required
+                      />
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                        Manufacturer <span className="text-red-500">*</span>
+                      </label>
+                      <input
+                        type="text"
+                        value={newProduct.manufacturer}
+                        onChange={(e) => setNewProduct({ ...newProduct, manufacturer: e.target.value })}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
+                        placeholder="Manufacturer name"
+                        required
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                        License Number <span className="text-red-500">*</span>
+                      </label>
+                      <input
+                        type="text"
+                        value={newProduct.licenseNumber}
+                        onChange={(e) => setNewProduct({ ...newProduct, licenseNumber: e.target.value })}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
+                        placeholder="Manufacturing license number"
+                        required
+                      />
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                        Batch Number <span className="text-red-500">*</span>
+                      </label>
+                      <input
+                        type="text"
+                        value={newProduct.batchNumber}
+                        onChange={(e) => setNewProduct({ ...newProduct, batchNumber: e.target.value })}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
+                        placeholder="Batch number"
+                        required
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                        Expiry Date <span className="text-red-500">*</span>
+                      </label>
+                      <input
+                        type="date"
+                        value={newProduct.expiryDate}
+                        onChange={(e) => setNewProduct({ ...newProduct, expiryDate: e.target.value })}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
+                        min={new Date().toISOString().split('T')[0]}
+                        required
+                      />
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Active Ingredients <span className="text-red-500">*</span>
+                    </label>
+                    <input
+                      type="text"
+                      value={Array.isArray(newProduct.activeIngredients) ? newProduct.activeIngredients.join(', ') : newProduct.activeIngredients}
+                      onChange={(e) => setNewProduct({
+                        ...newProduct,
+                        activeIngredients: e.target.value.split(',').map(ingredient => ingredient.trim()).filter(ingredient => ingredient)
+                      })}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
+                      placeholder="Ashwagandha, Brahmi, Shankhpushpi"
+                      required
+                    />
+                    <p className="text-sm text-gray-500 mt-1">Enter main ingredients separated by commas</p>
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Indications <span className="text-red-500">*</span>
+                    </label>
+                    <input
+                      type="text"
+                      value={Array.isArray(newProduct.indications) ? newProduct.indications.join(', ') : newProduct.indications}
+                      onChange={(e) => setNewProduct({
+                        ...newProduct,
+                        indications: e.target.value.split(',').map(indication => indication.trim()).filter(indication => indication)
+                      })}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
+                      placeholder="Stress relief, Memory enhancement, Anxiety"
+                      required
+                    />
+                    <p className="text-sm text-gray-500 mt-1">What conditions this medicine treats</p>
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Dosage Instructions <span className="text-red-500">*</span>
+                    </label>
+                    <textarea
+                      rows={2}
+                      value={newProduct.dosage}
+                      onChange={(e) => setNewProduct({ ...newProduct, dosage: e.target.value })}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
+                      placeholder="1-2 tablets twice daily after meals or as directed by physician"
+                      required
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Contraindications</label>
+                    <textarea
+                      rows={2}
+                      value={newProduct.contraindications}
+                      onChange={(e) => setNewProduct({ ...newProduct, contraindications: e.target.value })}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
+                      placeholder="Not recommended during pregnancy, avoid with certain medications..."
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Side Effects</label>
+                    <textarea
+                      rows={2}
+                      value={newProduct.sideEffects}
+                      onChange={(e) => setNewProduct({ ...newProduct, sideEffects: e.target.value })}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
+                      placeholder="Mild stomach upset, drowsiness (rare)..."
+                    />
+                  </div>
+                </div>
+              )}
+              
+              <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                <div className="flex items-start">
+                  <Info className="w-5 h-5 text-blue-600 mt-0.5 mr-2 flex-shrink-0" />
+                  <div className="text-sm text-blue-800">
+                    <p className="font-medium mb-1">Product Guidelines:</p>
+                    <ul className="list-disc list-inside space-y-1 text-blue-700">
+                      <li>Fields marked with <span className="text-red-500">*</span> are required</li>
+                      <li>Enter stock weight in grams (e.g., 500g = 0.5kg)</li>
+                      <li>Price should be per gram (customers buy by weight)</li>
+                      <li>Use high-quality images for better product visibility</li>
+                      <li>Provide detailed descriptions to help customers understand your product</li>
+                      <li>List specific uses to help customers find your product through search</li>
+                    </ul>
+                  </div>
+                </div>
+              </div>
             </div>
 
             <div className="flex justify-end space-x-4 p-6 bg-gray-50 rounded-b-2xl">
@@ -1136,6 +1958,144 @@ const SellerDashboard = () => {
                 className="px-6 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg transition-colors"
               >
                 {editingProduct ? 'Update Product' : 'Add Product'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Leave Application Dialog */}
+      {openLeaveDialog && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+          <div className="bg-white rounded-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+            <div className="bg-emerald-600 text-white p-6 rounded-t-2xl">
+              <h3 className="text-xl font-bold flex items-center">
+                <CalendarDays className="w-6 h-6 mr-2" />
+                Apply for Leave
+              </h3>
+            </div>
+            
+            <div className="p-6 space-y-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Leave Type <span className="text-red-500">*</span>
+                  </label>
+                  <select
+                    value={leaveForm.type}
+                    onChange={(e) => setLeaveForm({ ...leaveForm, type: e.target.value })}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
+                    required
+                  >
+                    <option value="sick">Sick Leave</option>
+                    <option value="personal">Personal Leave</option>
+                    <option value="vacation">Vacation</option>
+                    <option value="emergency">Emergency Leave</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Reason <span className="text-red-500">*</span>
+                  </label>
+                  <input
+                    type="text"
+                    value={leaveForm.reason}
+                    onChange={(e) => setLeaveForm({ ...leaveForm, reason: e.target.value })}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
+                    placeholder="Brief reason for leave"
+                    required
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Start Date <span className="text-red-500">*</span>
+                  </label>
+                  <input
+                    type="date"
+                    value={leaveForm.startDate}
+                    onChange={(e) => setLeaveForm({ ...leaveForm, startDate: e.target.value })}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
+                    min={new Date().toISOString().split('T')[0]}
+                    required
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    End Date <span className="text-red-500">*</span>
+                  </label>
+                  <input
+                    type="date"
+                    value={leaveForm.endDate}
+                    onChange={(e) => setLeaveForm({ ...leaveForm, endDate: e.target.value })}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
+                    min={leaveForm.startDate || new Date().toISOString().split('T')[0]}
+                    required
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Detailed Description <span className="text-red-500">*</span>
+                </label>
+                <textarea
+                  value={leaveForm.description}
+                  onChange={(e) => setLeaveForm({ ...leaveForm, description: e.target.value })}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
+                  rows={4}
+                  placeholder="Provide detailed explanation for your leave request..."
+                  required
+                />
+              </div>
+
+              {leaveForm.startDate && leaveForm.endDate && (
+                <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                  <div className="flex items-center">
+                    <Info className="w-5 h-5 text-blue-600 mr-2" />
+                    <div className="text-sm text-blue-800">
+                      <p className="font-medium">Leave Duration: {calculateLeaveDays(leaveForm.startDate, leaveForm.endDate)} days</p>
+                      <p className="text-blue-600">
+                        From {new Date(leaveForm.startDate).toLocaleDateString()} to {new Date(leaveForm.endDate).toLocaleDateString()}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
+                <div className="flex items-start">
+                  <AlertCircle className="w-5 h-5 text-yellow-600 mt-0.5 mr-2 flex-shrink-0" />
+                  <div className="text-sm text-yellow-800">
+                    <p className="font-medium mb-1">Important Notes:</p>
+                    <ul className="list-disc list-inside space-y-1 text-yellow-700">
+                      <li>Leave applications must be submitted at least 24 hours in advance</li>
+                      <li>Admin will review your application and send email notification</li>
+                      <li>Emergency leaves may be approved with shorter notice</li>
+                      <li>All fields marked with <span className="text-red-500">*</span> are required</li>
+                    </ul>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div className="flex justify-end space-x-4 p-6 bg-gray-50 rounded-b-2xl">
+              <button
+                onClick={resetLeaveForm}
+                className="px-6 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleApplyLeave}
+                className="px-6 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg transition-colors flex items-center space-x-2"
+              >
+                <CalendarDays className="w-4 h-4" />
+                <span>Submit Application</span>
               </button>
             </div>
           </div>
