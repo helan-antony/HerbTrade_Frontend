@@ -42,6 +42,38 @@ function EnhancedCart() {
   const [itemToRemove, setItemToRemove] = useState(null);
   const navigate = useNavigate();
 
+  // Helper function to extract product ID from cart item
+  const getProductId = (item) => {
+    if (item.productId && typeof item.productId === 'object' && item.productId._id) {
+      return item.productId._id;
+    } else if (item.product && typeof item.product === 'object' && item.product._id) {
+      return item.product._id;
+    } else if (typeof item.productId === 'string') {
+      return item.productId;
+    } else {
+      return item._id;
+    }
+  };
+
+  // Helper function to extract product data from cart item
+  const getProductData = (item) => {
+    if (item.productId && typeof item.productId === 'object' && item.productId._id) {
+      return item.productId;
+    } else if (item.product && typeof item.product === 'object' && item.product._id) {
+      return item.product;
+    } else if (typeof item.productId === 'string') {
+      return {
+        _id: item.productId,
+        name: item.productName || item.name,
+        image: item.productImage || item.image,
+        category: item.productCategory || item.category,
+        price: item.price
+      };
+    } else {
+      return item;
+    }
+  };
+
   useEffect(() => {
     if (!isAuthenticated()) {
       navigate('/login');
@@ -138,42 +170,44 @@ function EnhancedCart() {
   const updateQuantity = async (productId, newQuantity) => {
     // If quantity becomes 0 or less, trigger remove confirmation
     if (newQuantity < 1) {
-      const product = cartItems.find(item => {
-        const itemProductId = item.product?._id || item.productId || item._id;
-        return itemProductId === productId;
-      });
+      const product = cartItems.find(item => getProductId(item)?.toString() === productId?.toString());
       if (product) {
-        handleRemoveClick(product.product || product);
+        handleRemoveClick(getProductData(product));
       }
       return;
     }
 
+    // Ensure productId is a string
+    const cleanProductId = productId?.toString();
+    if (!cleanProductId) {
+      toast.error('Invalid product ID');
+      return;
+    }
+
+    console.log('Updating quantity for product:', cleanProductId, 'to quantity:', newQuantity);
+
     try {
-      await axios.put(`http://localhost:5000/api/cart/update/${productId}`,
+      await axios.put(`http://localhost:5000/api/cart/update/${cleanProductId}`,
         { quantity: newQuantity },
         { headers: getAuthHeaders() }
       );
 
       setCartItems(items =>
-        items.map(item => {
-          const itemProductId = item.product?._id || item.productId || item._id;
-          return itemProductId === productId
+        items.map(item => 
+          getProductId(item)?.toString() === cleanProductId
             ? { ...item, quantity: newQuantity }
-            : item;
-        })
+            : item
+        )
       );
 
       // Trigger navbar count update
       window.dispatchEvent(new Event('cartUpdated'));
 
       // Show subtle feedback for quantity update
-      const product = cartItems.find(item => {
-        const itemProductId = item.product?._id || item.productId || item._id;
-        return itemProductId === productId;
-      });
+      const product = cartItems.find(item => getProductId(item)?.toString() === cleanProductId);
 
       if (product) {
-        const productName = product.product?.name || product.name;
+        const productName = getProductData(product)?.name;
         toast.info(`Updated ${productName} quantity to ${newQuantity}`, {
           position: "bottom-right",
           autoClose: 2000,
@@ -193,12 +227,11 @@ function EnhancedCart() {
 
       // Fallback to local update
       setCartItems(items =>
-        items.map(item => {
-          const itemProductId = item.product?._id || item.productId || item._id;
-          return itemProductId === productId
+        items.map(item => 
+          getProductId(item)?.toString() === cleanProductId
             ? { ...item, quantity: newQuantity }
-            : item;
-        })
+            : item
+        )
       );
 
       // Trigger navbar count update
@@ -532,11 +565,12 @@ function EnhancedCart() {
             {/* Cart Items */}
             <div className="lg:col-span-2 space-y-6">
               {cartItems.map((item, index) => {
-                const product = item.product || item;
-                const imageUrl = item.product?.image || product?.image || item.image || item.productImage || 'https://via.placeholder.com/300x200/10b981/ffffff?text=Herb+Image';
+                const product = getProductData(item);
+                const productId = getProductId(item);
+                const imageUrl = product?.image || item.image || item.productImage || 'https://via.placeholder.com/300x200/10b981/ffffff?text=Herb+Image';
 
                 return (
-                  <div key={product._id} className="group bg-white/80 backdrop-blur-sm rounded-3xl shadow-lg hover:shadow-2xl transition-all duration-500 p-8 border border-white/50 hover:border-emerald-200/50">
+                  <div key={productId || index} className="group bg-white/80 backdrop-blur-sm rounded-3xl shadow-lg hover:shadow-2xl transition-all duration-500 p-8 border border-white/50 hover:border-emerald-200/50">
                     <div className="flex items-center space-x-8">
                       <div className="relative">
                         <img
@@ -569,16 +603,32 @@ function EnhancedCart() {
                         {/* Quantity Controls */}
                         <div className="flex items-center space-x-3 bg-slate-50 rounded-2xl p-2">
                           <button 
-                            onClick={() => updateQuantity(product._id, item.quantity - 1)}
+                            onClick={() => {
+                              const decrement = product.category === 'Medicines' ? 1 : 50; // 1 count for medicines, 50g for herbs
+                              updateQuantity(productId, Math.max(1, item.quantity - decrement));
+                            }}
                             className="w-12 h-12 bg-white hover:bg-slate-100 rounded-xl flex items-center justify-center transition-all duration-300 shadow-md hover:shadow-lg group/btn"
                           >
                             <FaMinus className="text-slate-600 group-hover/btn:scale-110 transition-transform duration-300" />
                           </button>
-                          <span className="w-16 text-center font-bold text-lg text-slate-900">
-                            {item.quantity < 1000 ? `${item.quantity}g` : `${(item.quantity/1000).toFixed(1)}kg`}
-                          </span>
+                          <div className="w-20 text-center">
+                            <span className="font-bold text-lg text-slate-900 block">
+                              {product.category === 'Medicines' 
+                                ? `${item.quantity}` 
+                                : item.quantity < 1000 
+                                  ? `${item.quantity}g` 
+                                  : `${(item.quantity/1000).toFixed(1)}kg`
+                              }
+                            </span>
+                            <span className="text-xs text-slate-500">
+                              {product.category === 'Medicines' ? 'count' : 'weight'}
+                            </span>
+                          </div>
                           <button 
-                            onClick={() => updateQuantity(product._id, item.quantity + 1)}
+                            onClick={() => {
+                              const increment = product.category === 'Medicines' ? 1 : 50; // 1 count for medicines, 50g for herbs
+                              updateQuantity(productId, item.quantity + increment);
+                            }}
                             className="w-12 h-12 bg-emerald-500 hover:bg-emerald-600 rounded-xl flex items-center justify-center transition-all duration-300 shadow-md hover:shadow-lg group/btn"
                           >
                             <FaPlus className="text-white group-hover/btn:scale-110 transition-transform duration-300" />
@@ -591,7 +641,7 @@ function EnhancedCart() {
                             ₹{(product.price * item.quantity).toFixed(2)}
                           </div>
                           <div className="text-sm text-slate-500 font-medium">
-                            ₹{product.price} per gram
+                            ₹{product.price} per {product.category === 'Medicines' ? 'unit' : 'gram'}
                           </div>
                         </div>
 
@@ -645,7 +695,10 @@ function EnhancedCart() {
                   </div>
                 </div>
 
-                <button className="w-full bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white font-bold py-5 rounded-2xl shadow-xl hover:shadow-2xl transform hover:-translate-y-1 transition-all duration-300 text-lg mb-6">
+                <button 
+                  onClick={() => navigate('/checkout')}
+                  className="w-full bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white font-bold py-5 rounded-2xl shadow-xl hover:shadow-2xl transform hover:-translate-y-1 transition-all duration-300 text-lg mb-6"
+                >
                   Proceed to Checkout
                 </button>
 

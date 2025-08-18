@@ -8,15 +8,31 @@ const API_BASE_URL = process.env.VITE_API_URL || 'http://localhost:5000';
 // Replace this with your new OAuth client ID from Google Cloud Console
 export const GOOGLE_CLIENT_ID = '402168891475-ag50v1vdjblsjhd317v8mrn2v9q3dc02.apps.googleusercontent.com';
 
-// Instructions to create a new OAuth client:
+// IMPORTANT: If you're getting "Access blocked: authorization error", follow these steps:
+// 
 // 1. Go to https://console.cloud.google.com/apis/credentials
-// 2. Click "Create Credentials" → "OAuth 2.0 Client ID"
-// 3. Choose "Web application"
-// 4. Add these JavaScript origins:
+// 2. Find your OAuth 2.0 Client ID and click on it
+// 3. Make sure these Authorized JavaScript origins are added:
 //    - http://localhost:5173
-//    - http://localhost:3000
+//    - http://localhost:3000  
 //    - http://localhost:5174
-// 5. Copy the new client ID and replace the one above
+//    - http://127.0.0.1:5173
+//    - http://127.0.0.1:3000
+// 
+// 4. Go to "OAuth consent screen" in the left sidebar:
+//    - If your app is in "Testing" mode, add your email to "Test users"
+//    - Make sure all required fields are filled out
+//    - Consider publishing your app if it's ready for production
+//
+// 5. Enable required APIs:
+//    - Go to "APIs & Services" → "Library"
+//    - Search for and enable "Google+ API" (if not already enabled)
+//
+// 6. If still having issues, try creating a new OAuth client:
+//    - Click "Create Credentials" → "OAuth 2.0 Client ID"
+//    - Choose "Web application"
+//    - Add the JavaScript origins listed above
+//    - Replace the GOOGLE_CLIENT_ID above with the new one
 
 export const API_ENDPOINTS = {
   BASE: API_BASE_URL,

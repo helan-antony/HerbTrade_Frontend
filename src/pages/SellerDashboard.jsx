@@ -54,6 +54,7 @@ const SellerDashboard = () => {
   // Leave management states
   const [leaves, setLeaves] = useState([]);
   const [openLeaveDialog, setOpenLeaveDialog] = useState(false);
+  const [leaveSubmitting, setLeaveSubmitting] = useState(false);
   const [leaveForm, setLeaveForm] = useState({
     startDate: '',
     endDate: '',
@@ -516,7 +517,7 @@ const SellerDashboard = () => {
 
     try {
       const token = localStorage.getItem('token');
-      const response = await fetch('http://localhost:5000/api/auth/change-password', {
+      const response = await fetch('http://localhost:5000/api/seller/change-password', {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -543,25 +544,39 @@ const SellerDashboard = () => {
   };
 
   // Leave management functions
+  const handleLeaveFormKeyDown = (e) => {
+    // Prevent Enter key from submitting form unless it's the submit button
+    if (e.key === 'Enter' && e.target.type !== 'submit') {
+      e.preventDefault();
+    }
+  };
+
   const handleApplyLeave = async () => {
+    if (leaveSubmitting) return; // Prevent double submission
+    
+    setLeaveSubmitting(true);
+    
     // Validation
     if (!leaveForm.startDate || !leaveForm.endDate || !leaveForm.reason || !leaveForm.description) {
       showSnackbar('Please fill in all required fields', 'error');
+      setLeaveSubmitting(false);
       return;
     }
 
-    const startDate = new Date(leaveForm.startDate);
-    const endDate = new Date(leaveForm.endDate);
+    const startDate = new Date(leaveForm.startDate + 'T00:00:00');
+    const endDate = new Date(leaveForm.endDate + 'T00:00:00');
     const today = new Date();
     today.setHours(0, 0, 0, 0);
 
     if (startDate < today) {
       showSnackbar('Start date cannot be in the past', 'error');
+      setLeaveSubmitting(false);
       return;
     }
 
     if (endDate < startDate) {
       showSnackbar('End date cannot be before start date', 'error');
+      setLeaveSubmitting(false);
       return;
     }
 
@@ -575,7 +590,7 @@ const SellerDashboard = () => {
         },
         body: JSON.stringify(leaveForm)
       });
-
+      
       if (response.ok) {
         const newLeave = await response.json();
         setLeaves([newLeave, ...leaves]);
@@ -588,13 +603,30 @@ const SellerDashboard = () => {
         });
         setOpenLeaveDialog(false);
         showSnackbar('Leave application submitted successfully! Admin will review and send email notification.');
+      } else if (response.status === 401) {
+        console.error('Authentication failed - token may be expired');
+        showSnackbar('Session expired. Please login again.', 'error');
+        // Don't redirect immediately, let user see the error
+        setTimeout(() => {
+          localStorage.removeItem('token');
+          localStorage.removeItem('user');
+          navigate('/login');
+        }, 2000);
       } else {
         const error = await response.json();
+        console.error('Leave application failed:', error);
+        console.error('Response details:', {
+          status: response.status,
+          statusText: response.statusText,
+          error: error
+        });
         showSnackbar(error.error || 'Failed to apply for leave', 'error');
       }
     } catch (error) {
       console.error('Error applying for leave:', error);
       showSnackbar('Failed to apply for leave', 'error');
+    } finally {
+      setLeaveSubmitting(false);
     }
   };
 
@@ -606,6 +638,7 @@ const SellerDashboard = () => {
       type: 'sick',
       description: ''
     });
+    setLeaveSubmitting(false);
     setOpenLeaveDialog(false);
   };
 
@@ -830,14 +863,14 @@ const SellerDashboard = () => {
                 </button>
               </div>
               <div className="space-y-4">
-                {orders.slice(0, 5).map((order) => (
-                  <div key={order._id} className="flex items-center justify-between p-4 bg-gray-50 rounded-xl">
+                {orders.slice(0, 5).map((order, index) => (
+                  <div key={order._id || `order-${index}`} className="flex items-center justify-between p-4 bg-gray-50 rounded-xl">
                     <div className="flex items-center space-x-4">
                       <div className="w-10 h-10 bg-emerald-100 rounded-full flex items-center justify-center">
                         <ShoppingCart className="w-5 h-5 text-emerald-600" />
                       </div>
                       <div>
-                        <p className="font-medium text-gray-900">#{order._id.slice(-6)}</p>
+                        <p className="font-medium text-gray-900">#{order._id ? order._id.slice(-6) : 'N/A'}</p>
                         <p className="text-sm text-gray-600">{order.user?.name || 'Unknown Customer'}</p>
                       </div>
                     </div>
@@ -937,10 +970,10 @@ const SellerDashboard = () => {
                       </td>
                     </tr>
                   ) : (
-                    filteredProducts.map((product) => {
+                    filteredProducts.map((product, index) => {
                       const stockStatus = getStockStatus(product.inStock || product.stock || 0);
                       return (
-                        <tr key={product._id} className="hover:bg-gray-50">
+                        <tr key={product._id || `product-${index}`} className="hover:bg-gray-50">
                           <td className="px-6 py-4 whitespace-nowrap">
                             <div className="flex items-center">
                               <img
@@ -1037,10 +1070,10 @@ const SellerDashboard = () => {
                       </td>
                     </tr>
                   ) : (
-                    orders.map((order) => (
-                      <tr key={order._id} className="hover:bg-gray-50">
+                    orders.map((order, index) => (
+                      <tr key={order._id || `order-detail-${index}`} className="hover:bg-gray-50">
                         <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                          #{order._id.slice(-6)}
+                          #{order._id ? order._id.slice(-6) : 'N/A'}
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap">
                           <div>
@@ -1055,7 +1088,7 @@ const SellerDashboard = () => {
                         <td className="px-6 py-4">
                           <div className="space-y-1">
                             {order.items?.map((item, index) => (
-                              <div key={index} className="text-sm text-gray-900">
+                              <div key={`${order._id}-item-${index}`} className="text-sm text-gray-900">
                                 {item.product?.name || item.productName} (x{item.quantity})
                               </div>
                             ))}
@@ -1453,34 +1486,37 @@ const SellerDashboard = () => {
                       </td>
                     </tr>
                   ) : (
-                    leaves.map((leave) => (
-                      <tr key={leave._id} className="hover:bg-gray-50">
+                    leaves.map((leave, index) => (
+                      <tr key={leave._id || `leave-${index}`} className="hover:bg-gray-50">
                         <td className="px-6 py-4 whitespace-nowrap">
-                          <span className={`inline-flex px-2 py-1 text-xs font-medium rounded-full ${getLeaveTypeColor(leave.type)}`}>
-                            {leave.type.charAt(0).toUpperCase() + leave.type.slice(1)}
+                          <span className={`inline-flex px-2 py-1 text-xs font-medium rounded-full ${getLeaveTypeColor(leave.type || 'sick')}`}>
+                            {leave.type ? leave.type.charAt(0).toUpperCase() + leave.type.slice(1) : 'Sick'}
                           </span>
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                           <div>
                             <div className="font-medium">
-                              {new Date(leave.startDate).toLocaleDateString()} - {new Date(leave.endDate).toLocaleDateString()}
+                              {leave.startDate && leave.endDate ? 
+                                `${new Date(leave.startDate).toLocaleDateString()} - ${new Date(leave.endDate).toLocaleDateString()}` : 
+                                'Date not available'
+                              }
                             </div>
                           </div>
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                          {calculateLeaveDays(leave.startDate, leave.endDate)} days
+                          {leave.startDate && leave.endDate ? calculateLeaveDays(leave.startDate, leave.endDate) : 0} days
                         </td>
                         <td className="px-6 py-4 text-sm text-gray-900">
                           <div className="max-w-xs">
-                            <div className="font-medium">{leave.reason}</div>
+                            <div className="font-medium">{leave.reason || 'No reason provided'}</div>
                             {leave.description && (
                               <div className="text-gray-500 text-xs mt-1 truncate">{leave.description}</div>
                             )}
                           </div>
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap">
-                          <span className={`inline-flex px-2 py-1 text-xs font-medium rounded-full ${getLeaveStatusColor(leave.status)}`}>
-                            {leave.status.charAt(0).toUpperCase() + leave.status.slice(1)}
+                          <span className={`inline-flex px-2 py-1 text-xs font-medium rounded-full ${getLeaveStatusColor(leave.status || 'pending')}`}>
+                            {leave.status ? leave.status.charAt(0).toUpperCase() + leave.status.slice(1) : 'Pending'}
                           </span>
                           {leave.adminComment && (
                             <div className="text-xs text-gray-500 mt-1">
@@ -1489,7 +1525,7 @@ const SellerDashboard = () => {
                           )}
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                          {new Date(leave.createdAt).toLocaleDateString()}
+                          {leave.createdAt ? new Date(leave.createdAt).toLocaleDateString() : 'Unknown'}
                         </td>
                       </tr>
                     ))
@@ -1975,7 +2011,7 @@ const SellerDashboard = () => {
               </h3>
             </div>
             
-            <div className="p-6 space-y-4">
+            <form onSubmit={(e) => { e.preventDefault(); handleApplyLeave(); }} onKeyDown={handleLeaveFormKeyDown} className="p-6 space-y-4">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
@@ -2081,23 +2117,36 @@ const SellerDashboard = () => {
                   </div>
                 </div>
               </div>
-            </div>
+              
+              <div className="flex justify-end space-x-4 pt-4">
+                <button
+                  type="button"
+                  onClick={resetLeaveForm}
+                  className="px-6 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={leaveSubmitting}
+                  className={`px-6 py-2 ${leaveSubmitting ? 'bg-gray-400 cursor-not-allowed' : 'bg-emerald-600 hover:bg-emerald-700'} text-white rounded-lg transition-colors flex items-center space-x-2`}
+                >
+                  {leaveSubmitting ? (
+                    <>
+                      <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                      <span>Submitting...</span>
+                    </>
+                  ) : (
+                    <>
+                      <CalendarDays className="w-4 h-4" />
+                      <span>Submit Application</span>
+                    </>
+                  )}
+                </button>
+              </div>
+            </form>
 
-            <div className="flex justify-end space-x-4 p-6 bg-gray-50 rounded-b-2xl">
-              <button
-                onClick={resetLeaveForm}
-                className="px-6 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors"
-              >
-                Cancel
-              </button>
-              <button
-                onClick={handleApplyLeave}
-                className="px-6 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg transition-colors flex items-center space-x-2"
-              >
-                <CalendarDays className="w-4 h-4" />
-                <span>Submit Application</span>
-              </button>
-            </div>
+            <div className="bg-gray-50 rounded-b-2xl h-2"></div>
           </div>
         </div>
       )}

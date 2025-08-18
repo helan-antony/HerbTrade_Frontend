@@ -86,26 +86,41 @@ function Login() {
 
     script.onload = () => {
       if (window.google && window.google.accounts) {
-        window.google.accounts.id.initialize({
-          client_id: GOOGLE_CLIENT_ID,
-          callback: handleGoogleResponse
-        });
+        try {
+          window.google.accounts.id.initialize({
+            client_id: GOOGLE_CLIENT_ID,
+            callback: handleGoogleResponse,
+            auto_select: false,
+            cancel_on_tap_outside: true,
+            use_fedcm_for_prompt: false
+          });
 
-        // Render the Google Sign-In button
-        const buttonElement = document.getElementById("google-signin-btn");
-        if (buttonElement) {
-          window.google.accounts.id.renderButton(
-            buttonElement,
-            {
-              theme: "outline",
-              size: "large",
-              type: 'standard',
-              width: 400,
-              text: 'continue_with'
-            }
-          );
+          // Render the Google Sign-In button
+          const buttonElement = document.getElementById("google-signin-btn");
+          if (buttonElement) {
+            window.google.accounts.id.renderButton(
+              buttonElement,
+              {
+                theme: "outline",
+                size: "large",
+                type: 'standard',
+                width: 400,
+                text: 'continue_with',
+                shape: 'rectangular',
+                logo_alignment: 'left'
+              }
+            );
+          }
+        } catch (error) {
+          console.error('Google Sign-In initialization error:', error);
+          setError('Google Sign-In is not available. Please try again later.');
         }
       }
+    };
+
+    script.onerror = () => {
+      console.error('Failed to load Google Sign-In script');
+      setError('Failed to load Google Sign-In. Please check your internet connection.');
     };
 
     return () => {
@@ -119,12 +134,30 @@ function Login() {
   async function handleGoogleResponse(response) {
     try {
       setLoading(true);
+      setError(''); // Clear any previous errors
+      
+      if (!response || !response.credential) {
+        throw new Error('No credential received from Google');
+      }
+
+      // Decode the JWT token from Google
       const base64Url = response.credential.split('.')[1];
       const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
       const jsonPayload = decodeURIComponent(atob(base64).split('').map(function(c) {
         return '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2);
       }).join(''));
       const googleUser = JSON.parse(jsonPayload);
+      
+      console.log('Google user data:', { 
+        name: googleUser.name, 
+        email: googleUser.email, 
+        verified: googleUser.email_verified 
+      });
+
+      // Validate required fields
+      if (!googleUser.email || !googleUser.name) {
+        throw new Error('Incomplete user data from Google');
+      }
       
       const res = await fetch(API_ENDPOINTS.AUTH.GOOGLE_AUTH, {
         method: 'POST',
@@ -133,14 +166,18 @@ function Login() {
           name: googleUser.name,
           email: googleUser.email,
           picture: googleUser.picture,
-          googleId: googleUser.sub
+          googleId: googleUser.sub,
+          emailVerified: googleUser.email_verified
         })
       });
       
       const data = await res.json();
-      if (data.token) {
+      
+      if (res.ok && data.token) {
         localStorage.setItem('token', data.token);
         localStorage.setItem('user', JSON.stringify(data.user));
+        
+        console.log('Google login successful for:', data.user.email);
         
         // Navigate based on user role
         if (data.user.role === 'admin') {
@@ -151,10 +188,12 @@ function Login() {
           navigate('/herbs');
         }
       } else {
-        setError(data.error || 'Google login failed');
+        console.error('Google login failed:', data);
+        setError(data.error || 'Google login failed. Please try again.');
       }
     } catch (err) {
-      setError('Google authentication failed');
+      console.error('Google authentication error:', err);
+      setError(`Google authentication failed: ${err.message}`);
     } finally {
       setLoading(false);
     }

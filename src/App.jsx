@@ -12,6 +12,8 @@ import Discussion from "./pages/Discussion";
 
 import EnhancedWishlist from "./pages/EnhancedWishlist";
 import EnhancedCart from "./pages/EnhancedCart";
+import Checkout from "./pages/Checkout";
+import OrderConfirmation from "./pages/OrderConfirmation";
 import HospitalBooking from "./pages/HospitalBooking";
 import ViewBookings from "./pages/ViewBookings";
 import EnhancedAdminDashboard from "./pages/EnhancedAdminDashboard";
@@ -80,6 +82,8 @@ function App() {
             <Route path="/blog" element={<ProtectedRoute><Blog /></ProtectedRoute>} />
             <Route path="/discussion" element={<ProtectedRoute><Discussion /></ProtectedRoute>} />
             <Route path="/cart" element={<ProtectedRoute><EnhancedCart /></ProtectedRoute>} />
+            <Route path="/checkout" element={<ProtectedRoute><Checkout /></ProtectedRoute>} />
+            <Route path="/order-confirmation/:orderId" element={<ProtectedRoute><OrderConfirmation /></ProtectedRoute>} />
             <Route path="/wishlist" element={<ProtectedRoute><EnhancedWishlist /></ProtectedRoute>} />
             <Route path="/logout" element={<ProtectedRoute><Logout /></ProtectedRoute>} />
             <Route path="/edit-profile" element={<ProtectedRoute><EditProfile /></ProtectedRoute>} />
