@@ -145,6 +145,13 @@ function EditProfile() {
     try {
       const user = JSON.parse(localStorage.getItem('user'));
       const token = localStorage.getItem('token');
+
+      // If a new file is selected, convert to base64, otherwise keep existing URL/string
+      let imageData = profilePic;
+      if (selectedFile) {
+        imageData = await convertToBase64(selectedFile);
+        setProfilePic(imageData); // keep state in sync
+      }
       
       const res = await fetch('http://localhost:5000/api/auth/profile', {
         method: 'PATCH',
@@ -152,13 +159,14 @@ function EditProfile() {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${token}`
         },
-        body: JSON.stringify({ name, phone, profilePic, email: user.email })
+        body: JSON.stringify({ name, phone, profilePic: imageData, email: user.email })
       });
       
       const data = await res.json();
       if (data.user) {
         localStorage.setItem('user', JSON.stringify(data.user));
         toast.success('Profile updated successfully!');
+        setSelectedFile(null);
         setTimeout(() => navigate('/profile'), 1500);
       } else {
         toast.error(data.error || 'Update failed');
@@ -306,9 +314,9 @@ function EditProfile() {
           <div className="text-center mb-8">
             <div className="relative inline-block">
               <div className="w-32 h-32 bg-gradient-to-br from-emerald-400 via-emerald-500 to-emerald-600 rounded-full flex items-center justify-center mx-auto mb-4 shadow-2xl border-4 border-white">
-                {profilePic ? (
+                {(previewUrl || profilePic) ? (
                   <img
-                    src={profilePic}
+                    src={previewUrl || profilePic}
                     alt="Profile"
                     className="w-full h-full rounded-full object-cover"
                   />
@@ -357,15 +365,43 @@ function EditProfile() {
             <div>
               <label className="flex items-center text-sm font-medium text-emerald-600 mb-3">
                 <FaImage className="mr-2" />
-                Profile Picture URL
+                Profile Picture
               </label>
-              <input
-                type="url"
-                value={profilePic}
-                onChange={(e) => setProfilePic(e.target.value)}
-                className="w-full px-6 py-4 bg-white/90 backdrop-blur-sm border-2 border-slate-200/50 rounded-2xl focus:ring-4 focus:ring-emerald-300/30 focus:border-emerald-500 transition-all duration-500 text-slate-700 shadow-sm hover:shadow-md focus:shadow-lg"
-                placeholder="Enter profile picture URL (optional)"
-              />
+              <div className="flex items-center gap-3">
+                <input
+                  id="profilePicInput"
+                  type="file"
+                  accept="image/*"
+                  onChange={handleFileSelect}
+                  className="hidden"
+                />
+                <button
+                  type="button"
+                  onClick={() => document.getElementById('profilePicInput')?.click()}
+                  className="relative z-10 px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl cursor-pointer transition-colors"
+                >
+                  <FaUpload className="inline mr-2" />
+                  Choose from device
+                </button>
+                {selectedFile && (
+                  <span className="text-sm text-slate-600 truncate max-w-[200px]">
+                    {selectedFile.name}
+                  </span>
+                )}
+                {selectedFile && (
+                  <button
+                    type="button"
+                    onClick={handleRemoveFile}
+                    className="px-3 py-2 bg-slate-200 hover:bg-slate-300 text-slate-700 rounded-xl transition-colors"
+                  >
+                    <FaTrash className="inline mr-1" />
+                    Remove
+                  </button>
+                )}
+              </div>
+              <p className="text-xs text-slate-500 mt-2">
+                Max size 5MB. JPG, PNG, or GIF.
+              </p>
             </div>
 
             <div>

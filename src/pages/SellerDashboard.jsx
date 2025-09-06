@@ -592,8 +592,9 @@ const SellerDashboard = () => {
       });
       
       if (response.ok) {
-        const newLeave = await response.json();
-        setLeaves([newLeave, ...leaves]);
+        const data = await response.json();
+        const createdLeave = data.leave || data; // support either {leave} or direct leave
+        setLeaves([createdLeave, ...leaves]);
         setLeaveForm({
           startDate: '',
           endDate: '',
@@ -647,6 +648,7 @@ const SellerDashboard = () => {
       case 'approved': return 'bg-green-100 text-green-800';
       case 'rejected': return 'bg-red-100 text-red-800';
       case 'pending': return 'bg-yellow-100 text-yellow-800';
+      case 'cancelled': return 'bg-gray-200 text-gray-800';
       default: return 'bg-gray-100 text-gray-800';
     }
   };
@@ -666,6 +668,62 @@ const SellerDashboard = () => {
     const end = new Date(endDate);
     const timeDiff = end.getTime() - start.getTime();
     return Math.ceil(timeDiff / (1000 * 3600 * 24)) + 1;
+  };
+
+  // Cancel a pending leave (DELETE /leaves/:id)
+  const handleCancelPendingLeave = async (leaveId) => {
+    if (!leaveId) return;
+    if (!window.confirm('Cancel this pending leave request?')) return;
+    try {
+      const token = localStorage.getItem('token');
+      const res = await fetch(`http://localhost:5000/api/seller/leaves/${leaveId}`, {
+        method: 'DELETE',
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      if (res.ok) {
+        const data = await res.json();
+        const updated = data.leave || null;
+        if (updated) {
+          setLeaves(prev => prev.map(l => l._id === updated._id ? updated : l));
+        } else {
+          setLeaves(prev => prev.map(l => l._id === leaveId ? { ...l, status: 'cancelled' } : l));
+        }
+        showSnackbar('Leave cancelled successfully');
+      } else {
+        const err = await res.json();
+        showSnackbar(err.error || 'Failed to cancel leave', 'error');
+      }
+    } catch (e) {
+      console.error('Cancel pending leave error:', e);
+      showSnackbar('Failed to cancel leave', 'error');
+    }
+  };
+
+  // Cancel an approved leave before it starts (PUT /leaves/:id/cancel)
+  const handleCancelApprovedLeave = async (leaveId) => {
+    if (!leaveId) return;
+    if (!window.confirm('Cancel this approved leave? This is only allowed before the start date.')) return;
+    try {
+      const token = localStorage.getItem('token');
+      const res = await fetch(`http://localhost:5000/api/seller/leaves/${leaveId}/cancel`, {
+        method: 'PUT',
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      if (res.ok) {
+        const data = await res.json();
+        const updated = data.leave || null;
+        if (updated) {
+          setLeaves(prev => prev.map(l => l._id === updated._id ? updated : l));
+        }
+        showSnackbar('Leave cancelled successfully');
+      } else {
+        const err = await res.json();
+        showSnackbar(err.error || 'Failed to cancel approved leave', 'error');
+      }
+    } catch (e) {
+      console.error('Cancel approved leave error:', e);
+      showSnackbar('Failed to cancel approved leave', 'error');
+    }
   };
 
   // Filter and sort products
@@ -1515,9 +1573,36 @@ const SellerDashboard = () => {
                           </div>
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap">
-                          <span className={`inline-flex px-2 py-1 text-xs font-medium rounded-full ${getLeaveStatusColor(leave.status || 'pending')}`}>
-                            {leave.status ? leave.status.charAt(0).toUpperCase() + leave.status.slice(1) : 'Pending'}
-                          </span>
+                          <div className="flex items-center gap-3">
+                            <span className={`inline-flex px-2 py-1 text-xs font-medium rounded-full ${getLeaveStatusColor(leave.status || 'pending')}`}>
+                              {leave.status ? leave.status.charAt(0).toUpperCase() + leave.status.slice(1) : 'Pending'}
+                            </span>
+                            {/* Cancel actions */}
+                            {leave.status === 'pending' && (
+                              <button
+                                onClick={() => handleCancelPendingLeave(leave._id)}
+                                className="inline-flex items-center gap-1 text-red-700 bg-red-50 hover:bg-red-100 border border-red-200 px-2.5 py-1 rounded-full text-xs font-medium transition-colors"
+                                title="Cancel this pending leave"
+                              >
+                                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="w-3.5 h-3.5">
+                                  <path fillRule="evenodd" d="M12 2.25a9.75 9.75 0 1 0 0 19.5 9.75 9.75 0 0 0 0-19.5ZM8.47 8.47a.75.75 0 0 1 1.06 0L12 10.94l2.47-2.47a.75.75 0 1 1 1.06 1.06L13.06 12l2.47 2.47a.75.75 0 1 1-1.06 1.06L12 13.06l-2.47 2.47a.75.75 0 0 1-1.06-1.06L10.94 12 8.47 9.53a.75.75 0 0 1 0-1.06Z" clipRule="evenodd" />
+                                </svg>
+                                Cancel
+                              </button>
+                            )}
+                            {leave.status === 'approved' && new Date() < new Date(leave.startDate) && (
+                              <button
+                                onClick={() => handleCancelApprovedLeave(leave._id)}
+                                className="inline-flex items-center gap-1 text-red-700 bg-red-50 hover:bg-red-100 border border-red-200 px-2.5 py-1 rounded-full text-xs font-medium transition-colors"
+                                title="Cancel this approved leave (before start date)"
+                              >
+                                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="w-3.5 h-3.5">
+                                  <path fillRule="evenodd" d="M12 2.25a9.75 9.75 0 1 0 0 19.5 9.75 9.75 0 0 0 0-19.5ZM8.47 8.47a.75.75 0 0 1 1.06 0L12 10.94l2.47-2.47a.75.75 0 1 1 1.06 1.06L13.06 12l2.47 2.47a.75.75 0 1 1-1.06 1.06L12 13.06l-2.47 2.47a.75.75 0 0 1-1.06-1.06L10.94 12 8.47 9.53a.75.75 0 0 1 0-1.06Z" clipRule="evenodd" />
+                                </svg>
+                                Cancel
+                              </button>
+                            )}
+                          </div>
                           {leave.adminComment && (
                             <div className="text-xs text-gray-500 mt-1">
                               Admin: {leave.adminComment}
