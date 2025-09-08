@@ -136,15 +136,37 @@ function HerbCatalog() {
   };
 
   const addToCart = async (product, quantity = 1) => {
+    const token = localStorage.getItem('token');
+    if (!token) {
+      toast.error('Please login to add items to cart');
+      return;
+    }
+
+    console.log('Adding to cart:', { productId: product._id, quantity });
+
+    // Capture old state for revert
+    const oldCart = [...cart];
+
+    // Optimistic update: Update local state and storage first
+    const existingItem = cart.find(item => item.product._id === product._id);
+    let newCart;
+
+    if (existingItem) {
+      newCart = cart.map(item =>
+        item.product._id === product._id
+          ? { ...item, quantity: item.quantity + quantity }
+          : item
+      );
+    } else {
+      newCart = [...cart, { product, quantity }];
+    }
+
+    console.log('Optimistically updating local cart:', newCart);
+    setCart(newCart);
+    saveCartToStorage(newCart);
+    toast.success(`${product.name} added to cart!`);
+
     try {
-      const token = localStorage.getItem('token');
-      if (!token) {
-        toast.error('Please login to add items to cart');
-        return;
-      }
-
-      console.log('Adding to cart:', { productId: product._id, quantity });
-
       // Add to backend
       const response = await fetch('http://localhost:5000/api/cart/add', {
         method: 'POST',
@@ -162,34 +184,35 @@ function HerbCatalog() {
       const responseData = await response.json();
       console.log('Backend response data:', responseData);
 
-      if (response.ok) {
-        // Update local state
-        const existingItem = cart.find(item => item.product._id === product._id);
-        let newCart;
-
-        if (existingItem) {
-          newCart = cart.map(item =>
-            item.product._id === product._id
-              ? { ...item, quantity: item.quantity + quantity }
-              : item
-          );
-        } else {
-          newCart = [...cart, { product, quantity }];
-        }
-
-        console.log('Updating local cart:', newCart);
-        setCart(newCart);
-        saveCartToStorage(newCart);
-        toast.success(`${product.name} added to cart!`);
-      } else {
+      if (!response.ok) {
+        // Revert optimistic update on failure
         console.error('Backend error:', responseData);
+        setCart(oldCart);
+        saveCartToStorage(oldCart);
         toast.error(responseData.message || 'Failed to add to cart');
       }
+      // If successful, keep the optimistic update
     } catch (error) {
       console.error('Error adding to cart:', error);
+      // Revert optimistic update on network error
+      setCart(oldCart);
+      saveCartToStorage(oldCart);
       toast.error('Failed to add item to cart');
     }
   };
+
+  // Listen for cartUpdated event to refresh cart state
+  useEffect(() => {
+    const handleCartUpdate = () => {
+      loadCartFromStorage();
+    };
+
+    window.addEventListener('cartUpdated', handleCartUpdate);
+
+    return () => {
+      window.removeEventListener('cartUpdated', handleCartUpdate);
+    };
+  }, []);
 
   const removeFromCart = (productId) => {
     const newCart = cart.filter(item => item.product._id !== productId);
@@ -213,34 +236,50 @@ function HerbCatalog() {
   };
 
   const toggleWishlist = async (product) => {
+    const token = localStorage.getItem('token');
+    if (!token) {
+      toast.error('Please login to manage wishlist');
+      return;
+    }
+
+    const isInWishlist = wishlist.some(item => item._id === product._id);
+    const oldWishlist = [...wishlist]; // Capture old state for revert
+
+    let newWishlist;
+    let action;
+
+    if (isInWishlist) {
+      // Optimistic remove
+      newWishlist = wishlist.filter(item => item._id !== product._id);
+      action = 'remove';
+    } else {
+      // Optimistic add
+      newWishlist = [...wishlist, product];
+      action = 'add';
+    }
+
+    // Update state and storage optimistically
+    setWishlist(newWishlist);
+    saveWishlistToStorage(newWishlist);
+
+    if (action === 'remove') {
+      toast.info(`${product.name} removed from wishlist`);
+    } else {
+      toast.success(`${product.name} added to wishlist!`);
+    }
+
     try {
-      const token = localStorage.getItem('token');
-      if (!token) {
-        toast.error('Please login to manage wishlist');
-        return;
-      }
-
-      const isInWishlist = wishlist.some(item => item._id === product._id);
-
-      if (isInWishlist) {
-        // Remove from wishlist
-        const response = await fetch(`http://localhost:5000/api/wishlist/remove/${product._id}`, {
+      let response;
+      if (action === 'remove') {
+        response = await fetch(`http://localhost:5000/api/wishlist/remove/${product._id}`, {
           method: 'DELETE',
           headers: {
             'Authorization': `Bearer ${token}`,
             'Content-Type': 'application/json'
           }
         });
-
-        if (response.ok) {
-          const newWishlist = wishlist.filter(item => item._id !== product._id);
-          setWishlist(newWishlist);
-          saveWishlistToStorage(newWishlist);
-          toast.info(`${product.name} removed from wishlist`);
-        }
       } else {
-        // Add to wishlist
-        const response = await fetch('http://localhost:5000/api/wishlist/add', {
+        response = await fetch('http://localhost:5000/api/wishlist/add', {
           method: 'POST',
           headers: {
             'Authorization': `Bearer ${token}`,
@@ -248,21 +287,23 @@ function HerbCatalog() {
           },
           body: JSON.stringify({ productId: product._id })
         });
-
-        if (response.ok) {
-          await response.json(); // Consume the response
-          const newWishlist = [...wishlist, product];
-          setWishlist(newWishlist);
-          saveWishlistToStorage(newWishlist);
-          toast.success(`${product.name} added to wishlist!`);
-        } else {
-          const errorData = await response.json();
-          toast.error(errorData.message || 'Failed to add to wishlist');
-        }
       }
+
+      if (!response.ok) {
+        // Revert optimistic update on failure
+        const errorData = await response.json();
+        console.error('Backend error:', errorData);
+        setWishlist(oldWishlist);
+        saveWishlistToStorage(oldWishlist);
+        toast.error(errorData.message || `Failed to ${action} to wishlist`);
+      }
+      // If successful, keep the optimistic update
     } catch (error) {
       console.error('Error updating wishlist:', error);
-      toast.error('Failed to update wishlist');
+      // Revert optimistic update on network error
+      setWishlist(oldWishlist);
+      saveWishlistToStorage(oldWishlist);
+      toast.error(`Failed to ${action} to wishlist`);
     }
   };
 
