@@ -10,6 +10,7 @@ import {
 } from "react-icons/fa";
 import { useState, useEffect } from "react";
 import axios from "axios";
+import API_ENDPOINTS, { apiCall } from "../config/api";
 import { toast, ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 import { getAuthHeaders, logout } from '../utils/auth';
@@ -110,29 +111,58 @@ function HerbCatalog() {
   };
 
   const saveCartToStorage = (newCart) => {
-    // Save in both formats for compatibility
-    localStorage.setItem('herbtradeCart', JSON.stringify(newCart));
+    try {
+      // Compact product snapshot to reduce storage size
+      const compactCart = newCart.map(item => ({
+        product: {
+          _id: item.product._id,
+          name: item.product.name,
+          price: item.product.price,
+          image: item.product.image,
+          category: item.product.category,
+        },
+        quantity: item.quantity || 1,
+      }));
 
-    // Save in the format expected by Cart page (keep nested structure)
-    const cartItems = newCart.map(item => ({
-      _id: `cart-${item.product._id}-${Date.now()}`,
-      productId: item.product._id,
-      quantity: item.quantity,
-      product: item.product // Keep the full product object nested
-    }));
-    localStorage.setItem('cartItems', JSON.stringify(cartItems));
+      // Save a single authoritative key (avoid duplicating large data)
+      localStorage.setItem('herbtradeCart', JSON.stringify(compactCart));
 
-    // Trigger navbar count update
-    console.log('Dispatching cartUpdated event');
-    window.dispatchEvent(new Event('cartUpdated'));
+      // Save in Cart page format but keep product compact
+      const cartItems = compactCart.map((item, index) => ({
+        _id: `cart-${item.product._id}-${Date.now()}-${index}`,
+        productId: item.product._id,
+        quantity: item.quantity,
+        product: item.product,
+      }));
+      localStorage.setItem('cartItems', JSON.stringify(cartItems));
+
+      // Trigger navbar count update
+      window.dispatchEvent(new Event('cartUpdated'));
+    } catch (e) {
+      console.error('saveCartToStorage quota error:', e);
+      toast.error('Storage is full. Could not save cart locally.');
+      // Best-effort: at least update the count without saving bulky data
+      window.dispatchEvent(new Event('cartUpdated'));
+    }
   };
 
   const saveWishlistToStorage = (newWishlist) => {
-    localStorage.setItem('herbtradeWishlist', JSON.stringify(newWishlist));
-    localStorage.setItem('wishlistItems', JSON.stringify(newWishlist));
-    
-    // Trigger navbar count update
-    window.dispatchEvent(new Event('wishlistUpdated'));
+    try {
+      const compact = newWishlist.map(item => ({
+        _id: item._id,
+        name: item.name,
+        price: item.price,
+        image: item.image,
+        category: item.category,
+      }));
+      localStorage.setItem('herbtradeWishlist', JSON.stringify(compact));
+      localStorage.setItem('wishlistItems', JSON.stringify(compact));
+      window.dispatchEvent(new Event('wishlistUpdated'));
+    } catch (e) {
+      console.error('saveWishlistToStorage quota error:', e);
+      toast.error('Storage is full. Could not save wishlist locally.');
+      window.dispatchEvent(new Event('wishlistUpdated'));
+    }
   };
 
   const addToCart = async (product, quantity = 1) => {
@@ -145,24 +175,20 @@ function HerbCatalog() {
 
       console.log('Adding to cart:', { productId: product._id, quantity });
 
-      // Add to backend
-      const response = await fetch('http://localhost:5000/api/cart/add', {
+      // Add to backend (use centralized API helper)
+      const response = await apiCall(API_ENDPOINTS.CART.ADD, {
         method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
-          productId: product._id,
-          quantity: quantity
-        })
+        body: JSON.stringify({ productId: product._id, quantity })
       });
 
-      console.log('Backend response status:', response.status);
-      const responseData = await response.json();
-      console.log('Backend response data:', responseData);
+      let responseData = null;
+      try {
+        responseData = await response.json();
+      } catch (_) {
+        // Some success responses may have no body
+      }
 
-      if (response.ok) {
+      if (response.ok && (responseData?.success !== false)) {
         // Update local state
         const existingItem = cart.find(item => item.product._id === product._id);
         let newCart;
@@ -182,8 +208,9 @@ function HerbCatalog() {
         saveCartToStorage(newCart);
         toast.success(`${product.name} added to cart!`);
       } else {
+        const errorMsg = responseData?.message || responseData?.error || `Failed to add to cart (status ${response.status})`;
         console.error('Backend error:', responseData);
-        toast.error(responseData.message || 'Failed to add to cart');
+        toast.error(errorMsg);
       }
     } catch (error) {
       console.error('Error adding to cart:', error);
@@ -239,25 +266,27 @@ function HerbCatalog() {
           toast.info(`${product.name} removed from wishlist`);
         }
       } else {
-        // Add to wishlist
-        const response = await fetch('http://localhost:5000/api/wishlist/add', {
+        // Add to wishlist (use centralized API helper)
+        const response = await apiCall(API_ENDPOINTS.WISHLIST.ADD, {
           method: 'POST',
-          headers: {
-            'Authorization': `Bearer ${token}`,
-            'Content-Type': 'application/json'
-          },
           body: JSON.stringify({ productId: product._id })
         });
 
-        if (response.ok) {
-          await response.json(); // Consume the response
+        let responseData = null;
+        try {
+          responseData = await response.json();
+        } catch (_) {
+          // Some success responses may have no body
+        }
+
+        if (response.ok && (responseData?.success !== false)) {
           const newWishlist = [...wishlist, product];
           setWishlist(newWishlist);
           saveWishlistToStorage(newWishlist);
           toast.success(`${product.name} added to wishlist!`);
         } else {
-          const errorData = await response.json();
-          toast.error(errorData.message || 'Failed to add to wishlist');
+          const errorMsg = responseData?.message || responseData?.error || `Failed to add to wishlist (status ${response.status})`;
+          toast.error(errorMsg);
         }
       }
     } catch (error) {
