@@ -258,9 +258,13 @@ function Navbar() {
                         aria-expanded={isMenuOpen}
                         aria-haspopup="true"
                       >
-                        <div className="w-10 h-10 rounded-full bg-gradient-to-br from-emerald-500 via-teal-500 to-cyan-500 flex items-center justify-center text-white font-bold text-sm shadow-lg glow-emerald">
-                          {user.name?.charAt(0) || 'A'}
-                        </div>
+                        {user.profilePic ? (
+                          <img src={user.profilePic} alt={user.name || 'User'} className="w-10 h-10 rounded-full object-cover shadow-lg" />
+                        ) : (
+                          <div className="w-10 h-10 rounded-full bg-gradient-to-br from-emerald-500 via-teal-500 to-cyan-500 flex items-center justify-center text-white font-bold text-sm shadow-lg glow-emerald">
+                            {user.name?.charAt(0) || 'A'}
+                          </div>
+                        )}
                         <span className="text-sm">Admin Panel</span>
                         <ChevronDown className={`w-5 h-5 transition-transform duration-500 ${isMenuOpen ? 'rotate-180' : ''}`} />
                       </button>
@@ -273,9 +277,13 @@ function Navbar() {
                         >
                           <div className="px-6 py-4 border-b border-slate-200/50 bg-gradient-to-r from-emerald-50/50 to-teal-50/50 rounded-t-3xl">
                             <div className="flex items-center space-x-3">
-                              <div className="w-12 h-12 rounded-full bg-gradient-to-br from-emerald-500 via-teal-500 to-cyan-500 flex items-center justify-center text-white font-bold shadow-lg animate-glow-pulse">
-                                {user.name?.charAt(0) || 'A'}
-                              </div>
+                              {user.profilePic ? (
+                                <img src={user.profilePic} alt={user.name || 'User'} className="w-12 h-12 rounded-full object-cover shadow-lg" />
+                              ) : (
+                                <div className="w-12 h-12 rounded-full bg-gradient-to-br from-emerald-500 via-teal-500 to-cyan-500 flex items-center justify-center text-white font-bold shadow-lg animate-glow-pulse">
+                                  {user.name?.charAt(0) || 'A'}
+                                </div>
+                              )}
                               <div>
                                 <p className="text-sm font-semibold text-slate-900">{user.name}</p>
                                 <p className="text-xs text-slate-500 font-medium">Administrator</p>
@@ -333,9 +341,13 @@ function Navbar() {
                         aria-expanded={isMenuOpen}
                         aria-haspopup="true"
                       >
-                        <div className="w-10 h-10 rounded-full bg-gradient-to-br from-orange-500 via-amber-500 to-yellow-500 flex items-center justify-center text-white font-bold text-sm shadow-lg glow-orange">
-                          {user.name?.charAt(0) || 'S'}
-                        </div>
+                        {user.profilePic ? (
+                          <img src={user.profilePic} alt={user.name || 'User'} className="w-10 h-10 rounded-full object-cover shadow-lg" />
+                        ) : (
+                          <div className="w-10 h-10 rounded-full bg-gradient-to-br from-orange-500 via-amber-500 to-yellow-500 flex items-center justify-center text-white font-bold text-sm shadow-lg glow-orange">
+                            {user.name?.charAt(0) || 'S'}
+                          </div>
+                        )}
                         <span className="text-sm">Seller Panel</span>
                         <ChevronDown className={`w-5 h-5 transition-transform duration-500 ${isMenuOpen ? 'rotate-180' : ''}`} />
                       </button>
@@ -348,9 +360,13 @@ function Navbar() {
                         >
                           <div className="px-6 py-4 border-b border-slate-200/50 bg-gradient-to-r from-orange-50/50 to-amber-50/50 rounded-t-3xl">
                             <div className="flex items-center space-x-3">
-                              <div className="w-12 h-12 rounded-full bg-gradient-to-br from-orange-500 via-amber-500 to-yellow-500 flex items-center justify-center text-white font-bold shadow-lg animate-glow-pulse">
-                                {user.name?.charAt(0) || 'S'}
-                              </div>
+                              {user.profilePic ? (
+                                <img src={user.profilePic} alt={user.name || 'User'} className="w-12 h-12 rounded-full object-cover shadow-lg" />
+                              ) : (
+                                <div className="w-12 h-12 rounded-full bg-gradient-to-br from-orange-500 via-amber-500 to-yellow-500 flex items-center justify-center text-white font-bold shadow-lg animate-glow-pulse">
+                                  {user.name?.charAt(0) || 'S'}
+                                </div>
+                              )}
                               <div>
                                 <p className="text-sm font-semibold text-slate-900">{user.name}</p>
                                 <p className="text-xs text-slate-500 font-medium">
@@ -507,9 +523,13 @@ function Navbar() {
                           aria-expanded={isMenuOpen}
                           aria-haspopup="true"
                         >
-                          <div className="w-10 h-10 rounded-full bg-gradient-to-br from-emerald-500 via-teal-500 to-cyan-500 flex items-center justify-center text-white font-bold text-sm shadow-lg glow-emerald">
-                            {user.name?.charAt(0) || 'U'}
-                          </div>
+                          {user.profilePic ? (
+                            <img src={user.profilePic} alt={user.name || 'User'} className="w-10 h-10 rounded-full object-cover shadow-lg" />
+                          ) : (
+                            <div className="w-10 h-10 rounded-full bg-gradient-to-br from-emerald-500 via-teal-500 to-cyan-500 flex items-center justify-center text-white font-bold text-sm shadow-lg glow-emerald">
+                              {user.name?.charAt(0) || 'U'}
+                            </div>
+                          )}
                           <span className="text-sm font-medium text-slate-700 group-hover:text-emerald-700 transition-colors duration-300">
                             {user.name}
                           </span>
@@ -524,9 +544,13 @@ function Navbar() {
                           >
                             <div className="px-6 py-4 border-b border-slate-200/50 bg-gradient-to-r from-emerald-50/50 to-teal-50/50 rounded-t-3xl">
                               <div className="flex items-center space-x-3">
-                                <div className="w-12 h-12 rounded-full bg-gradient-to-br from-emerald-500 via-teal-500 to-cyan-500 flex items-center justify-center text-white font-bold shadow-lg animate-glow-pulse">
-                                  {user.name?.charAt(0) || 'U'}
-                                </div>
+                                {user.profilePic ? (
+                                  <img src={user.profilePic} alt={user.name || 'User'} className="w-12 h-12 rounded-full object-cover shadow-lg" />
+                                ) : (
+                                  <div className="w-12 h-12 rounded-full bg-gradient-to-br from-emerald-500 via-teal-500 to-cyan-500 flex items-center justify-center text-white font-bold shadow-lg animate-glow-pulse">
+                                    {user.name?.charAt(0) || 'U'}
+                                  </div>
+                                )}
                                 <div>
                                   <p className="text-sm font-semibold text-slate-900">{user.name}</p>
                                   <p className="text-xs text-slate-500 font-medium">

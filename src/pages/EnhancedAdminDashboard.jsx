@@ -518,27 +518,9 @@ function EnhancedAdminDashboard() {
     setBookingDetailsDialog(true);
   };
 
-  const handleEditBooking = (booking) => {
-    setSelectedBooking(booking);
-    setBookingData({
-      patientName: booking.patientDetails.name,
-      patientPhone: booking.patientDetails.phone,
-      patientEmail: booking.patientDetails.email || '',
-      hospitalName: booking.hospitalDetails.name,
-      doctorName: booking.appointmentDetails.doctorName,
-      appointmentDate: booking.appointmentDetails.appointmentDate,
-      appointmentTime: booking.appointmentDetails.appointmentTime,
-      consultationFee: booking.paymentDetails.consultationFee,
-      bookingStatus: booking.bookingStatus,
-      paymentStatus: booking.paymentDetails.paymentStatus
-    });
-    setEditBookingDialog(true);
-  };
+  const handleEditBooking = () => {};
 
-  const handleDeleteBooking = (booking) => {
-    setBookingToDelete(booking);
-    setDeleteBookingDialog(true);
-  };
+  const handleDeleteBooking = () => {};
 
   const confirmDeleteBooking = async () => {
     if (!bookingToDelete) return;
@@ -599,12 +581,12 @@ function EnhancedAdminDashboard() {
       const token = localStorage.getItem('token');
 
       const response = await fetch(`http://localhost:5000/api/admin/hospital-bookings/${bookingId}/status`, {
-        method: 'PUT',
+        method: 'PATCH',
         headers: {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json'
         },
-        body: JSON.stringify({ status })
+        body: JSON.stringify({ bookingStatus: status })
       });
 
       if (response.ok) {
@@ -614,8 +596,14 @@ function EnhancedAdminDashboard() {
         ));
         toast.success(`Booking status updated to ${status}!`);
       } else {
-        const error = await response.json();
-        throw new Error(error.error || 'Failed to update booking status');
+        let message = 'Failed to update booking status';
+        try {
+          const error = await response.json();
+          message = error.error || error.message || message;
+        } catch (_) {
+          // non-JSON (e.g., HTML) response
+        }
+        throw new Error(message);
       }
     } catch (error) {
       console.error('Error updating booking status:', error);
@@ -1548,21 +1536,6 @@ function EnhancedAdminDashboard() {
                             title="View Booking Details"
                           >
                             <FaEye className="w-4 h-4" />
-                          </button>
-                          <button
-                            onClick={() => handleEditBooking(booking)}
-                            className="p-2 bg-blue-100 hover:bg-blue-200 text-blue-600 rounded-lg transition-colors duration-200"
-                            title="Edit Booking"
-                          >
-                            <FaEdit className="w-4 h-4" />
-                          </button>
-                          <button
-                            onClick={() => handleDeleteBooking(booking)}
-                            className="p-2 bg-red-100 hover:bg-red-200 text-red-600 rounded-lg transition-colors duration-200"
-                            title="Delete Booking"
-                            disabled={actionLoading}
-                          >
-                            <FaTrash className="w-4 h-4" />
                           </button>
                         </div>
                       </td>

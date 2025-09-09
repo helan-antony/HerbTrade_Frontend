@@ -28,6 +28,7 @@ function Signup() {
   const [isLoading, setIsLoading] = useState(false);
   const [countryCode, setCountryCode] = useState("+91");
   const [validationErrors, setValidationErrors] = useState({});
+  const [emailAvailability, setEmailAvailability] = useState({ checking: false, taken: false });
   const navigate = useNavigate();
 
   // Country codes
@@ -135,6 +136,32 @@ function Signup() {
     }
     
     setValidationErrors(prev => ({ ...prev, [field]: error }));
+  };
+
+  // Check email availability on blur
+  const handleEmailBlur = async () => {
+    const emailError = validateEmail(email);
+    if (emailError) {
+      setEmailAvailability({ checking: false, taken: false });
+      setValidationErrors(prev => ({ ...prev, email: emailError }));
+      return;
+    }
+    try {
+      setEmailAvailability({ checking: true, taken: false });
+      const res = await fetch(API_ENDPOINTS.AUTH.CHECK_EMAIL(email));
+      const data = await res.json();
+      if (res.ok && data) {
+        const taken = data.available === false;
+        setEmailAvailability({ checking: false, taken });
+        if (taken) {
+          setValidationErrors(prev => ({ ...prev, email: 'Email already in use' }));
+        }
+      } else {
+        setEmailAvailability({ checking: false, taken: false });
+      }
+    } catch (e) {
+      setEmailAvailability({ checking: false, taken: false });
+    }
   };
 
   // Password strength checker
@@ -277,6 +304,10 @@ function Signup() {
     const validationError = validate();
     if (validationError) {
       setError(validationError);
+      return;
+    }
+    if (emailAvailability.taken) {
+      setError('Email already in use');
       return;
     }
     
@@ -439,6 +470,7 @@ function Signup() {
                   type="email"
                   value={email}
                   onChange={e => handleFieldChange('email', e.target.value)}
+                  onBlur={handleEmailBlur}
                   className={`w-full pl-12 pr-4 py-5 bg-white/90 backdrop-blur-sm border-2 rounded-2xl focus:ring-4 transition-all duration-500 placeholder:text-gray-400 text-gray-700 shadow-sm hover:shadow-md focus:shadow-lg font-medium ${
                     validationErrors.email 
                       ? 'border-red-300 focus:ring-red-300/30 focus:border-red-500' 
@@ -452,6 +484,9 @@ function Signup() {
                   <span className="mr-1">⚠️</span>
                   {validationErrors.email}
                 </p>
+              )}
+              {!validationErrors.email && email && emailAvailability.checking && (
+                <p className="text-gray-500 text-xs mt-1">Checking availability...</p>
               )}
             </div>
 

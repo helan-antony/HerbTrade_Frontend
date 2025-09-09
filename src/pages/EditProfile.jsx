@@ -20,6 +20,7 @@ function EditProfile() {
   const [showNewPassword, setShowNewPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [isChangingPassword, setIsChangingPassword] = useState(false);
+  const [validationErrors, setValidationErrors] = useState({});
   
   const navigate = useNavigate();
 
@@ -91,6 +92,44 @@ function EditProfile() {
     });
   };
 
+  // Validation rules aligned with signup page
+  const validateName = (value) => {
+    if (!value) return 'Name is required';
+    if (value.length < 2) return 'Name must be at least 2 characters';
+    if (value.length > 50) return 'Name must be less than 50 characters';
+    if (/^\s/.test(value)) return 'Name cannot start with a space';
+    if (/\s$/.test(value)) return 'Name cannot end with a space';
+    if (/\s{2,}/.test(value)) return 'Only single spaces allowed between words';
+    if (/[^a-zA-Z\s]/.test(value)) return 'Only letters and spaces allowed';
+    const words = value.split(' ');
+    for (let word of words) {
+      if (word && !/^[A-Z]/.test(word)) {
+        return 'Each word must start with a capital letter';
+      }
+    }
+    return '';
+  };
+
+  const validatePhone = (value) => {
+    if (!value) return 'Phone number is required';
+    if (!/^\d+$/.test(value)) return 'Only numbers allowed';
+    if (value.length !== 10) return 'Phone number must be exactly 10 digits';
+    if (!/^[6-9]/.test(value)) return 'Phone number must start with 6, 7, 8, or 9';
+    return '';
+  };
+
+  const handleNameChange = (val) => {
+    const processed = val.replace(/[^a-zA-Z\s]/g, '').replace(/\s{2,}/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
+    setName(processed);
+    setValidationErrors(prev => ({ ...prev, name: validateName(processed) }));
+  };
+
+  const handlePhoneChange = (val) => {
+    const processed = val.replace(/\D/g, '').slice(0, 10);
+    setPhone(processed);
+    setValidationErrors(prev => ({ ...prev, phone: validatePhone(processed) }));
+  };
+
   // Handle password change
   const handlePasswordChange = async () => {
     if (!currentPassword || !newPassword || !confirmPassword) {
@@ -145,6 +184,15 @@ function EditProfile() {
     try {
       const user = JSON.parse(localStorage.getItem('user'));
       const token = localStorage.getItem('token');
+
+      // Validate before sending
+      const nameErr = validateName(name);
+      const phoneErr = validatePhone(phone);
+      setValidationErrors(prev => ({ ...prev, name: nameErr, phone: phoneErr }));
+      if (nameErr || phoneErr) {
+        setLoading(false);
+        return;
+      }
 
       // If a new file is selected, convert to base64, otherwise keep existing URL/string
       let imageData = profilePic;
@@ -342,10 +390,13 @@ function EditProfile() {
               <input
                 type="text"
                 value={name}
-                onChange={(e) => setName(e.target.value)}
+                onChange={(e) => handleNameChange(e.target.value)}
                 className="w-full px-6 py-4 bg-white/90 backdrop-blur-sm border-2 border-slate-200/50 rounded-2xl focus:ring-4 focus:ring-emerald-300/30 focus:border-emerald-500 transition-all duration-500 text-slate-700 shadow-sm hover:shadow-md focus:shadow-lg"
                 placeholder="Enter your full name"
               />
+              {validationErrors.name && (
+                <p className="text-red-500 text-sm mt-1">{validationErrors.name}</p>
+              )}
             </div>
 
             <div>
@@ -356,10 +407,13 @@ function EditProfile() {
               <input
                 type="tel"
                 value={phone}
-                onChange={(e) => setPhone(e.target.value)}
+                onChange={(e) => handlePhoneChange(e.target.value)}
                 className="w-full px-6 py-4 bg-white/90 backdrop-blur-sm border-2 border-slate-200/50 rounded-2xl focus:ring-4 focus:ring-emerald-300/30 focus:border-emerald-500 transition-all duration-500 text-slate-700 shadow-sm hover:shadow-md focus:shadow-lg"
                 placeholder="Enter your phone number"
               />
+              {validationErrors.phone && (
+                <p className="text-red-500 text-sm mt-1">{validationErrors.phone}</p>
+              )}
             </div>
 
             <div>

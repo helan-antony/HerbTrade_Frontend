@@ -166,7 +166,7 @@ function AdminDashboard() {
       }
 
       // Calculate stats
-      const totalRevenue = orders.reduce((sum, order) => sum + (order.total || 0), 0);
+      const totalRevenue = orders.reduce((sum, order) => sum + (Number(order.totalAmount || order.total) || 0), 0);
       const pendingOrders = orders.filter(order => order.status === 'pending').length;
       const activeUsers = users.filter(user => user.isActive !== false).length;
 
@@ -243,7 +243,7 @@ function AdminDashboard() {
         fetchNotifications();
       } else {
         const error = await response.json();
-        toast.error(error.message || 'Failed to update booking status');
+        toast.error(error.error || error.message || 'Failed to update booking status');
       }
     } catch (error) {
       console.error('Error updating booking status:', error);

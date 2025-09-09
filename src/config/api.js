@@ -44,6 +44,7 @@ export const API_ENDPOINTS = {
     FORGOT_PASSWORD: `${API_BASE_URL}/api/auth/forgot-password`,
     RESET_PASSWORD: `${API_BASE_URL}/api/auth/reset-password`,
     GOOGLE_AUTH: `${API_BASE_URL}/api/auth/google-login`,
+    CHECK_EMAIL: (email) => `${API_BASE_URL}/api/auth/check-email?email=${encodeURIComponent(email)}`,
   },
   
   CART: {

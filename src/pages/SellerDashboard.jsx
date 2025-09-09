@@ -808,7 +808,7 @@ const SellerDashboard = () => {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-emerald-100 text-sm font-medium">Total Revenue</p>
-                <p className="text-3xl font-bold">${stats.totalSales || '0'}</p>
+                <p className="text-3xl font-bold">₹{(Number(stats.totalSales) || 0).toLocaleString('en-IN')}</p>
                 <p className="text-emerald-100 text-sm">from all sales</p>
               </div>
               <DollarSign className="w-12 h-12 text-emerald-200" />
@@ -933,7 +933,7 @@ const SellerDashboard = () => {
                       </div>
                     </div>
                     <div className="text-right">
-                      <p className="font-medium text-gray-900">${order.totalAmount || order.amount}</p>
+                      <p className="font-medium text-gray-900">₹{(Number(order.totalAmount || order.amount) || 0).toLocaleString('en-IN')}</p>
                       <span className={`inline-flex px-2 py-1 text-xs font-medium rounded-full ${getStatusColor(order.status)}`}>
                         {order.status}
                       </span>
@@ -1153,7 +1153,7 @@ const SellerDashboard = () => {
                           </div>
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                          ${order.totalAmount || order.amount}
+                          ₹{(Number(order.totalAmount || order.amount) || 0).toLocaleString('en-IN')}
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap">
                           <span className={`inline-flex px-2 py-1 text-xs font-medium rounded-full ${getStatusColor(order.status)}`}>
@@ -1220,7 +1220,7 @@ const SellerDashboard = () => {
                     <TrendingUp className="w-6 h-6 text-emerald-600" />
                   </div>
                   <div className="text-3xl font-bold text-emerald-700 mb-2">
-                    ${stats.totalSales || '0'}
+                    ₹{(Number(stats.totalSales) || 0).toLocaleString('en-IN')}
                   </div>
                   <p className="text-emerald-600">Total revenue from {stats.totalOrders || 0} orders</p>
                   <div className="mt-4 bg-emerald-200 rounded-full h-2">
