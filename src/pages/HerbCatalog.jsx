@@ -420,6 +420,13 @@ function HerbCatalog() {
                     onClick={() => handleProductClick(product)}
                   />
 
+                  {/* Out of stock badge */}
+                  {(!product.inStock || Number(product.inStock) <= 0) && (
+                    <div className="absolute top-3 left-3 bg-red-600 text-white text-xs font-semibold px-3 py-1 rounded-full shadow">
+                      Out of stock
+                    </div>
+                  )}
+
                   {/* Wishlist Button */}
                   <button
                     onClick={() => toggleWishlist(product)}
@@ -502,17 +509,27 @@ function HerbCatalog() {
 
                   {/* Action Buttons */}
                   <div className="flex gap-2">
-                    <button
-                      onClick={() => {
-                        console.log('Add to Cart button clicked!', product);
-                        addToCart(product);
-                      }}
-                      className="flex-1 bg-emerald-600 hover:bg-emerald-700 text-white text-sm px-4 py-2.5 rounded-lg flex items-center justify-center gap-2 transition-colors duration-200 relative z-50"
-                      style={{ pointerEvents: 'auto', cursor: 'pointer' }}
-                    >
-                      <FaShoppingBasket className="text-sm" />
-                      Add to Cart
-                    </button>
+                    {(!product.inStock || Number(product.inStock) <= 0) ? (
+                      <button
+                        disabled
+                        className="flex-1 bg-gray-300 text-white text-sm px-4 py-2.5 rounded-lg flex items-center justify-center gap-2 cursor-not-allowed"
+                        title="This item is currently out of stock"
+                      >
+                        Out of stock
+                      </button>
+                    ) : (
+                      <button
+                        onClick={() => {
+                          console.log('Add to Cart button clicked!', product);
+                          addToCart(product);
+                        }}
+                        className="flex-1 bg-emerald-600 hover:bg-emerald-700 text-white text-sm px-4 py-2.5 rounded-lg flex items-center justify-center gap-2 transition-colors duration-200 relative z-50"
+                        style={{ pointerEvents: 'auto', cursor: 'pointer' }}
+                      >
+                        <FaShoppingBasket className="text-sm" />
+                        Add to Cart
+                      </button>
+                    )}
 
                     <button
                       onClick={() => toggleWishlist(product)}
@@ -529,12 +546,18 @@ function HerbCatalog() {
                   </div>
 
                   {/* Stock Warning */}
-                  {product.inStock < 10 && (
+                  {product.inStock > 0 && product.inStock < 10 && (
                     <div className="mt-3 text-xs text-red-600 font-medium bg-red-50 px-3 py-2 rounded-lg border border-red-200">
                       ⚠️ Only {product.category === 'Medicines' 
                         ? `${product.inStock} ${product.dosageForm || 'units'}` 
                         : (product.inStock < 1000 ? `${product.inStock}g` : `${(product.inStock/1000).toFixed(1)}kg`)
                       } left in stock!
+                    </div>
+                  )}
+
+                  {(!product.inStock || Number(product.inStock) <= 0) && (
+                    <div className="mt-3 text-xs text-gray-700 font-medium bg-gray-100 px-3 py-2 rounded-lg border border-gray-200">
+                      This item is currently out of stock.
                     </div>
                   )}
                 </div>

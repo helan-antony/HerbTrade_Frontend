@@ -3,7 +3,7 @@ import {
   Dialog, DialogTitle, DialogContent, DialogActions, IconButton,
   Chip, Rating, List, ListItem, ListItemText, Divider, Tab, Tabs,
   FormControl, InputLabel, Select, MenuItem, CircularProgress,
-  Alert, Skeleton
+  Alert, Skeleton, Menu, ListItemIcon
 } from "@mui/material";
 import {
   FaMapMarkerAlt, FaUserMd, FaPhone, FaEnvelope, FaGlobe,
@@ -45,11 +45,14 @@ function HospitalDiscovery() {
     patientPhone: '',
     patientEmail: ''
   });
+  const [locationSuggestions, setLocationSuggestions] = useState([]);
+  const [showSuggestions, setShowSuggestions] = useState(false);
 
   useEffect(() => {
     fetchHospitals();
     getUserLocation();
   }, []);
+
 
   const fetchHospitals = async () => {
     try {
@@ -194,6 +197,34 @@ function HospitalDiscovery() {
     setSelectedHospital(null);
   };
 
+  // Numeric distance (km) for sorting; Infinity when unknown
+  const getDistanceValue = (hospital) => {
+    if (!userLocation) return Infinity;
+
+    // Google Places geometry
+    if (hospital?.geometry?.location?.lat && hospital?.geometry?.location?.lng) {
+      return calculateDistance(
+        userLocation.latitude,
+        userLocation.longitude,
+        hospital.geometry.location.lat,
+        hospital.geometry.location.lng
+      ) ?? Infinity;
+    }
+
+    // DB GeoJSON location { coordinates: [lng, lat] }
+    if (hospital?.location?.coordinates?.length === 2) {
+      const [lng, lat] = hospital.location.coordinates;
+      return calculateDistance(
+        userLocation.latitude,
+        userLocation.longitude,
+        lat,
+        lng
+      ) ?? Infinity;
+    }
+
+    return Infinity;
+  };
+
   // Search hospitals by place using Google Places API
   const searchHospitalsByPlace = async (placeName) => {
     if (!placeName.trim()) {
@@ -215,14 +246,25 @@ function HospitalDiscovery() {
 
       const data = await response.json();
 
-      console.log(`✅ Found ${data.length} hospitals from Google Places`);
+      // Sort: nearest first if userLocation known, else by rating desc then name
+      const sorted = [...data].sort((a, b) => {
+        const da = getDistanceValue(a);
+        const db = getDistanceValue(b);
+        if (da !== Infinity || db !== Infinity) {
+          return da - db;
+        }
+        const ra = (a.rating ?? a.googleRating ?? 0);
+        const rb = (b.rating ?? b.googleRating ?? 0);
+        if (rb !== ra) return rb - ra;
+        return (a.name || '').localeCompare(b.name || '');
+      });
 
-      if (data.length === 0) {
+      if (sorted.length === 0) {
         toast.info(`No Ayurvedic hospitals found in ${placeName}. Try a different location.`);
       } else {
-        setHospitals(data);
-        setFilteredHospitals(data);
-        toast.success(`Found ${data.length} Ayurvedic hospitals in ${placeName}`);
+        setHospitals(sorted);
+        setFilteredHospitals(sorted);
+        toast.success(`Found ${sorted.length} Ayurvedic hospitals in ${placeName}`);
       }
 
     } catch (error) {
@@ -232,6 +274,48 @@ function HospitalDiscovery() {
       setSearchingPlace(false);
       setLoading(false);
     }
+  };
+
+  // Location suggestions for autocomplete
+  const locationSuggestionsData = [
+    'Kattappana',
+    'Thodupuzha',
+    'Kochi',
+    'Thiruvananthapuram',
+    'Kozhikode',
+    'Thrissur',
+    'Kollam',
+    'Palakkad',
+    'Kannur',
+    'Kasaragod',
+    'Idukki',
+    'Wayanad',
+    'Malappuram',
+    'Alappuzha',
+    'Pathanamthitta'
+  ];
+
+  // Handle place input change with suggestions
+  const handlePlaceInputChange = (value) => {
+    setPlace(value);
+    
+    if (value.length > 1) {
+      const filtered = locationSuggestionsData.filter(location =>
+        location.toLowerCase().includes(value.toLowerCase())
+      );
+      setLocationSuggestions(filtered);
+      setShowSuggestions(true);
+    } else {
+      setLocationSuggestions([]);
+      setShowSuggestions(false);
+    }
+  };
+
+  // Select a suggestion
+  const selectSuggestion = (suggestion) => {
+    setPlace(suggestion);
+    setShowSuggestions(false);
+    searchHospitalsByPlace(suggestion);
   };
 
   // Handle place search on Enter key or button click
@@ -339,6 +423,8 @@ function HospitalDiscovery() {
 
   // Calculate distance between two coordinates (Haversine formula)
   const calculateDistance = (lat1, lon1, lat2, lon2) => {
+    if (!lat1 || !lon1 || !lat2 || !lon2) return null;
+    
     const R = 6371; // Radius of the Earth in kilometers
     const dLat = (lat2 - lat1) * Math.PI / 180;
     const dLon = (lon2 - lon1) * Math.PI / 180;
@@ -351,46 +437,146 @@ function HospitalDiscovery() {
     return distance;
   };
 
-  // Get distance text for display
+  // Get distance text for display with improved formatting
   const getDistanceText = (hospital) => {
-    if (!userLocation || !hospital.geometry?.location) return null;
+    if (!userLocation) return null;
     
-    const distance = calculateDistance(
-      userLocation.latitude,
-      userLocation.longitude,
-      hospital.geometry.location.lat,
-      hospital.geometry.location.lng
-    );
+    let distance = null;
     
-    if (distance < 1) {
+    // Check if hospital has geometry (from Google Places) or location (from database)
+    if (hospital.geometry?.location) {
+      distance = calculateDistance(
+        userLocation.latitude,
+        userLocation.longitude,
+        hospital.geometry.location.lat,
+        hospital.geometry.location.lng
+      );
+    } else if (hospital.location?.coordinates) {
+      const [lng, lat] = hospital.location.coordinates;
+      distance = calculateDistance(
+        userLocation.latitude,
+        userLocation.longitude,
+        lat,
+        lng
+      );
+    }
+    
+    if (distance === null) return null;
+    
+    if (distance < 0.1) {
       return `${Math.round(distance * 1000)}m away`;
-    } else {
+    } else if (distance < 1) {
+      return `${Math.round(distance * 1000)}m away`;
+    } else if (distance < 10) {
       return `${distance.toFixed(1)}km away`;
+    } else {
+      return `${distance.toFixed(0)}km away`;
     }
   };
 
-  // Handle directions functionality
+  // Handle directions functionality with proper coordinates
   const handleDirections = (hospital) => {
     try {
-      const address = encodeURIComponent(`${hospital.address}, ${hospital.city}`);
-      const googleMapsUrl = `https://www.google.com/maps/search/?api=1&query=${address}`;
-      window.open(googleMapsUrl, '_blank');
-      toast.success('Opening directions in Google Maps...');
+      let mapsUrl = '';
+      
+      // Check if hospital has coordinates (preferred method)
+      if (hospital.location && hospital.location.coordinates && hospital.location.coordinates.length === 2) {
+        const [lng, lat] = hospital.location.coordinates;
+        
+        // Use coordinates for more accurate directions
+        mapsUrl = `https://www.google.com/maps/dir/?api=1&destination=${lat},${lng}`;
+        
+        console.log(`📍 Opening directions to ${hospital.name} at coordinates: ${lat}, ${lng}`);
+      } 
+      // Check if hospital has geometry from Google Places
+      else if (hospital.geometry && hospital.geometry.location) {
+        const { lat, lng } = hospital.geometry.location;
+        mapsUrl = `https://www.google.com/maps/dir/?api=1&destination=${lat},${lng}`;
+        
+        console.log(`📍 Opening directions to ${hospital.name} at Google Places coordinates: ${lat}, ${lng}`);
+      }
+      // Fallback to address-based directions
+      else if (hospital.address) {
+        const address = `${hospital.address}, ${hospital.city || ''}, ${hospital.state || ''}`.trim();
+        const encodedAddress = encodeURIComponent(address);
+        mapsUrl = `https://www.google.com/maps/dir/?api=1&destination=${encodedAddress}`;
+        
+        console.log(`📍 Opening directions to ${hospital.name} at address: ${address}`);
+      } else {
+        toast.error('Hospital location information not available');
+        return;
+      }
+
+      // Detect user's device for optimal map experience
+      const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
+      const isAndroid = /Android/.test(navigator.userAgent);
+
+      // Adjust URL for mobile devices
+      if (isIOS) {
+        // For iOS, try to open in Apple Maps app first, fallback to Google Maps
+        const appleMapsUrl = mapsUrl.replace('https://www.google.com/maps/dir/', 'http://maps.apple.com/?q=');
+        const newWindow = window.open(appleMapsUrl, '_blank');
+        if (!newWindow) {
+          window.open(mapsUrl, '_blank');
+        }
+      } else {
+        // For Android and Desktop, use Google Maps
+        const newWindow = window.open(mapsUrl, '_blank');
+        
+        if (!newWindow) {
+          // Fallback if popup was blocked
+          window.location.href = mapsUrl;
+          toast.info('Redirecting to Google Maps...');
+        }
+      }
+
+      toast.success(`Opening directions to ${hospital.name}...`);
+      
     } catch (error) {
       console.error('Error opening directions:', error);
       toast.error('Failed to open directions');
     }
   };
 
+
   // Handle call functionality
   const handleCall = (hospital) => {
     try {
-      if (hospital.phone) {
-        const phoneNumber = (hospital.phone || '').replace(/\s+/g, '').replace(/-/g, '');
-        window.location.href = `tel:${phoneNumber}`;
-        toast.success(`Calling ${hospital.name || 'Hospital'}...`);
-      } else {
+      const rawPhone = (hospital.phone || '').toString().trim();
+      if (!rawPhone) {
         toast.error('Phone number not available');
+        return;
+      }
+
+      // Normalize to digits
+      const digitsOnly = rawPhone.replace(/[^\d]/g, '');
+      let e164 = '';
+
+      if (digitsOnly.length === 10) {
+        e164 = `+91${digitsOnly}`;
+      } else if (digitsOnly.length === 11 && digitsOnly.startsWith('0')) {
+        e164 = `+91${digitsOnly.slice(1)}`;
+      } else if (digitsOnly.length >= 12 && digitsOnly.startsWith('91')) {
+        e164 = `+${digitsOnly}`;
+      } else if (rawPhone.startsWith('+')) {
+        e164 = rawPhone;
+      } else {
+        e164 = `+${digitsOnly}`;
+      }
+
+      if (!e164 || e164 === '+') {
+        toast.error('Invalid phone number');
+        return;
+      }
+
+      const isMobile = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
+      if (isMobile) {
+        // Mobile: open dialer directly (no desktop prompt)
+        window.location.href = `tel:${encodeURI(e164)}`;
+      } else {
+        // Desktop: avoid external app prompt; copy number and inform user
+        navigator.clipboard?.writeText(e164);
+        toast.info(`Number copied: ${e164}. Use your phone to place the call.`);
       }
     } catch (error) {
       console.error('Error making call:', error);
@@ -539,8 +725,17 @@ function HospitalDiscovery() {
                   type="text"
                   placeholder="Enter place (e.g., Kattappana)"
                   value={place}
-                  onChange={(e) => setPlace(e.target.value)}
+                  onChange={(e) => handlePlaceInputChange(e.target.value)}
                   onKeyPress={handlePlaceSearch}
+                  onFocus={() => {
+                    if (place.length > 1) {
+                      setShowSuggestions(true);
+                    }
+                  }}
+                  onBlur={() => {
+                    // Delay hiding suggestions to allow clicking on them
+                    setTimeout(() => setShowSuggestions(false), 200);
+                  }}
                   className="w-full pl-12 pr-16 py-4 bg-white/90 border border-slate-200 rounded-2xl focus:ring-4 focus:ring-blue-300/50 focus:border-blue-500 transition-all duration-300 text-slate-900 placeholder-slate-500"
                 />
                 <button
@@ -555,6 +750,22 @@ function HospitalDiscovery() {
                     <FaSearch className="text-sm" />
                   )}
                 </button>
+
+                {/* Location Suggestions Dropdown */}
+                {showSuggestions && locationSuggestions.length > 0 && (
+                  <div className="absolute top-full left-0 right-0 mt-1 bg-white border border-gray-200 rounded-lg shadow-lg z-50 max-h-60 overflow-y-auto">
+                    {locationSuggestions.map((suggestion, index) => (
+                      <button
+                        key={index}
+                        onClick={() => selectSuggestion(suggestion)}
+                        className="w-full text-left px-4 py-3 hover:bg-blue-50 flex items-center space-x-2 border-b border-gray-100 last:border-b-0"
+                      >
+                        <FaMapMarkerAlt className="text-blue-500 text-sm" />
+                        <span className="text-gray-700">{suggestion}</span>
+                      </button>
+                    ))}
+                  </div>
+                )}
               </div>
             </div>
 

@@ -453,6 +453,23 @@ function EnhancedCart() {
     }, 0);
   };
 
+  // Derive available stock per product for capping order quantity
+  const getMaxAvailableQuantity = (product) => {
+    if (!product) return null;
+    const category = product.category;
+    if (category === 'Medicines') {
+      const possibleCounts = [product.stockCount, product.stock, product.availableQuantity, product.quantity, product.maxQuantity];
+      const count = possibleCounts.find(v => Number.isFinite(Number(v)) && Number(v) > 0);
+      return count ? parseInt(count, 10) : null;
+    }
+    // Herbs measured by grams in cart
+    const kgCandidates = [product.stockKg, product.availableQuantityKg, product.availableQuantity, product.quantityInKg, product.quantityKg, product.stock];
+    const kg = kgCandidates.find(v => Number.isFinite(Number(v)) && Number(v) >= 0);
+    if (kg === undefined || kg === null) return null;
+    const grams = Math.max(0, Math.floor(Number(kg) * 1000));
+    return grams || 0;
+  };
+
 
 
 
@@ -600,39 +617,75 @@ function EnhancedCart() {
                       </div>
 
                       <div className="flex items-center space-x-6">
-                        {/* Quantity Controls */}
+                        {/* Quantity Controls (capped by stock) */}
                         <div className="flex items-center space-x-3 bg-slate-50 rounded-2xl p-2">
-                          <button 
-                            onClick={() => {
-                              const decrement = product.category === 'Medicines' ? 1 : 50; // 1 count for medicines, 50g for herbs
-                              updateQuantity(productId, Math.max(1, item.quantity - decrement));
-                            }}
-                            className="w-12 h-12 bg-white hover:bg-slate-100 rounded-xl flex items-center justify-center transition-all duration-300 shadow-md hover:shadow-lg group/btn"
-                          >
-                            <FaMinus className="text-slate-600 group-hover/btn:scale-110 transition-transform duration-300" />
-                          </button>
-                          <div className="w-20 text-center">
-                            <span className="font-bold text-lg text-slate-900 block">
-                              {product.category === 'Medicines' 
-                                ? `${item.quantity}` 
-                                : item.quantity < 1000 
-                                  ? `${item.quantity}g` 
-                                  : `${(item.quantity/1000).toFixed(1)}kg`
-                              }
-                            </span>
-                            <span className="text-xs text-slate-500">
-                              {product.category === 'Medicines' ? 'count' : 'weight'}
-                            </span>
-                          </div>
-                          <button 
-                            onClick={() => {
-                              const increment = product.category === 'Medicines' ? 1 : 50; // 1 count for medicines, 50g for herbs
-                              updateQuantity(productId, item.quantity + increment);
-                            }}
-                            className="w-12 h-12 bg-emerald-500 hover:bg-emerald-600 rounded-xl flex items-center justify-center transition-all duration-300 shadow-md hover:shadow-lg group/btn"
-                          >
-                            <FaPlus className="text-white group-hover/btn:scale-110 transition-transform duration-300" />
-                          </button>
+                          {(() => {
+                            const maxQty = getMaxAvailableQuantity(product);
+                            const isHerb = product.category !== 'Medicines';
+                            const step = isHerb ? 50 : 1;
+                            const displayQty = item.quantity;
+                            const atMax = Number.isFinite(maxQty) && maxQty !== null && displayQty >= maxQty;
+                            const helper = Number.isFinite(maxQty) && maxQty !== null
+                              ? (isHerb
+                                  ? `Max ${(maxQty < 1000 ? `${maxQty}g` : `${(maxQty/1000).toFixed(1)}kg`)}`
+                                  : `Max ${maxQty}`)
+                              : (isHerb ? 'Step 50g' : 'Step 1');
+                            return (
+                              <>
+                                <button 
+                                  onClick={() => {
+                                    const decrement = step;
+                                    updateQuantity(productId, Math.max(1, item.quantity - decrement));
+                                  }}
+                                  className="w-12 h-12 bg-white hover:bg-slate-100 rounded-xl flex items-center justify-center transition-all duration-300 shadow-md hover:shadow-lg group/btn"
+                                >
+                                  <FaMinus className="text-slate-600 group-hover/btn:scale-110 transition-transform duration-300" />
+                                </button>
+                                <div className="w-24 text-center">
+                                  <input
+                                    type="text"
+                                    value={displayQty}
+                                    onChange={(e) => {
+                                      const raw = e.target.value;
+                                      const digits = raw.replace(/[^0-9]/g, '');
+                                      if (digits === '') {
+                                        // do not update quantity to empty; just ignore
+                                        return;
+                                      }
+                                      let next = parseInt(digits, 10);
+                                      if (Number.isFinite(maxQty) && maxQty !== null) {
+                                        next = Math.min(next, maxQty);
+                                      }
+                                      if (isHerb) {
+                                        // snap to nearest multiple of 50 grams
+                                        next = Math.max(50, Math.round(next / 50) * 50);
+                                      } else {
+                                        next = Math.max(1, next);
+                                      }
+                                      updateQuantity(productId, next);
+                                    }}
+                                    className="w-full bg-white border border-slate-200 rounded-lg px-2 py-2 text-center font-bold text-lg text-slate-900 focus:outline-none focus:ring-2 focus:ring-emerald-300"
+                                  />
+                                  <span className="text-xs text-slate-500 block mt-1">{helper}</span>
+                                </div>
+                                <button 
+                                  onClick={() => {
+                                    const increment = step;
+                                    let next = item.quantity + increment;
+                                    if (Number.isFinite(maxQty) && maxQty !== null) {
+                                      next = Math.min(next, maxQty);
+                                    }
+                                    updateQuantity(productId, next);
+                                  }}
+                                  disabled={atMax}
+                                  className={`w-12 h-12 ${atMax ? 'bg-emerald-300 cursor-not-allowed' : 'bg-emerald-500 hover:bg-emerald-600'} rounded-xl flex items-center justify-center transition-all duration-300 shadow-md hover:shadow-lg group/btn`}
+                                  title={atMax ? 'Reached available stock' : 'Increase quantity'}
+                                >
+                                  <FaPlus className="text-white group-hover/btn:scale-110 transition-transform duration-300" />
+                                </button>
+                              </>
+                            );
+                          })()}
                         </div>
 
                         {/* Price */}

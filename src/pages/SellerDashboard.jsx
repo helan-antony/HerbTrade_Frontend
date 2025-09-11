@@ -36,6 +36,7 @@ const SellerDashboard = () => {
   });
   const [selectedImageFile, setSelectedImageFile] = useState(null);
   const [imagePreviewUrl, setImagePreviewUrl] = useState('');
+  const [priceError, setPriceError] = useState('');
   const [sellerProfile, setSellerProfile] = useState(null);
   const [editingProfile, setEditingProfile] = useState(false);
   const [profileForm, setProfileForm] = useState({
@@ -121,6 +122,16 @@ const SellerDashboard = () => {
 
   const handleCloseSnackbar = () => {
     setSnackbar({ ...snackbar, open: false });
+  };
+
+  const validatePrice = (price) => {
+    const priceValue = parseFloat(price);
+    if (isNaN(priceValue) || priceValue < 50) {
+      setPriceError('Price must be at least ₹50');
+      return false;
+    }
+    setPriceError('');
+    return true;
   };
 
   // Handle image file selection
@@ -230,8 +241,7 @@ const SellerDashboard = () => {
       }
     }
 
-    if (parseFloat(newProduct.price) <= 0) {
-      showSnackbar('Price must be greater than 0', 'error');
+    if (!validatePrice(newProduct.price)) {
       return;
     }
 
@@ -310,8 +320,7 @@ const SellerDashboard = () => {
       }
     }
 
-    if (parseFloat(newProduct.price) <= 0) {
-      showSnackbar('Price must be greater than 0', 'error');
+    if (!validatePrice(newProduct.price)) {
       return;
     }
 
@@ -413,6 +422,11 @@ const SellerDashboard = () => {
     }
   };
 
+  const openAddProductDialog = () => {
+    resetProductForm();
+    setOpenProductDialog(true);
+  };
+
   const openEditDialog = (product) => {
     setEditingProduct(product);
     setNewProduct({
@@ -450,6 +464,10 @@ const SellerDashboard = () => {
       setImagePreviewUrl('');
     }
     
+    // Clear price error and validate current price
+    setPriceError('');
+    validatePrice(product.price.toString());
+    
     setOpenProductDialog(true);
   };
 
@@ -464,6 +482,7 @@ const SellerDashboard = () => {
     // Clear image upload states
     setSelectedImageFile(null);
     setImagePreviewUrl('');
+    setPriceError('');
     
     setOpenProductDialog(false);
   };
@@ -886,7 +905,7 @@ const SellerDashboard = () => {
               <h2 className="text-xl font-bold text-gray-900 mb-4">Quick Actions</h2>
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <button
-                  onClick={() => setOpenProductDialog(true)}
+                  onClick={openAddProductDialog}
                   className="flex items-center space-x-3 p-4 bg-emerald-50 hover:bg-emerald-100 rounded-xl transition-colors"
                 >
                   <Plus className="w-6 h-6 text-emerald-600" />
@@ -955,7 +974,7 @@ const SellerDashboard = () => {
               <div className="flex flex-col md:flex-row justify-between items-start md:items-center space-y-4 md:space-y-0">
                 <h2 className="text-xl font-bold text-gray-900">My Products ({filteredProducts.length})</h2>
                 <button
-                  onClick={() => setOpenProductDialog(true)}
+                  onClick={openAddProductDialog}
                   className="bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 rounded-lg flex items-center space-x-2 transition-colors"
                 >
                   <Plus className="w-5 h-5" />
@@ -1681,10 +1700,18 @@ const SellerDashboard = () => {
                     type="number"
                     step="0.01"
                     value={newProduct.price}
-                    onChange={(e) => setNewProduct({ ...newProduct, price: e.target.value })}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
-                    placeholder="0.00"
+                    onChange={(e) => {
+                      setNewProduct({ ...newProduct, price: e.target.value });
+                      validatePrice(e.target.value);
+                    }}
+                    className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 ${
+                      priceError ? 'border-red-500' : 'border-gray-300'
+                    }`}
+                    placeholder="50.00"
                   />
+                  {priceError && (
+                    <p className="mt-1 text-sm text-red-600">{priceError}</p>
+                  )}
                 </div>
 
                 <div>
@@ -2057,7 +2084,7 @@ const SellerDashboard = () => {
                     <ul className="list-disc list-inside space-y-1 text-blue-700">
                       <li>Fields marked with <span className="text-red-500">*</span> are required</li>
                       <li>Enter stock weight in grams (e.g., 500g = 0.5kg)</li>
-                      <li>Price should be per gram (customers buy by weight)</li>
+                      <li>Price should be per gram (customers buy by weight) - minimum ₹50</li>
                       <li>Use high-quality images for better product visibility</li>
                       <li>Provide detailed descriptions to help customers understand your product</li>
                       <li>List specific uses to help customers find your product through search</li>
