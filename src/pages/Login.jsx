@@ -184,6 +184,8 @@ function Login() {
           navigate('/admin-dashboard');
         } else if (['seller', 'employee', 'manager', 'supervisor'].includes(data.user.role)) {
           navigate('/seller-dashboard');
+        } else if (data.user.role === 'delivery') {
+          navigate('/delivery-dashboard');
         } else {
           navigate('/herbs');
         }
@@ -232,6 +234,8 @@ function Login() {
             navigate('/admin-dashboard');
           } else if (['seller', 'employee', 'manager', 'supervisor'].includes(data.user.role)) {
             navigate('/seller-dashboard');
+          } else if (data.user.role === 'delivery') {
+            navigate('/delivery-dashboard');
           } else {
             navigate('/herbs');
           }

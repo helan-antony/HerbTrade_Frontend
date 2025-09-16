@@ -102,8 +102,22 @@ export const API_ENDPOINTS = {
     USERS: `${API_BASE_URL}/api/admin/users`,
     PRODUCTS: `${API_BASE_URL}/api/admin/products`,
     ORDERS: `${API_BASE_URL}/api/admin/orders`,
+    ORDER_APPROVE: (orderId) => `${API_BASE_URL}/api/admin/orders/${orderId}/approve`,
+    ORDER_STATUS: (orderId) => `${API_BASE_URL}/api/admin/orders/${orderId}/status`,
+    ORDER_ASSIGN: (orderId) => `${API_BASE_URL}/api/admin/orders/${orderId}/assign-delivery`,
+    DELIVERIES: `${API_BASE_URL}/api/admin/deliveries`,
     HOSPITALS: `${API_BASE_URL}/api/admin/hospitals`,
     ANALYTICS: `${API_BASE_URL}/api/admin/analytics`,
+  },
+  
+  DELIVERY: {
+    BASE: `${API_BASE_URL}/api/delivery`,
+    ORDERS: `${API_BASE_URL}/api/delivery/orders`,
+    AVAILABLE: `${API_BASE_URL}/api/delivery/orders/available`,
+    CLAIM: (orderId) => `${API_BASE_URL}/api/delivery/orders/${orderId}/claim`,
+    UPDATE_STATUS: (orderId) => `${API_BASE_URL}/api/delivery/orders/${orderId}/status`,
+    PROFILE: `${API_BASE_URL}/api/delivery/profile`,
+    CHANGE_PASSWORD: `${API_BASE_URL}/api/delivery/change-password`,
   },
   
   ORDERS: {
@@ -111,6 +125,8 @@ export const API_ENDPOINTS = {
     BY_ID: (orderId) => `${API_BASE_URL}/api/orders/${orderId}`,
     USER: `${API_BASE_URL}/api/orders/user`,
     CREATE: `${API_BASE_URL}/api/orders/create`,
+    MY_ORDERS: `${API_BASE_URL}/api/orders/my-orders`,
+    CANCEL: (orderId) => `${API_BASE_URL}/api/orders/${orderId}/cancel`,
   },
   
   GOOGLE_PLACES: {

@@ -30,6 +30,9 @@ import AdminDashboard from "./pages/AdminDashboard";
 import SellerDashboard from "./pages/SellerDashboard";
 import Logout from "./pages/Logout";
 import EmployeeDashboard from "./pages/EmployeeDashboard";
+import MyOrders from "./pages/MyOrders";
+import DeliveryDashboard from "./pages/DeliveryDashboard";
+import AdminOrders from "./pages/AdminOrders";
 
 const theme = createTheme({
   palette: {
@@ -70,6 +73,7 @@ function App() {
             <Route path="/forgot-password" element={<ForgotPassword />} />
             <Route path="/reset-password" element={<ResetPassword />} />
             <Route path="/admin-dashboard" element={<ProtectedRoute adminOnly={true}><EnhancedAdminDashboard /></ProtectedRoute>} />
+            <Route path="/admin-orders" element={<ProtectedRoute adminOnly={true}><AdminOrders /></ProtectedRoute>} />
             <Route path="/admin" element={<ProtectedRoute adminOnly={true}><AdminDashboard /></ProtectedRoute>} />
             <Route path="/herbs" element={<ProtectedRoute><HerbCatalog /></ProtectedRoute>} />
             <Route path="/profile" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
@@ -85,10 +89,12 @@ function App() {
             <Route path="/checkout" element={<ProtectedRoute><Checkout /></ProtectedRoute>} />
             <Route path="/order-confirmation/:orderId" element={<ProtectedRoute><OrderConfirmation /></ProtectedRoute>} />
             <Route path="/wishlist" element={<ProtectedRoute><EnhancedWishlist /></ProtectedRoute>} />
+            <Route path="/my-orders" element={<ProtectedRoute><MyOrders /></ProtectedRoute>} />
             <Route path="/logout" element={<ProtectedRoute><Logout /></ProtectedRoute>} />
             <Route path="/edit-profile" element={<ProtectedRoute><EditProfile /></ProtectedRoute>} />
             <Route path="/seller-dashboard" element={<ProtectedRoute><SellerDashboard /></ProtectedRoute>} />
             <Route path="/employee-dashboard" element={<ProtectedRoute><EmployeeDashboard /></ProtectedRoute>} />
+            <Route path="/delivery-dashboard" element={<ProtectedRoute><DeliveryDashboard /></ProtectedRoute>} />
             <Route path="*" element={<Navigate to="/" />} />
           </Routes>
         </main>

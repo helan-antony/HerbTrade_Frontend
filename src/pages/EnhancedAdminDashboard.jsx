@@ -2082,6 +2082,7 @@ function EnhancedAdminDashboard() {
                   <MenuItem value="employee">Employee</MenuItem>
                   <MenuItem value="manager">Manager</MenuItem>
                   <MenuItem value="supervisor">Supervisor</MenuItem>
+                  <MenuItem value="delivery">Delivery</MenuItem>
                 </Select>
               </FormControl>
             </Grid>
@@ -2561,6 +2562,7 @@ function EnhancedAdminDashboard() {
                   <MenuItem value="employee">Employee</MenuItem>
                   <MenuItem value="manager">Manager</MenuItem>
                   <MenuItem value="supervisor">Supervisor</MenuItem>
+                  <MenuItem value="delivery">Delivery</MenuItem>
                 </Select>
               </FormControl>
             </Grid>
