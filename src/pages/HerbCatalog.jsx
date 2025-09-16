@@ -419,6 +419,13 @@ function HerbCatalog() {
                     className="w-full h-56 object-cover cursor-pointer transition-transform duration-700 group-hover:scale-110"
                     onClick={() => handleProductClick(product)}
                   />
+                  {product.geoIndication && (
+                    <div className="pointer-events-none absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-40 transition-opacity duration-500 select-none">
+                      <span className="text-5xl font-black tracking-widest rotate-[-24deg] text-white" style={{ textShadow: '0 0 6px rgba(0,0,0,0.45)' }}>
+                        {product.geoIndication}
+                      </span>
+                    </div>
+                  )}
 
                   {/* Out of stock badge */}
                   {(!product.inStock || Number(product.inStock) <= 0) && (
@@ -603,6 +610,13 @@ function HerbCatalog() {
                   alt={selectedProduct.name}
                   className="w-full rounded-2xl shadow-lg"
                 />
+                {selectedProduct.geoIndication && (
+                  <div className="pointer-events-none absolute mt-[-220px] inset-0 flex items-center justify-center opacity-25 select-none">
+                    <span className="text-7xl font-black tracking-widest rotate-[-24deg] text-white" style={{ textShadow: '0 0 8px rgba(0,0,0,0.5)' }}>
+                      {selectedProduct.geoIndication}
+                    </span>
+                  </div>
+                )}
               </div>
 
               <div className="space-y-6">

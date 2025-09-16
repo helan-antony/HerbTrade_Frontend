@@ -1654,6 +1654,16 @@ const SellerDashboard = () => {
             <div className="p-6 space-y-4">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Geographical Indication (GI)</label>
+                  <input
+                    type="text"
+                    value={newProduct.geoIndication || ''}
+                    onChange={(e) => setNewProduct({ ...newProduct, geoIndication: e.target.value })}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
+                    placeholder="e.g., Malabar Pepper, Darjeeling Tea"
+                  />
+                </div>
+                <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
                     Product Name <span className="text-red-500">*</span>
                   </label>
@@ -1881,13 +1891,21 @@ const SellerDashboard = () => {
 
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Uses (comma separated)</label>
-                <input
-                  type="text"
-                  value={Array.isArray(newProduct.uses) ? newProduct.uses.join(', ') : newProduct.uses}
-                  onChange={(e) => setNewProduct({
-                    ...newProduct,
-                    uses: e.target.value.split(',').map(use => use.trim()).filter(use => use)
-                  })}
+                <textarea
+                  rows={2}
+                  value={Array.isArray(newProduct.uses) ? newProduct.uses.join(', ') : (newProduct.uses || '')}
+                  onChange={(e) => {
+                    const raw = e.target.value;
+                    // Allow spaces and commas as typed; only split to array when saving
+                    setNewProduct({ ...newProduct, uses: raw });
+                  }}
+                  onBlur={(e) => {
+                    const arr = String(e.target.value)
+                      .split(',')
+                      .map(s => s.trim())
+                      .filter(Boolean);
+                    setNewProduct(prev => ({ ...prev, uses: arr }));
+                  }}
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
                   placeholder="Digestive, Anti-inflammatory, Antioxidant"
                 />
