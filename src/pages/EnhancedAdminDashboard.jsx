@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import {
   Box, Typography, Container, Grid, Card, CardContent,
@@ -335,30 +336,13 @@ function EnhancedAdminDashboard() {
       setActionLoading(true);
       const token = localStorage.getItem('token');
 
-      // Prepare data based on role
-      const submitData = { ...employeeData };
-      
-      // If it's a delivery agent, include location data
-      if (employeeData.role === 'delivery') {
-        if (employeeData.latitude && employeeData.longitude) {
-          submitData.currentLocation = {
-            type: 'Point',
-            coordinates: [parseFloat(employeeData.longitude), parseFloat(employeeData.latitude)]
-          };
-        }
-        submitData.maxDeliveryRadius = employeeData.maxDeliveryRadius ? parseInt(employeeData.maxDeliveryRadius) : 10;
-        submitData.vehicleType = employeeData.vehicleType || 'bike';
-        submitData.licenseNumber = employeeData.licenseNumber || '';
-        submitData.isAvailable = true;
-      }
-
       const response = await fetch('http://localhost:5000/api/admin/add-employee', {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json'
         },
-        body: JSON.stringify(submitData)
+        body: JSON.stringify(employeeData)
       });
 
       if (response.ok) {
@@ -1939,14 +1923,14 @@ function EnhancedAdminDashboard() {
                 borderRadius: '12px',
                 border: selectedUser.isActive ? '2px solid #b91c1c' : '2px solid #047857',
                 boxShadow: selectedUser.isActive ? '0 4px 14px 0 rgba(220, 38, 38, 0.2)' : '0 4px 14px 0 rgba(5, 150, 105, 0.2)',
+                bgcolor: '#2d5016',
                 '&:hover': {
                   backgroundColor: selectedUser.isActive ? '#b91c1c' : '#047857',
                   border: selectedUser.isActive ? '2px solid #991b1b' : '2px solid #065f46',
-                  boxShadow: selectedUser.isActive ? '0 6px 20px 0 rgba(220, 38, 38, 0.3)' : '0 6px 20px 0 rgba(5, 150, 105, 0.3)'
+                  boxShadow: selectedUser.isActive ? '0 6px 20px 0 rgba(220, 38, 38, 0.3)' : '0 6px 20px 0 rgba(5, 150, 105, 0.3)',
+                  bgcolor: '#3a4d2d'
                 }
-              }}
-              sx={{ bgcolor: '#2d5016', '&:hover': { bgcolor: '#3a4d2d' } }}
-            >
+              }}>
               {selectedUser.isActive ? 'Disable User' : 'Enable User'}
             </Button>
           )}
@@ -2140,218 +2124,6 @@ function EnhancedAdminDashboard() {
                 }}
               />
             </Grid>
-            
-            {/* Location fields for delivery agents */}
-            {employeeData.role === 'delivery' && (
-              <>
-                <Grid item xs={12}>
-                  <Typography variant="h6" sx={{ 
-                    color: '#1e293b', 
-                    fontWeight: 600, 
-                    mb: 2,
-                    fontFamily: 'Playfair Display'
-                  }}>
-                    Delivery Location Settings
-                  </Typography>
-                </Grid>
-                
-                <Grid item xs={12} md={6}>
-                  <TextField
-                    fullWidth
-                    label="Current Latitude"
-                    type="number"
-                    value={employeeData.latitude || ''}
-                    onChange={(e) => setEmployeeData(prev => ({ ...prev, latitude: e.target.value }))}
-                    placeholder="e.g., 12.9716"
-                    sx={{
-                      '& .MuiOutlinedInput-root': {
-                        borderRadius: '16px',
-                        backgroundColor: 'rgba(255, 255, 255, 0.8)',
-                        backdropFilter: 'blur(10px)',
-                        border: '1px solid rgba(203, 213, 225, 0.5)',
-                        '&:hover': {
-                          border: '1px solid rgba(16, 185, 129, 0.5)',
-                        },
-                        '&.Mui-focused': {
-                          border: '2px solid #10b981',
-                          boxShadow: '0 0 0 3px rgba(16, 185, 129, 0.1)'
-                        }
-                      },
-                      '& .MuiInputLabel-root': {
-                        color: '#6b7280',
-                        fontWeight: 500,
-                        '&.Mui-focused': {
-                          color: '#10b981'
-                        }
-                      },
-                      '& .MuiOutlinedInput-input': {
-                        padding: '16px 14px',
-                        fontSize: '1rem',
-                        fontWeight: 500,
-                        color: '#1e293b'
-                      }
-                    }}
-                  />
-                </Grid>
-                
-                <Grid item xs={12} md={6}>
-                  <TextField
-                    fullWidth
-                    label="Current Longitude"
-                    type="number"
-                    value={employeeData.longitude || ''}
-                    onChange={(e) => setEmployeeData(prev => ({ ...prev, longitude: e.target.value }))}
-                    placeholder="e.g., 77.5946"
-                    sx={{
-                      '& .MuiOutlinedInput-root': {
-                        borderRadius: '16px',
-                        backgroundColor: 'rgba(255, 255, 255, 0.8)',
-                        backdropFilter: 'blur(10px)',
-                        border: '1px solid rgba(203, 213, 225, 0.5)',
-                        '&:hover': {
-                          border: '1px solid rgba(16, 185, 129, 0.5)',
-                        },
-                        '&.Mui-focused': {
-                          border: '2px solid #10b981',
-                          boxShadow: '0 0 0 3px rgba(16, 185, 129, 0.1)'
-                        }
-                      },
-                      '& .MuiInputLabel-root': {
-                        color: '#6b7280',
-                        fontWeight: 500,
-                        '&.Mui-focused': {
-                          color: '#10b981'
-                        }
-                      },
-                      '& .MuiOutlinedInput-input': {
-                        padding: '16px 14px',
-                        fontSize: '1rem',
-                        fontWeight: 500,
-                        color: '#1e293b'
-                      }
-                    }}
-                  />
-                </Grid>
-                
-                <Grid item xs={12} md={6}>
-                  <TextField
-                    fullWidth
-                    label="Max Delivery Radius (km)"
-                    type="number"
-                    value={employeeData.maxDeliveryRadius || ''}
-                    onChange={(e) => setEmployeeData(prev => ({ ...prev, maxDeliveryRadius: e.target.value }))}
-                    placeholder="e.g., 10"
-                    sx={{
-                      '& .MuiOutlinedInput-root': {
-                        borderRadius: '16px',
-                        backgroundColor: 'rgba(255, 255, 255, 0.8)',
-                        backdropFilter: 'blur(10px)',
-                        border: '1px solid rgba(203, 213, 225, 0.5)',
-                        '&:hover': {
-                          border: '1px solid rgba(16, 185, 129, 0.5)',
-                        },
-                        '&.Mui-focused': {
-                          border: '2px solid #10b981',
-                          boxShadow: '0 0 0 3px rgba(16, 185, 129, 0.1)'
-                        }
-                      },
-                      '& .MuiInputLabel-root': {
-                        color: '#6b7280',
-                        fontWeight: 500,
-                        '&.Mui-focused': {
-                          color: '#10b981'
-                        }
-                      },
-                      '& .MuiOutlinedInput-input': {
-                        padding: '16px 14px',
-                        fontSize: '1rem',
-                        fontWeight: 500,
-                        color: '#1e293b'
-                      }
-                    }}
-                  />
-                </Grid>
-                
-                <Grid item xs={12} md={6}>
-                  <FormControl fullWidth>
-                    <InputLabel sx={{
-                      color: '#6b7280',
-                      fontWeight: 500,
-                      '&.Mui-focused': { color: '#10b981' }
-                    }}>
-                      Vehicle Type
-                    </InputLabel>
-                    <Select
-                      value={employeeData.vehicleType || 'bike'}
-                      onChange={(e) => setEmployeeData(prev => ({ ...prev, vehicleType: e.target.value }))}
-                      label="Vehicle Type"
-                      sx={{
-                        borderRadius: '16px',
-                        backgroundColor: 'rgba(255, 255, 255, 0.8)',
-                        backdropFilter: 'blur(10px)',
-                        border: '1px solid rgba(203, 213, 225, 0.5)',
-                        '&:hover': {
-                          border: '1px solid rgba(16, 185, 129, 0.5)',
-                        },
-                        '&.Mui-focused': {
-                          border: '2px solid #10b981',
-                          boxShadow: '0 0 0 3px rgba(16, 185, 129, 0.1)'
-                        },
-                        '& .MuiSelect-select': {
-                          padding: '16px 14px',
-                          fontSize: '1rem',
-                          fontWeight: 500,
-                          color: '#1e293b'
-                        }
-                      }}
-                    >
-                      <MenuItem value="bike">Bike</MenuItem>
-                      <MenuItem value="scooter">Scooter</MenuItem>
-                      <MenuItem value="car">Car</MenuItem>
-                      <MenuItem value="van">Van</MenuItem>
-                    </Select>
-                  </FormControl>
-                </Grid>
-                
-                <Grid item xs={12}>
-                  <TextField
-                    fullWidth
-                    label="License Number"
-                    value={employeeData.licenseNumber || ''}
-                    onChange={(e) => setEmployeeData(prev => ({ ...prev, licenseNumber: e.target.value }))}
-                    placeholder="e.g., DL123456789"
-                    sx={{
-                      '& .MuiOutlinedInput-root': {
-                        borderRadius: '16px',
-                        backgroundColor: 'rgba(255, 255, 255, 0.8)',
-                        backdropFilter: 'blur(10px)',
-                        border: '1px solid rgba(203, 213, 225, 0.5)',
-                        '&:hover': {
-                          border: '1px solid rgba(16, 185, 129, 0.5)',
-                        },
-                        '&.Mui-focused': {
-                          border: '2px solid #10b981',
-                          boxShadow: '0 0 0 3px rgba(16, 185, 129, 0.1)'
-                        }
-                      },
-                      '& .MuiInputLabel-root': {
-                        color: '#6b7280',
-                        fontWeight: 500,
-                        '&.Mui-focused': {
-                          color: '#10b981'
-                        }
-                      },
-                      '& .MuiOutlinedInput-input': {
-                        padding: '16px 14px',
-                        fontSize: '1rem',
-                        fontWeight: 500,
-                        color: '#1e293b'
-                      }
-                    }}
-                  />
-                </Grid>
-              </>
-            )}
           </Grid>
 
           <Alert
