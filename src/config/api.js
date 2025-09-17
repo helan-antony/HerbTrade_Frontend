@@ -105,7 +105,11 @@ export const API_ENDPOINTS = {
     ORDER_APPROVE: (orderId) => `${API_BASE_URL}/api/admin/orders/${orderId}/approve`,
     ORDER_STATUS: (orderId) => `${API_BASE_URL}/api/admin/orders/${orderId}/status`,
     ORDER_ASSIGN: (orderId) => `${API_BASE_URL}/api/admin/orders/${orderId}/assign-delivery`,
+    ORDER_NEAREST_DELIVERIES: (orderId) => `${API_BASE_URL}/api/admin/orders/${orderId}/nearest-deliveries`,
+    ORDER_AUTO_ASSIGN: (orderId) => `${API_BASE_URL}/api/admin/orders/${orderId}/auto-assign-delivery`,
     DELIVERIES: `${API_BASE_URL}/api/admin/deliveries`,
+    DELIVERY_LOCATION: (deliveryId) => `${API_BASE_URL}/api/admin/deliveries/${deliveryId}/location`,
+    DELIVERY_AVAILABILITY: (deliveryId) => `${API_BASE_URL}/api/admin/deliveries/${deliveryId}/availability`,
     HOSPITALS: `${API_BASE_URL}/api/admin/hospitals`,
     ANALYTICS: `${API_BASE_URL}/api/admin/analytics`,
   },
@@ -118,6 +122,8 @@ export const API_ENDPOINTS = {
     UPDATE_STATUS: (orderId) => `${API_BASE_URL}/api/delivery/orders/${orderId}/status`,
     PROFILE: `${API_BASE_URL}/api/delivery/profile`,
     CHANGE_PASSWORD: `${API_BASE_URL}/api/delivery/change-password`,
+    LOCATION: `${API_BASE_URL}/api/delivery/location`,
+    AVAILABILITY: `${API_BASE_URL}/api/delivery/availability`,
   },
   
   ORDERS: {

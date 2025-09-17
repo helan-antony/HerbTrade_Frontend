@@ -1,18 +1,34 @@
 import { useEffect, useState } from 'react';
 import { API_ENDPOINTS, apiCall } from '../config/api';
 
-function StatusBadge({ status }) {
-  const map = {
+function StatusBadge({ status, type = 'order' }) {
+  const orderMap = {
     pending: 'bg-yellow-100 text-yellow-800',
     confirmed: 'bg-blue-100 text-blue-800',
-    processing: 'bg-indigo-100 text-indigo-800',
-    shipped: 'bg-purple-100 text-purple-800',
-    out_for_delivery: 'bg-teal-100 text-teal-800',
+    processing: 'bg-purple-100 text-purple-800',
+    shipped: 'bg-orange-100 text-orange-800',
     delivered: 'bg-green-100 text-green-800',
     cancelled: 'bg-red-100 text-red-800'
   };
+  
+  const deliveryMap = {
+    unassigned: 'bg-gray-100 text-gray-800',
+    assigned: 'bg-blue-100 text-blue-800',
+    picked_up: 'bg-purple-100 text-purple-800',
+    out_for_delivery: 'bg-orange-100 text-orange-800',
+    delivered: 'bg-green-100 text-green-800',
+    failed: 'bg-red-100 text-red-800'
+  };
+  
+  const map = type === 'delivery' ? deliveryMap : orderMap;
+  const label = type === 'delivery' ? 
+    (status === 'unassigned' ? 'Unassigned' : status.charAt(0).toUpperCase() + status.slice(1).replace('_', ' ')) :
+    status.charAt(0).toUpperCase() + status.slice(1).replace('_', ' ');
+    
   return (
-    <span className={`px-3 py-1 rounded-full text-xs font-medium ${map[status] || 'bg-slate-100 text-slate-700'}`}>{status.replaceAll('_',' ')}</span>
+    <span className={`px-3 py-1 rounded-full text-xs font-medium ${map[status] || 'bg-slate-100 text-slate-700'}`}>
+      {label}
+    </span>
   );
 }
 
@@ -68,8 +84,8 @@ export default function MyOrders() {
                 <div className="text-sm text-slate-600">{new Date(order.orderDate || order.createdAt).toLocaleString()}</div>
               </div>
               <div className="mt-2 flex items-center gap-3">
-                <StatusBadge status={order.status} />
-                {order.deliveryStatus && <StatusBadge status={order.deliveryStatus} />}
+                <StatusBadge status={order.status} type="order" />
+                {order.deliveryStatus && <StatusBadge status={order.deliveryStatus} type="delivery" />}
                 {order.trackingNumber && (
                   <span className="text-xs text-slate-600">Tracking: {order.trackingNumber}</span>
                 )}

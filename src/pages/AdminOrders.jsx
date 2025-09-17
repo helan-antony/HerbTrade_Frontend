@@ -8,7 +8,7 @@ export default function AdminOrders() {
   const [error, setError] = useState('');
   const [busyId, setBusyId] = useState('');
   const [assignSel, setAssignSel] = useState({});
-  const [statusSel, setStatusSel] = useState({});
+  const [nearestDeliveries, setNearestDeliveries] = useState({});
 
   async function load() {
     setLoading(true);
@@ -42,14 +42,32 @@ export default function AdminOrders() {
     } catch (e) { setError(e.message); } finally { setBusyId(''); }
   }
 
-  async function setStatus(orderId, status) {
+
+  async function loadNearestDeliveries(orderId) {
+    try {
+      const res = await apiCall(API_ENDPOINTS.ADMIN.ORDER_NEAREST_DELIVERIES(orderId));
+      const data = await res.json();
+      if (res.ok) {
+        setNearestDeliveries(prev => ({ ...prev, [orderId]: data }));
+      }
+    } catch (e) {
+      console.error('Failed to load nearest deliveries:', e.message);
+    }
+  }
+
+  async function autoAssign(orderId) {
     try {
       setBusyId(orderId);
-      const res = await apiCall(API_ENDPOINTS.ADMIN.ORDER_STATUS(orderId), { method: 'PATCH', body: JSON.stringify({ status }) });
+      const res = await apiCall(API_ENDPOINTS.ADMIN.ORDER_AUTO_ASSIGN(orderId), { method: 'POST' });
       const data = await res.json();
-      if (!res.ok) throw new Error(data.error || 'Failed to update status');
+      if (!res.ok) throw new Error(data.error || 'Failed to auto-assign');
       setOrders(prev => prev.map(o => o._id === orderId ? data.order : o));
-    } catch (e) { setError(e.message); } finally { setBusyId(''); }
+      alert(`Order auto-assigned to ${data.delivery.name} (${data.distance.toFixed(2)} km away)`);
+    } catch (e) { 
+      setError(e.message); 
+    } finally { 
+      setBusyId(''); 
+    }
   }
 
   async function assign(orderId, deliveryId) {
@@ -59,6 +77,7 @@ export default function AdminOrders() {
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || 'Failed to assign');
       setOrders(prev => prev.map(o => o._id === orderId ? data.order : o));
+      alert(`Order assigned to delivery agent successfully!`);
     } catch (e) { setError(e.message); } finally { setBusyId(''); }
   }
 
@@ -77,8 +96,20 @@ export default function AdminOrders() {
                 <div className="text-sm text-slate-600">{new Date(order.orderDate || order.createdAt).toLocaleString()}</div>
               </div>
               <div className="mt-2 text-sm text-slate-700 flex flex-wrap gap-3 items-center">
-                <span>Status: <b>{order.status}</b></span>
-                <span>Total: <b>{Number(order.totalAmount).toFixed(2)}</b></span>
+                <span>Status: 
+                  <span className={`ml-1 px-2 py-1 rounded text-xs font-medium ${
+                    order.status === 'pending' ? 'bg-yellow-100 text-yellow-800' :
+                    order.status === 'confirmed' ? 'bg-blue-100 text-blue-800' :
+                    order.status === 'processing' ? 'bg-purple-100 text-purple-800' :
+                    order.status === 'shipped' ? 'bg-orange-100 text-orange-800' :
+                    order.status === 'delivered' ? 'bg-green-100 text-green-800' :
+                    order.status === 'cancelled' ? 'bg-red-100 text-red-800' :
+                    'bg-gray-100 text-gray-800'
+                  }`}>
+                    {order.status.charAt(0).toUpperCase() + order.status.slice(1).replace('_', ' ')}
+                  </span>
+                </span>
+                <span>Total: <b>₹{Number(order.totalAmount).toFixed(2)}</b></span>
                 <span>Delivery: <b>{order.deliveryAssignee?.name || 'Unassigned'}</b></span>
               </div>
               <div className="mt-2">
@@ -98,6 +129,16 @@ export default function AdminOrders() {
                 )}
                 {order.status !== 'cancelled' && (
                   <>
+                    {/* Auto-assign button */}
+                    <button
+                      disabled={busyId === order._id}
+                      onClick={() => autoAssign(order._id)}
+                      className={`px-3 py-1 rounded text-white ${busyId === order._id ? 'bg-gray-400' : 'bg-blue-600 hover:bg-blue-700'}`}
+                    >
+                      Auto-Assign Nearest
+                    </button>
+                    
+                    {/* Manual assignment */}
                     <div className="flex items-center gap-2">
                       <select
                         disabled={busyId === order._id}
@@ -107,7 +148,9 @@ export default function AdminOrders() {
                       >
                         <option value="" disabled>Assign delivery</option>
                         {deliveries.map(d => (
-                          <option key={d._id} value={d._id}>{d.name} ({d.email})</option>
+                          <option key={d._id} value={d._id}>
+                            {d.name} ({d.email}) {d.isAvailable ? '✓' : '✗'}
+                          </option>
                         ))}
                       </select>
                       <button
@@ -120,28 +163,15 @@ export default function AdminOrders() {
                         className={`px-3 py-1 rounded ${busyId === order._id ? 'bg-slate-100 text-slate-500' : 'bg-emerald-600 text-white hover:bg-emerald-700'}`}
                       >Assign</button>
                     </div>
-                    <div className="flex items-center gap-2">
-                      <select
-                        disabled={busyId === order._id}
-                        onChange={(e) => setStatusSel(prev => ({ ...prev, [order._id]: e.target.value }))}
-                        value={statusSel[order._id] || ''}
-                        className="px-3 py-1 rounded border"
-                      >
-                        <option value="" disabled>Update status</option>
-                        {['pending','confirmed','processing','shipped','out_for_delivery','delivered','cancelled'].map(s => (
-                          <option key={s} value={s}>{s.replaceAll('_',' ')}</option>
-                        ))}
-                      </select>
-                      <button
-                        disabled={busyId === order._id}
-                        onClick={() => {
-                          const selected = statusSel[order._id];
-                          if (!selected) return alert('Please select a status');
-                          setStatus(order._id, selected);
-                        }}
-                        className={`px-3 py-1 rounded ${busyId === order._id ? 'bg-slate-100 text-slate-500' : 'bg-emerald-600 text-white hover:bg-emerald-700'}`}
-                      >OK</button>
-                    </div>
+                    
+                    {/* Nearest deliveries info */}
+                    {nearestDeliveries[order._id] && (
+                      <div className="text-xs text-blue-600">
+                        Nearest: {nearestDeliveries[order._id].slice(0, 3).map(d => 
+                          `${d.name} (${d.distance}km)`
+                        ).join(', ')}
+                      </div>
+                    )}
                   </>
                 )}
               </div>

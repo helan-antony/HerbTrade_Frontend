@@ -64,6 +64,24 @@ function Checkout() {
   const [paymentMethod, setPaymentMethod] = useState('cod');
   const [orderNotes, setOrderNotes] = useState('');
 
+  // Simple geocoding function (can be enhanced with Google Maps API)
+  const geocodeAddress = async (address) => {
+    try {
+      // For now, return default coordinates (can be replaced with actual geocoding service)
+      // In production, you would use Google Maps Geocoding API or similar
+      return {
+        latitude: 12.9716, // Default to Bangalore coordinates
+        longitude: 77.5946
+      };
+    } catch (error) {
+      console.error('Geocoding error:', error);
+      return {
+        latitude: 12.9716,
+        longitude: 77.5946
+      };
+    }
+  };
+
   useEffect(() => {
     if (!isAuthenticated()) {
       navigate('/login');
@@ -181,6 +199,10 @@ function Checkout() {
         price: item.productId?.price || item.price
       }));
 
+      // Geocode the shipping address
+      const fullAddress = `${shippingInfo.address}, ${shippingInfo.city}, ${shippingInfo.state}, ${shippingInfo.pincode}, ${shippingInfo.country}`;
+      const coordinates = await geocodeAddress(fullAddress);
+
       const orderData = {
         items: orderItems,
         shippingAddress: {
@@ -190,8 +212,12 @@ function Checkout() {
           address: shippingInfo.address,
           city: shippingInfo.city,
           state: shippingInfo.state,
-          pincode: shippingInfo.pincode,
+          zipCode: shippingInfo.pincode,
           country: shippingInfo.country
+        },
+        deliveryLocation: {
+          type: 'Point',
+          coordinates: [coordinates.longitude, coordinates.latitude]
         },
         paymentMethod,
         notes: orderNotes,
