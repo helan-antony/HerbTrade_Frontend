@@ -1,5 +1,7 @@
 
 import { useState, useEffect } from 'react';
+import { getAddressFromCoords } from '../utils/reverseGeocode';
+import GoogleMapPicker from '../components/GoogleMapPicker';
 import {
   Box, Typography, Container, Grid, Card, CardContent,
   Button, Paper, Table, TableBody, TableCell, TableContainer,
@@ -68,18 +70,55 @@ function EnhancedAdminDashboard() {
     bookingStatus: 'Pending',
     paymentStatus: 'Pending'
   });
+  // Default map center (India)
+  const defaultMapCenter = { lat: 20.5937, lng: 78.9629 };
+
   const [employeeData, setEmployeeData] = useState({
     name: '',
     email: '',
     role: 'employee',
-    department: ''
+    department: '',
+    lat: '',
+    lng: '',
+    address: ''
   });
   const [editEmployeeData, setEditEmployeeData] = useState({
     name: '',
     email: '',
     role: 'employee',
-    department: ''
+    department: '',
+    lat: '',
+    lng: '',
+    address: ''
   });
+
+  // Address lookup for Add Employee (map picker)
+  useEffect(() => {
+    const fetchAddress = async () => {
+      if (employeeData.lat && employeeData.lng) {
+        const addr = await getAddressFromCoords(employeeData.lat, employeeData.lng);
+        setEmployeeData(prev => ({ ...prev, address: addr }));
+      } else {
+        setEmployeeData(prev => ({ ...prev, address: '' }));
+      }
+    };
+    if (employeeData.role === 'delivery') fetchAddress();
+    // eslint-disable-next-line
+  }, [employeeData.lat, employeeData.lng, employeeData.role]);
+
+  // Address lookup for Edit Employee (map picker)
+  useEffect(() => {
+    const fetchAddress = async () => {
+      if (editEmployeeData.lat && editEmployeeData.lng) {
+        const addr = await getAddressFromCoords(editEmployeeData.lat, editEmployeeData.lng);
+        setEditEmployeeData(prev => ({ ...prev, address: addr }));
+      } else {
+        setEditEmployeeData(prev => ({ ...prev, address: '' }));
+      }
+    };
+    if (editEmployeeData.role === 'delivery') fetchAddress();
+    // eslint-disable-next-line
+  }, [editEmployeeData.lat, editEmployeeData.lng, editEmployeeData.role]);
   
   const navigate = useNavigate();
 
@@ -1791,8 +1830,8 @@ function EnhancedAdminDashboard() {
 
         <DialogContent sx={{ p: 4 }}>
           {selectedUser && (
-            <Grid container spacing={4}>
-              <Grid item xs={12} md={6}>
+            <Grid container columns={12} columnSpacing={4} rowSpacing={4}>
+              <Box gridColumn={{ xs: 'span 12', md: 'span 6' }}>
                 <Paper sx={{
                   p: 4,
                   borderRadius: '16px',
@@ -1837,9 +1876,9 @@ function EnhancedAdminDashboard() {
                     />
                   </Box>
                 </Paper>
-              </Grid>
+              </Box>
 
-              <Grid item xs={12} md={6}>
+              <Box gridColumn={{ xs: 'span 12', md: 'span 6' }}>
                 <Paper sx={{
                   p: 4,
                   borderRadius: '16px',
@@ -1881,7 +1920,7 @@ function EnhancedAdminDashboard() {
                     </Typography>
                   </Box>
                 </Paper>
-              </Grid>
+              </Box>
             </Grid>
           )}
         </DialogContent>
@@ -1971,8 +2010,8 @@ function EnhancedAdminDashboard() {
         </DialogTitle>
 
         <DialogContent sx={{ p: 4 }}>
-          <Grid container spacing={3} sx={{ mt: 1 }}>
-            <Grid item xs={12} md={6}>
+          <Grid container columns={12} columnSpacing={3} rowSpacing={3} sx={{ mt: 1 }}>
+            <Box gridColumn={{ xs: 'span 12', md: 'span 6' }}>
               <TextField
                 fullWidth
                 label="Full Name *"
@@ -2008,8 +2047,46 @@ function EnhancedAdminDashboard() {
                   }
                 }}
               />
-            </Grid>
-            <Grid item xs={12} md={6}>
+            </Box>
+            {/* Location field for all employees */}
+            <Box gridColumn={{ xs: 'span 12', md: 'span 6' }}>
+              <TextField
+                fullWidth
+                label="Location"
+                value={employeeData.location || ''}
+                onChange={(e) => setEmployeeData(prev => ({ ...prev, location: e.target.value }))}
+                placeholder="Enter location to allocate for delivery man"
+                sx={{
+                  '& .MuiOutlinedInput-root': {
+                    borderRadius: '16px',
+                    backgroundColor: 'rgba(255, 255, 255, 0.8)',
+                    backdropFilter: 'blur(10px)',
+                    border: '1px solid rgba(203, 213, 225, 0.5)',
+                    '&:hover': {
+                      border: '1px solid rgba(16, 185, 129, 0.5)',
+                    },
+                    '&.Mui-focused': {
+                      border: '2px solid #10b981',
+                      boxShadow: '0 0 0 3px rgba(16, 185, 129, 0.1)'
+                    }
+                  },
+                  '& .MuiInputLabel-root': {
+                    color: '#6b7280',
+                    fontWeight: 500,
+                    '&.Mui-focused': {
+                      color: '#10b981'
+                    }
+                  },
+                  '& .MuiOutlinedInput-input': {
+                    padding: '16px 14px',
+                    fontSize: '1rem',
+                    fontWeight: 500,
+                    color: '#1e293b'
+                  }
+                }}
+              />
+            </Box>
+            <Box gridColumn={{ xs: 'span 12', md: 'span 6' }}>
               <TextField
                 fullWidth
                 label="Email Address *"
@@ -2046,7 +2123,7 @@ function EnhancedAdminDashboard() {
                   }
                 }}
               />
-            </Grid>
+            </Box>
             <Grid item xs={12} md={6}>
               <FormControl fullWidth>
                 <InputLabel sx={{
@@ -2489,6 +2566,34 @@ function EnhancedAdminDashboard() {
                 }}
               />
             </Grid>
+            {/* Google Map picker for Delivery Agent (Edit) */}
+            {editEmployeeData.role === 'delivery' && (
+              <>
+                <Grid item xs={12}>
+                  <Typography variant="subtitle1" sx={{ mb: 1 }}>Select Delivery Location on Map</Typography>
+                  <GoogleMapPicker
+                    lat={editEmployeeData.lat ? parseFloat(editEmployeeData.lat) : defaultMapCenter.lat}
+                    lng={editEmployeeData.lng ? parseFloat(editEmployeeData.lng) : defaultMapCenter.lng}
+                    onLocationChange={({ lat, lng }) => setEditEmployeeData(prev => ({ ...prev, lat, lng }))}
+                    height={300}
+                  />
+                </Grid>
+                <Grid item xs={12}>
+                  <TextField
+                    fullWidth
+                    label="Location Address (auto-filled)"
+                    value={editEmployeeData.address}
+                    InputProps={{ readOnly: true }}
+                    sx={{
+                      '& .MuiOutlinedInput-root': {
+                        borderRadius: '16px',
+                        backgroundColor: 'rgba(240,255,244,0.8)'
+                      }
+                    }}
+                  />
+                </Grid>
+              </>
+            )}
             <Grid item xs={12} md={6}>
               <TextField
                 fullWidth

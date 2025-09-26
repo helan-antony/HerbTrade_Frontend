@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { loadRazorpayScript } from '../utils/razorpay';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import { toast, ToastContainer } from 'react-toastify';
@@ -42,8 +43,146 @@ const logout = () => {
 };
 
 function Checkout() {
-  const [cartItems, setCartItems] = useState([]);
-  const [loading, setLoading] = useState(true);
+
+  // Load cart items from localStorage on mount
+  useEffect(() => {
+    const storedCart = localStorage.getItem('cartItems');
+    if (storedCart) {
+      try {
+        setCartItems(JSON.parse(storedCart));
+      } catch (e) {
+        setCartItems([]);
+      }
+    } else {
+      setCartItems([]);
+    }
+    setLoading(false);
+  }, []);
+
+  // Check for invalid cart items (missing price or quantity)
+  useEffect(() => {
+    if (cartItems.length > 0) {
+      const invalid = cartItems.some(item => {
+        const product = item.productId || item;
+        return !product.price || isNaN(Number(product.price)) || !item.quantity || isNaN(Number(item.quantity));
+      });
+      if (invalid) {
+        toast.error('One or more items in your cart are missing price or quantity. Please remove and re-add them.');
+      }
+    }
+  }, [cartItems]);
+  // Handles input changes for shipping info fields
+  function handleInputChange(field, value) {
+    setShippingInfo(prev => ({
+      ...prev,
+      [field]: value
+    }));
+  }
+
+  // Place order functionality
+  async function handlePlaceOrder() {
+    if (cartItems.length === 0) {
+      toast.error('Your cart is empty.');
+      return;
+    }
+    if (!shippingInfo.fullName || !shippingInfo.email || !shippingInfo.phone || !shippingInfo.address || !shippingInfo.city || !shippingInfo.state || !shippingInfo.pincode) {
+      toast.error('Please fill in all required shipping information.');
+      return;
+    }
+    setSubmitting(true);
+    try {
+      if (paymentMethod === 'razorpay') {
+        // Load Razorpay script
+        const res = await loadRazorpayScript();
+        if (!res) {
+          toast.error('Failed to load Razorpay.');
+          setSubmitting(false);
+          return;
+        }
+        // Create order on backend
+        const orderRes = await axios.post(
+          `${import.meta.env.VITE_API_URL || ''}/orders/create-razorpay-order`,
+          {
+            amount: Math.round(getFinalTotal() * 100), // in paise
+            cartItems,
+            shippingInfo,
+            orderNotes
+          },
+          { headers: getAuthHeaders() }
+        );
+        const { orderId, razorpayKey } = orderRes.data;
+        const options = {
+          key: razorpayKey,
+          amount: Math.round(getFinalTotal() * 100),
+          currency: 'INR',
+          name: 'HerbTrade',
+          description: 'Order Payment',
+          order_id: orderId,
+          handler: async function (response) {
+            // Verify payment on backend
+            await axios.post(
+              `${import.meta.env.VITE_API_URL || ''}/orders/verify-razorpay-payment`,
+              {
+                ...response,
+                cartItems,
+                shippingInfo,
+                orderNotes
+              },
+              { headers: getAuthHeaders() }
+            );
+            toast.success('Order placed successfully!');
+            localStorage.removeItem('cartItems');
+            setTimeout(() => navigate('/order-confirmation'), 1500);
+          },
+          prefill: {
+            name: shippingInfo.fullName,
+            email: shippingInfo.email,
+            contact: shippingInfo.phone
+          },
+          theme: { color: '#10b981' }
+        };
+        const rzp = new window.Razorpay(options);
+        rzp.open();
+      } else {
+        // Cash on Delivery
+        await axios.post(
+          `${import.meta.env.VITE_API_URL || ''}/orders/create-cod-order`,
+          {
+            cartItems,
+            shippingInfo,
+            orderNotes
+          },
+          { headers: getAuthHeaders() }
+        );
+        toast.success('Order placed successfully!');
+        localStorage.removeItem('cartItems');
+        setTimeout(() => navigate('/order-confirmation'), 1500);
+      }
+    } catch (err) {
+      toast.error(err.response?.data?.message || 'Failed to place order.');
+    } finally {
+      setSubmitting(false);
+    }
+  }
+  // Helper functions for order summary
+  function getTotalPrice() {
+    return cartItems.reduce((total, item) => {
+      const product = item.productId || item;
+      let price = Number(product.price);
+      let quantity = Number(item.quantity);
+      if (isNaN(price) || price <= 0) price = 0;
+      if (isNaN(quantity) || quantity <= 0) quantity = 1;
+      return total + (price * quantity);
+    }, 0);
+  }
+
+  function getTaxAmount() {
+    return getTotalPrice() * 0.18;
+  }
+
+  function getFinalTotal() {
+    return getTotalPrice() + getTaxAmount();
+  }
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState('');
   const [currentStep, setCurrentStep] = useState(1);
@@ -62,231 +201,15 @@ function Checkout() {
   });
 
   const [paymentMethod, setPaymentMethod] = useState('cod');
+  const [razorpayLoading, setRazorpayLoading] = useState(false);
   const [orderNotes, setOrderNotes] = useState('');
 
-  // Simple geocoding function (can be enhanced with Google Maps API)
-  const geocodeAddress = async (address) => {
-    try {
-      // For now, return default coordinates (can be replaced with actual geocoding service)
-      // In production, you would use Google Maps Geocoding API or similar
-      return {
-        latitude: 12.9716, // Default to Bangalore coordinates
-        longitude: 77.5946
-      };
-    } catch (error) {
-      console.error('Geocoding error:', error);
-      return {
-        latitude: 12.9716,
-        longitude: 77.5946
-      };
-    }
-  };
-
-  useEffect(() => {
-    if (!isAuthenticated()) {
-      navigate('/login');
-      return;
-    }
-    fetchCartItems();
-    loadUserInfo();
-  }, [navigate]);
-
-  const loadUserInfo = () => {
-    try {
-      const user = JSON.parse(localStorage.getItem('user') || '{}');
-      if (user) {
-        setShippingInfo(prev => ({
-          ...prev,
-          fullName: user.name || '',
-          email: user.email || '',
-          phone: user.phone || ''
-        }));
-      }
-    } catch (error) {
-      console.error('Error loading user info:', error);
-    }
-  };
-
-  const fetchCartItems = async () => {
-    try {
-      setLoading(true);
-      setError('');
-      
-      const response = await axios.get('http://localhost:5000/api/cart', {
-        headers: getAuthHeaders()
-      });
-
-      const newCartItems = response.data.data?.items || [];
-      setCartItems(newCartItems);
-
-      if (newCartItems.length === 0) {
-        toast.info('Your cart is empty. Redirecting to shop...');
-        setTimeout(() => navigate('/herbs'), 2000);
-      }
-    } catch (error) {
-      console.error('Error fetching cart:', error);
-      if (error.response?.status === 401) {
-        logout();
-        return;
-      }
-      setError('Failed to load cart items');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const getTotalPrice = () => {
-    return cartItems.reduce((total, item) => {
-      const price = item.productId?.price || item.price || 0;
-      const quantity = item.quantity || 1;
-      return total + (price * quantity);
-    }, 0);
-  };
-
-  const getTaxAmount = () => getTotalPrice() * 0.18;
-  const getFinalTotal = () => getTotalPrice() + getTaxAmount();
-
-  const validateShippingInfo = () => {
-    const required = ['fullName', 'email', 'phone', 'address', 'city', 'state', 'pincode'];
-    for (const field of required) {
-      if (!shippingInfo[field]?.trim()) {
-        toast.error(`Please fill in ${field.replace(/([A-Z])/g, ' $1').toLowerCase()}`);
-        return false;
-      }
-    }
-
-    // Email validation
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!emailRegex.test(shippingInfo.email)) {
-      toast.error('Please enter a valid email address');
-      return false;
-    }
-
-    // Phone validation
-    const phoneRegex = /^[6-9]\d{9}$/;
-    if (!phoneRegex.test(shippingInfo.phone)) {
-      toast.error('Please enter a valid 10-digit phone number');
-      return false;
-    }
-
-    // Pincode validation
-    const pincodeRegex = /^\d{6}$/;
-    if (!pincodeRegex.test(shippingInfo.pincode)) {
-      toast.error('Please enter a valid 6-digit pincode');
-      return false;
-    }
-
-    return true;
-  };
-
-  const handlePlaceOrder = async () => {
-    if (!validateShippingInfo()) {
-      return;
-    }
-
-    if (cartItems.length === 0) {
-      toast.error('Your cart is empty');
-      return;
-    }
-
-    setSubmitting(true);
-
-    try {
-      // Prepare order items
-      const orderItems = cartItems.map(item => ({
-        product: item.productId?._id || item.productId,
-        quantity: item.quantity,
-        price: item.productId?.price || item.price
-      }));
-
-      // Geocode the shipping address
-      const fullAddress = `${shippingInfo.address}, ${shippingInfo.city}, ${shippingInfo.state}, ${shippingInfo.pincode}, ${shippingInfo.country}`;
-      const coordinates = await geocodeAddress(fullAddress);
-
-      const orderData = {
-        items: orderItems,
-        shippingAddress: {
-          fullName: shippingInfo.fullName,
-          email: shippingInfo.email,
-          phone: shippingInfo.phone,
-          address: shippingInfo.address,
-          city: shippingInfo.city,
-          state: shippingInfo.state,
-          zipCode: shippingInfo.pincode,
-          country: shippingInfo.country
-        },
-        deliveryLocation: {
-          type: 'Point',
-          coordinates: [coordinates.longitude, coordinates.latitude]
-        },
-        paymentMethod,
-        notes: orderNotes,
-        totalAmount: getFinalTotal()
-      };
-
-      const response = await axios.post('http://localhost:5000/api/orders', orderData, {
-        headers: getAuthHeaders()
-      });
-
-      if (response.data) {
-        // Clear cart after successful order
-        await axios.delete('http://localhost:5000/api/cart/clear', {
-          headers: getAuthHeaders()
-        });
-
-        // Clear local storage
-        localStorage.removeItem('cartItems');
-        localStorage.removeItem('herbtradeCart');
-
-        // Trigger navbar update
-        window.dispatchEvent(new Event('cartUpdated'));
-
-        toast.success('Order placed successfully!');
-        
-        // Redirect to order confirmation
-        setTimeout(() => {
-          navigate(`/order-confirmation/${response.data._id}`);
-        }, 2000);
-      }
-    } catch (error) {
-      console.error('Error placing order:', error);
-      if (error.response?.status === 401) {
-        logout();
-        return;
-      }
-      
-      const errorMessage = error.response?.data?.error || 'Failed to place order. Please try again.';
-      toast.error(errorMessage);
-    } finally {
-      setSubmitting(false);
-    }
-  };
-
-  const handleInputChange = (field, value) => {
-    setShippingInfo(prev => ({
-      ...prev,
-      [field]: value
-    }));
-  };
-
-  if (loading) {
-    return (
-      <div className="min-h-screen bg-gradient-to-br from-emerald-50 via-white to-teal-50 flex items-center justify-center">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-20 w-20 border-4 border-emerald-200 border-t-emerald-600 mx-auto mb-4"></div>
-          <h2 className="text-2xl font-playfair font-bold text-slate-900 mb-2">Loading checkout...</h2>
-          <p className="text-slate-600">Please wait while we prepare your order</p>
-        </div>
-      </div>
-    );
-  }
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-emerald-50 via-white to-teal-50 py-8 pt-24">
       {/* Background decorations */}
       <div className="absolute top-20 left-10 w-72 h-72 bg-emerald-200/30 rounded-full blur-3xl animate-float" />
       <div className="absolute bottom-20 right-10 w-96 h-96 bg-teal-200/20 rounded-full blur-3xl animate-float" style={{ animationDelay: '2s' }} />
-
       <div className="container mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
         {/* Header */}
         <div className="flex items-center justify-between mb-8">
@@ -297,7 +220,6 @@ function Checkout() {
             <FaArrowLeft className="mr-3 group-hover:-translate-x-1 transition-transform duration-300" />
             <span className="font-semibold">Back to Cart</span>
           </button>
-          
           <div className="text-center">
             <h1 className="text-4xl md:text-5xl font-playfair font-bold text-slate-900 flex items-center justify-center mb-2">
               <FaShoppingCart className="mr-4 text-emerald-600" />
@@ -305,10 +227,8 @@ function Checkout() {
             </h1>
             <p className="text-slate-600 font-medium">Complete your herbal wellness order</p>
           </div>
-          
           <div className="w-32"></div> {/* Spacer for centering */}
         </div>
-
         {error && (
           <div className="bg-gradient-to-r from-red-50 to-red-100 border border-red-200 rounded-3xl p-6 mb-8 shadow-lg">
             <div className="flex items-center justify-center">
@@ -317,7 +237,6 @@ function Checkout() {
             </div>
           </div>
         )}
-
         <div className="grid lg:grid-cols-3 gap-12">
           {/* Checkout Form */}
           <div className="lg:col-span-2 space-y-8">
@@ -327,7 +246,6 @@ function Checkout() {
                 <FaMapMarkerAlt className="mr-3 text-emerald-600" />
                 Shipping Information
               </h2>
-              
               <div className="grid md:grid-cols-2 gap-6">
                 <div>
                   <label className="block text-sm font-semibold text-slate-700 mb-2">
@@ -342,7 +260,6 @@ function Checkout() {
                     placeholder="Enter your full name"
                   />
                 </div>
-                
                 <div>
                   <label className="block text-sm font-semibold text-slate-700 mb-2">
                     <FaEnvelope className="inline mr-2 text-emerald-600" />
@@ -356,7 +273,6 @@ function Checkout() {
                     placeholder="Enter your email"
                   />
                 </div>
-                
                 <div>
                   <label className="block text-sm font-semibold text-slate-700 mb-2">
                     <FaPhone className="inline mr-2 text-emerald-600" />
@@ -370,7 +286,6 @@ function Checkout() {
                     placeholder="Enter 10-digit phone number"
                   />
                 </div>
-                
                 <div>
                   <label className="block text-sm font-semibold text-slate-700 mb-2">
                     <FaGlobe className="inline mr-2 text-emerald-600" />
@@ -384,7 +299,6 @@ function Checkout() {
                     placeholder="Enter 6-digit pincode"
                   />
                 </div>
-                
                 <div className="md:col-span-2">
                   <label className="block text-sm font-semibold text-slate-700 mb-2">
                     <FaHome className="inline mr-2 text-emerald-600" />
@@ -398,7 +312,6 @@ function Checkout() {
                     placeholder="Enter your complete address"
                   />
                 </div>
-                
                 <div>
                   <label className="block text-sm font-semibold text-slate-700 mb-2">
                     <FaCity className="inline mr-2 text-emerald-600" />
@@ -412,7 +325,6 @@ function Checkout() {
                     placeholder="Enter your city"
                   />
                 </div>
-                
                 <div>
                   <label className="block text-sm font-semibold text-slate-700 mb-2">
                     <FaGlobe className="inline mr-2 text-emerald-600" />
@@ -428,14 +340,12 @@ function Checkout() {
                 </div>
               </div>
             </div>
-
             {/* Payment Method */}
             <div className="bg-white/80 backdrop-blur-sm rounded-3xl shadow-lg p-8 border border-white/50">
               <h2 className="text-2xl font-playfair font-bold text-slate-900 mb-6 flex items-center">
                 <FaCreditCard className="mr-3 text-emerald-600" />
                 Payment Method
               </h2>
-              
               <div className="space-y-4">
                 <div 
                   className={`p-4 border-2 rounded-xl cursor-pointer transition-all duration-300 ${
@@ -458,20 +368,29 @@ function Checkout() {
                     </div>
                   </div>
                 </div>
-                
-                <div className="p-4 border-2 border-slate-200 rounded-xl opacity-50">
+                <div 
+                  className={`p-4 border-2 rounded-xl cursor-pointer transition-all duration-300 ${
+                    paymentMethod === 'razorpay' 
+                      ? 'border-emerald-500 bg-emerald-50' 
+                      : 'border-slate-200 hover:border-emerald-300'
+                  }`}
+                  onClick={() => setPaymentMethod('razorpay')}
+                >
                   <div className="flex items-center">
-                    <div className="w-5 h-5 rounded-full border-2 border-slate-300 mr-3"></div>
-                    <FaCreditCard className="text-slate-400 mr-3" />
+                    <div className={`w-5 h-5 rounded-full border-2 mr-3 flex items-center justify-center ${
+                      paymentMethod === 'razorpay' ? 'border-emerald-500 bg-emerald-500' : 'border-slate-300'
+                    }`}>
+                      {paymentMethod === 'razorpay' && <FaCheck className="text-white text-xs" />}
+                    </div>
+                    <FaCreditCard className="text-emerald-600 mr-3" />
                     <div>
-                      <h3 className="font-semibold text-slate-500">Online Payment</h3>
-                      <p className="text-sm text-slate-400">Coming soon - Credit/Debit Card, UPI</p>
+                      <h3 className="font-semibold text-slate-900">Razorpay (Card/UPI/Netbanking)</h3>
+                      <p className="text-sm text-slate-600">Pay securely online with Razorpay</p>
                     </div>
                   </div>
                 </div>
               </div>
             </div>
-
             {/* Order Notes */}
             <div className="bg-white/80 backdrop-blur-sm rounded-3xl shadow-lg p-8 border border-white/50">
               <h2 className="text-2xl font-playfair font-bold text-slate-900 mb-6">
@@ -486,7 +405,6 @@ function Checkout() {
               />
             </div>
           </div>
-
           {/* Order Summary */}
           <div className="lg:col-span-1">
             <div className="bg-white/80 backdrop-blur-sm rounded-3xl shadow-xl p-8 sticky top-8 border border-white/50">
@@ -494,7 +412,6 @@ function Checkout() {
                 <FaShieldAlt className="mr-3 text-emerald-600" />
                 Order Summary
               </h2>
-              
               {/* Cart Items */}
               <div className="space-y-4 mb-6 max-h-64 overflow-y-auto">
                 {cartItems.map((item, index) => {
@@ -502,11 +419,11 @@ function Checkout() {
                   return (
                     <div key={index} className="flex items-center space-x-3 p-3 bg-slate-50 rounded-xl">
                       <img
-                        src={product.image || 'https://via.placeholder.com/60x60/10b981/ffffff?text=Herb'}
+                        src={product.image || '/assets/ashwagandha.png'}
                         alt={product.name}
                         className="w-12 h-12 object-cover rounded-lg"
                         onError={(e) => {
-                          e.target.src = 'https://via.placeholder.com/60x60/10b981/ffffff?text=Herb';
+                          e.target.src = '/assets/ashwagandha.png';
                         }}
                       />
                       <div className="flex-1">
@@ -521,13 +438,12 @@ function Checkout() {
                         </p>
                       </div>
                       <div className="text-right">
-                        <p className="font-bold text-emerald-600">₹{(product.price * item.quantity).toFixed(2)}</p>
+                        <p className="font-bold text-emerald-600">₹{(!isNaN(Number(product.price)) && Number(product.price) > 0 && !isNaN(Number(item.quantity)) && Number(item.quantity) > 0) ? (Number(product.price) * Number(item.quantity)).toFixed(2) : <span className="text-red-500">Invalid</span>}</p>
                       </div>
                     </div>
                   );
                 })}
               </div>
-              
               {/* Price Breakdown */}
               <div className="space-y-4 mb-8">
                 <div className="flex justify-between items-center py-2">
@@ -553,7 +469,6 @@ function Checkout() {
                   </span>
                 </div>
               </div>
-
               {/* Place Order Button */}
               <button 
                 onClick={handlePlaceOrder}
@@ -572,7 +487,6 @@ function Checkout() {
                   </>
                 )}
               </button>
-
               {/* Security Notice */}
               <div className="text-center text-sm text-slate-500">
                 <FaShieldAlt className="inline mr-2 text-emerald-600" />
@@ -582,7 +496,6 @@ function Checkout() {
           </div>
         </div>
       </div>
-
       {/* Toast Container */}
       <ToastContainer
         position="top-right"
@@ -600,5 +513,5 @@ function Checkout() {
     </div>
   );
 }
-
 export default Checkout;
+// ...existing code...
