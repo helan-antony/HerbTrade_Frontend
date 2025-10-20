@@ -8,7 +8,7 @@ import {
   FaHospital, FaUserMd, FaCalendarAlt, FaCreditCard,
   FaCheckCircle, FaArrowRight, FaArrowLeft, FaPhone,
   FaEnvelope, FaMapMarkerAlt, FaDirections,
-  FaMap, FaPhoneAlt
+  FaMap, FaPhoneAlt, FaExclamationTriangle
 } from 'react-icons/fa';
 import { useNavigate, useParams } from 'react-router-dom';
 import { toast } from 'react-toastify';
@@ -51,6 +51,14 @@ function HospitalBooking() {
       consultationFee: 500,
       paymentMethod: 'Cash'
     }
+  });
+  
+  // Validation errors state
+  const [validationErrors, setValidationErrors] = useState({
+    patientDetails: {},
+    appointmentDetails: {},
+    medicalInfo: {},
+    emergencyContact: {}
   });
   
   const navigate = useNavigate();
@@ -110,6 +118,105 @@ function HospitalBooking() {
     }
   };
 
+  // Validation functions
+  const validatePatientName = (name) => {
+    if (!name.trim()) return "Patient name is required";
+    if (name.trim().length < 2) return "Patient name must be at least 2 characters";
+    if (name.trim().length > 50) return "Patient name must be less than 50 characters";
+    if (!/^[a-zA-Z\s]+$/.test(name)) return "Patient name can only contain letters and spaces";
+    return "";
+  };
+
+  const validateAge = (age) => {
+    if (!age) return "Age is required";
+    const ageNum = parseInt(age, 10);
+    if (isNaN(ageNum)) return "Please enter a valid age";
+    if (ageNum < 1 || ageNum > 120) return "Please enter a valid age between 1 and 120";
+    return "";
+  };
+
+  const validateGender = (gender) => {
+    if (!gender) return "Gender is required";
+    return "";
+  };
+
+  const validatePhone = (phone) => {
+    if (!phone.trim()) return "Phone number is required";
+    const phoneRegex = /^[6-9]\d{9}$/;
+    if (!phoneRegex.test(phone)) return "Please enter a valid 10-digit Indian phone number";
+    return "";
+  };
+
+  const validateEmail = (email) => {
+    if (!email.trim()) return "Email is required";
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email)) return "Please enter a valid email address";
+    if (email.length > 254) return "Email address is too long";
+    return "";
+  };
+
+  const validateAddress = (address) => {
+    if (!address.trim()) return "Address is required";
+    if (address.trim().length < 10) return "Address must be at least 10 characters";
+    if (address.trim().length > 200) return "Address must be less than 200 characters";
+    return "";
+  };
+
+  const validateDepartment = (department) => {
+    if (!department) return "Department is required";
+    return "";
+  };
+
+  const validateDoctor = (doctor) => {
+    if (!doctor) return "Doctor is required";
+    return "";
+  };
+
+  const validateAppointmentDate = (date) => {
+    if (!date) return "Appointment date is required";
+    const selectedDate = new Date(date);
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    if (selectedDate < today) return "Appointment date cannot be in the past";
+    return "";
+  };
+
+  const validateAppointmentTime = (time) => {
+    if (!time) return "Appointment time is required";
+    return "";
+  };
+
+  const validateSymptoms = (symptoms) => {
+    if (!symptoms.trim()) return "Symptoms description is required";
+    if (symptoms.trim().length < 10) return "Symptoms description must be at least 10 characters";
+    return "";
+  };
+
+  const validateEmergencyContactName = (name) => {
+    if (name && name.trim().length > 0) {
+      if (name.trim().length < 2) return "Emergency contact name must be at least 2 characters";
+      if (name.trim().length > 50) return "Emergency contact name must be less than 50 characters";
+      if (!/^[a-zA-Z\s]+$/.test(name)) return "Emergency contact name can only contain letters and spaces";
+    }
+    return "";
+  };
+
+  const validateEmergencyContactPhone = (phone) => {
+    if (phone && phone.trim().length > 0) {
+      const phoneRegex = /^[6-9]\d{9}$/;
+      if (!phoneRegex.test(phone)) return "Please enter a valid 10-digit Indian phone number";
+    }
+    return "";
+  };
+
+  const validateEmergencyContactRelation = (relation) => {
+    if (relation && relation.trim().length > 0) {
+      if (relation.trim().length < 2) return "Relation must be at least 2 characters";
+      if (relation.trim().length > 30) return "Relation must be less than 30 characters";
+    }
+    return "";
+  };
+
   const handleNext = () => {
     if (validateStep(activeStep)) {
       setActiveStep((prevActiveStep) => prevActiveStep + 1);
@@ -121,47 +228,90 @@ function HospitalBooking() {
   };
 
   const validateStep = (step) => {
+    let isValid = true;
+    let errors = {};
+
     switch (step) {
       case 0: // Patient Details
-        const { name, age, gender, phone, email, address } = bookingData.patientDetails;
-        if (!name || !age || !gender || !phone || !email || !address) {
-          toast.error('Please fill all patient details');
-          return false;
+        errors.name = validatePatientName(bookingData.patientDetails.name);
+        errors.age = validateAge(bookingData.patientDetails.age);
+        errors.gender = validateGender(bookingData.patientDetails.gender);
+        errors.phone = validatePhone(bookingData.patientDetails.phone);
+        errors.email = validateEmail(bookingData.patientDetails.email);
+        errors.address = validateAddress(bookingData.patientDetails.address);
+        
+        setValidationErrors(prev => ({
+          ...prev,
+          patientDetails: errors
+        }));
+        
+        isValid = !Object.values(errors).some(error => error !== "");
+        if (!isValid) {
+          toast.error('Please fix the validation errors before proceeding.');
         }
-        if (age < 1 || age > 120) {
-          toast.error('Please enter a valid age');
-          return false;
-        }
-        return true;
+        return isValid;
         
       case 1: // Appointment Details
-        const { doctorName, department, appointmentDate, appointmentTime } = bookingData.appointmentDetails;
+        errors.department = validateDepartment(bookingData.appointmentDetails.department);
+        errors.doctorName = validateDoctor(bookingData.appointmentDetails.doctorName);
+        errors.appointmentDate = validateAppointmentDate(bookingData.appointmentDetails.appointmentDate);
+        errors.appointmentTime = validateAppointmentTime(bookingData.appointmentDetails.appointmentTime);
         
-        if (!department) {
-          toast.error('Please select a department');
-          return false;
+        setValidationErrors(prev => ({
+          ...prev,
+          appointmentDetails: errors
+        }));
+        
+        isValid = !Object.values(errors).some(error => error !== "");
+        if (!isValid) {
+          toast.error('Please fix the validation errors before proceeding.');
         }
-        if (!doctorName) {
-          toast.error('Please select a doctor');
-          return false;
-        }
-        if (!appointmentDate) {
-          toast.error('Please select an appointment date');
-          return false;
-        }
-        if (!appointmentTime) {
-          toast.error('Please select an appointment time');
-          return false;
-        }
-        return true;
+        return isValid;
         
       case 2: // Medical Information
-        const { symptoms } = bookingData.medicalInfo;
-        if (!symptoms) {
-          toast.error('Please describe your symptoms');
-          return false;
+        errors.symptoms = validateSymptoms(bookingData.medicalInfo.symptoms);
+        
+        // Validate emergency contact if any field is filled
+        const hasEmergencyContactData = 
+          bookingData.medicalInfo.emergencyContact.name.trim() ||
+          bookingData.medicalInfo.emergencyContact.phone.trim() ||
+          bookingData.medicalInfo.emergencyContact.relation.trim();
+          
+        if (hasEmergencyContactData) {
+          errors.emergencyContact = {
+            name: validateEmergencyContactName(bookingData.medicalInfo.emergencyContact.name),
+            phone: validateEmergencyContactPhone(bookingData.medicalInfo.emergencyContact.phone),
+            relation: validateEmergencyContactRelation(bookingData.medicalInfo.emergencyContact.relation)
+          };
+          
+          // If any emergency contact field has data, all are required
+          if (bookingData.medicalInfo.emergencyContact.name.trim() || 
+              bookingData.medicalInfo.emergencyContact.phone.trim() || 
+              bookingData.medicalInfo.emergencyContact.relation.trim()) {
+            if (!bookingData.medicalInfo.emergencyContact.name.trim()) {
+              errors.emergencyContact.name = "Emergency contact name is required when providing emergency contact details";
+            }
+            if (!bookingData.medicalInfo.emergencyContact.phone.trim()) {
+              errors.emergencyContact.phone = "Emergency contact phone is required when providing emergency contact details";
+            }
+            if (!bookingData.medicalInfo.emergencyContact.relation.trim()) {
+              errors.emergencyContact.relation = "Relation is required when providing emergency contact details";
+            }
+          }
         }
-        return true;
+        
+        setValidationErrors(prev => ({
+          ...prev,
+          medicalInfo: { symptoms: errors.symptoms },
+          emergencyContact: errors.emergencyContact || {}
+        }));
+        
+        isValid = !errors.symptoms && 
+                  (!errors.emergencyContact || !Object.values(errors.emergencyContact).some(error => error !== ""));
+        if (!isValid) {
+          toast.error('Please fix the validation errors before proceeding.');
+        }
+        return isValid;
         
       default:
         return true;
@@ -176,6 +326,84 @@ function HospitalBooking() {
         [field]: value
       }
     }));
+    
+    // Real-time validation for the field being changed
+    let error = "";
+    switch (section) {
+      case 'patientDetails':
+        switch (field) {
+          case 'name':
+            error = validatePatientName(value);
+            break;
+          case 'age':
+            error = validateAge(value);
+            break;
+          case 'gender':
+            error = validateGender(value);
+            break;
+          case 'phone':
+            error = validatePhone(value);
+            break;
+          case 'email':
+            error = validateEmail(value);
+            break;
+          case 'address':
+            error = validateAddress(value);
+            break;
+          default:
+            break;
+        }
+        setValidationErrors(prev => ({
+          ...prev,
+          patientDetails: {
+            ...prev.patientDetails,
+            [field]: error
+          }
+        }));
+        break;
+        
+      case 'appointmentDetails':
+        switch (field) {
+          case 'department':
+            error = validateDepartment(value);
+            break;
+          case 'doctorName':
+            error = validateDoctor(value);
+            break;
+          case 'appointmentDate':
+            error = validateAppointmentDate(value);
+            break;
+          case 'appointmentTime':
+            error = validateAppointmentTime(value);
+            break;
+          default:
+            break;
+        }
+        setValidationErrors(prev => ({
+          ...prev,
+          appointmentDetails: {
+            ...prev.appointmentDetails,
+            [field]: error
+          }
+        }));
+        break;
+        
+      case 'medicalInfo':
+        if (field === 'symptoms') {
+          error = validateSymptoms(value);
+          setValidationErrors(prev => ({
+            ...prev,
+            medicalInfo: {
+              ...prev.medicalInfo,
+              symptoms: error
+            }
+          }));
+        }
+        break;
+        
+      default:
+        break;
+    }
   };
 
   const handleNestedInputChange = (section, nestedSection, field, value) => {
@@ -189,6 +417,32 @@ function HospitalBooking() {
         }
       }
     }));
+    
+    // Real-time validation for emergency contact fields
+    if (section === 'medicalInfo' && nestedSection === 'emergencyContact') {
+      let error = "";
+      switch (field) {
+        case 'name':
+          error = validateEmergencyContactName(value);
+          break;
+        case 'phone':
+          error = validateEmergencyContactPhone(value);
+          break;
+        case 'relation':
+          error = validateEmergencyContactRelation(value);
+          break;
+        default:
+          break;
+      }
+      
+      setValidationErrors(prev => ({
+        ...prev,
+        emergencyContact: {
+          ...prev.emergencyContact,
+          [field]: error
+        }
+      }));
+    }
   };
 
   // Helper functions for call, directions, and map
@@ -329,15 +583,25 @@ function HospitalBooking() {
                   value={bookingData.patientDetails.name}
                   onChange={(e) => handleInputChange('patientDetails', 'name', e.target.value)}
                   required
+                  error={!!validationErrors.patientDetails.name}
+                  helperText={validationErrors.patientDetails.name && (
+                    <span className="flex items-center">
+                      <FaExclamationTriangle className="mr-1" />
+                      {validationErrors.patientDetails.name}
+                    </span>
+                  )}
                   sx={{
                     '& .MuiOutlinedInput-root': {
                       borderRadius: '12px',
                       backgroundColor: 'rgba(255, 255, 255, 0.8)',
                       '&:hover fieldset': {
-                        borderColor: '#059669',
+                        borderColor: validationErrors.patientDetails.name ? '#ef4444' : '#059669',
                       },
                       '&.Mui-focused fieldset': {
-                        borderColor: '#2d5016',
+                        borderColor: validationErrors.patientDetails.name ? '#ef4444' : '#2d5016',
+                      },
+                      '&.Mui-error fieldset': {
+                        borderColor: '#ef4444',
                       },
                     },
                   }}
@@ -351,6 +615,13 @@ function HospitalBooking() {
                   value={bookingData.patientDetails.age}
                   onChange={(e) => handleInputChange('patientDetails', 'age', e.target.value)}
                   required
+                  error={!!validationErrors.patientDetails.age}
+                  helperText={validationErrors.patientDetails.age && (
+                    <span className="flex items-center">
+                      <FaExclamationTriangle className="mr-1" />
+                      {validationErrors.patientDetails.age}
+                    </span>
+                  )}
                   slotProps={{
                     htmlInput: { min: 1, max: 120 }
                   }}
@@ -359,30 +630,37 @@ function HospitalBooking() {
                       borderRadius: '12px',
                       backgroundColor: 'rgba(255, 255, 255, 0.8)',
                       '&:hover fieldset': {
-                        borderColor: '#059669',
+                        borderColor: validationErrors.patientDetails.age ? '#ef4444' : '#059669',
                       },
                       '&.Mui-focused fieldset': {
-                        borderColor: '#2d5016',
+                        borderColor: validationErrors.patientDetails.age ? '#ef4444' : '#2d5016',
+                      },
+                      '&.Mui-error fieldset': {
+                        borderColor: '#ef4444',
                       },
                     },
                   }}
                 />
               </Grid>
               <Grid item xs={12} md={6}>
-                <FormControl fullWidth required>
+                <FormControl fullWidth required error={!!validationErrors.patientDetails.gender}>
                   <InputLabel>Gender</InputLabel>
                   <Select
                     value={bookingData.patientDetails.gender}
                     onChange={(e) => handleInputChange('patientDetails', 'gender', e.target.value)}
                     label="Gender"
+                    error={!!validationErrors.patientDetails.gender}
                     sx={{
                       borderRadius: '12px',
                       backgroundColor: 'rgba(255, 255, 255, 0.8)',
                       '&:hover .MuiOutlinedInput-notchedOutline': {
-                        borderColor: '#059669',
+                        borderColor: validationErrors.patientDetails.gender ? '#ef4444' : '#059669',
                       },
                       '&.Mui-focused .MuiOutlinedInput-notchedOutline': {
-                        borderColor: '#2d5016',
+                        borderColor: validationErrors.patientDetails.gender ? '#ef4444' : '#2d5016',
+                      },
+                      '&.Mui-error .MuiOutlinedInput-notchedOutline': {
+                        borderColor: '#ef4444',
                       },
                     }}
                   >
@@ -390,6 +668,12 @@ function HospitalBooking() {
                     <MenuItem value="Female">👩 Female</MenuItem>
                     <MenuItem value="Other">🧑 Other</MenuItem>
                   </Select>
+                  {validationErrors.patientDetails.gender && (
+                    <span className="text-red-500 text-sm mt-1 flex items-center">
+                      <FaExclamationTriangle className="mr-1" />
+                      {validationErrors.patientDetails.gender}
+                    </span>
+                  )}
                 </FormControl>
               </Grid>
               <Grid item xs={12} md={6}>
@@ -399,15 +683,25 @@ function HospitalBooking() {
                   value={bookingData.patientDetails.phone}
                   onChange={(e) => handleInputChange('patientDetails', 'phone', e.target.value)}
                   required
+                  error={!!validationErrors.patientDetails.phone}
+                  helperText={validationErrors.patientDetails.phone && (
+                    <span className="flex items-center">
+                      <FaExclamationTriangle className="mr-1" />
+                      {validationErrors.patientDetails.phone}
+                    </span>
+                  )}
                   sx={{
                     '& .MuiOutlinedInput-root': {
                       borderRadius: '12px',
                       backgroundColor: 'rgba(255, 255, 255, 0.8)',
                       '&:hover fieldset': {
-                        borderColor: '#059669',
+                        borderColor: validationErrors.patientDetails.phone ? '#ef4444' : '#059669',
                       },
                       '&.Mui-focused fieldset': {
-                        borderColor: '#2d5016',
+                        borderColor: validationErrors.patientDetails.phone ? '#ef4444' : '#2d5016',
+                      },
+                      '&.Mui-error fieldset': {
+                        borderColor: '#ef4444',
                       },
                     },
                   }}
@@ -421,15 +715,25 @@ function HospitalBooking() {
                   value={bookingData.patientDetails.email}
                   onChange={(e) => handleInputChange('patientDetails', 'email', e.target.value)}
                   required
+                  error={!!validationErrors.patientDetails.email}
+                  helperText={validationErrors.patientDetails.email && (
+                    <span className="flex items-center">
+                      <FaExclamationTriangle className="mr-1" />
+                      {validationErrors.patientDetails.email}
+                    </span>
+                  )}
                   sx={{
                     '& .MuiOutlinedInput-root': {
                       borderRadius: '12px',
                       backgroundColor: 'rgba(255, 255, 255, 0.8)',
                       '&:hover fieldset': {
-                        borderColor: '#059669',
+                        borderColor: validationErrors.patientDetails.email ? '#ef4444' : '#059669',
                       },
                       '&.Mui-focused fieldset': {
-                        borderColor: '#2d5016',
+                        borderColor: validationErrors.patientDetails.email ? '#ef4444' : '#2d5016',
+                      },
+                      '&.Mui-error fieldset': {
+                        borderColor: '#ef4444',
                       },
                     },
                   }}
@@ -444,15 +748,25 @@ function HospitalBooking() {
                   value={bookingData.patientDetails.address}
                   onChange={(e) => handleInputChange('patientDetails', 'address', e.target.value)}
                   required
+                  error={!!validationErrors.patientDetails.address}
+                  helperText={validationErrors.patientDetails.address && (
+                    <span className="flex items-center">
+                      <FaExclamationTriangle className="mr-1" />
+                      {validationErrors.patientDetails.address}
+                    </span>
+                  )}
                   sx={{
                     '& .MuiOutlinedInput-root': {
                       borderRadius: '12px',
                       backgroundColor: 'rgba(255, 255, 255, 0.8)',
                       '&:hover fieldset': {
-                        borderColor: '#059669',
+                        borderColor: validationErrors.patientDetails.address ? '#ef4444' : '#059669',
                       },
                       '&.Mui-focused fieldset': {
-                        borderColor: '#2d5016',
+                        borderColor: validationErrors.patientDetails.address ? '#ef4444' : '#2d5016',
+                      },
+                      '&.Mui-error fieldset': {
+                        borderColor: '#ef4444',
                       },
                     },
                   }}
@@ -476,20 +790,24 @@ function HospitalBooking() {
 
             <Grid container spacing={4}>
               <Grid item xs={12} md={6}>
-                <FormControl fullWidth required>
+                <FormControl fullWidth required error={!!validationErrors.appointmentDetails.department}>
                   <InputLabel>Department</InputLabel>
                   <Select
                     value={bookingData.appointmentDetails.department}
                     onChange={(e) => handleInputChange('appointmentDetails', 'department', e.target.value)}
                     label="Department"
+                    error={!!validationErrors.appointmentDetails.department}
                     sx={{
                       borderRadius: '12px',
                       backgroundColor: 'rgba(255, 255, 255, 0.8)',
                       '&:hover .MuiOutlinedInput-notchedOutline': {
-                        borderColor: '#059669',
+                        borderColor: validationErrors.appointmentDetails.department ? '#ef4444' : '#059669',
                       },
                       '&.Mui-focused .MuiOutlinedInput-notchedOutline': {
-                        borderColor: '#2d5016',
+                        borderColor: validationErrors.appointmentDetails.department ? '#ef4444' : '#2d5016',
+                      },
+                      '&.Mui-error .MuiOutlinedInput-notchedOutline': {
+                        borderColor: '#ef4444',
                       },
                     }}
                   >
@@ -509,23 +827,33 @@ function HospitalBooking() {
                       </MenuItem>
                     )}
                   </Select>
+                  {validationErrors.appointmentDetails.department && (
+                    <span className="text-red-500 text-sm mt-1 flex items-center">
+                      <FaExclamationTriangle className="mr-1" />
+                      {validationErrors.appointmentDetails.department}
+                    </span>
+                  )}
                 </FormControl>
               </Grid>
               <Grid item xs={12} md={6}>
-                <FormControl fullWidth required>
+                <FormControl fullWidth required error={!!validationErrors.appointmentDetails.doctorName}>
                   <InputLabel>Doctor</InputLabel>
                   <Select
                     value={bookingData.appointmentDetails.doctorName}
                     onChange={(e) => handleInputChange('appointmentDetails', 'doctorName', e.target.value)}
                     label="Doctor"
+                    error={!!validationErrors.appointmentDetails.doctorName}
                     sx={{
                       borderRadius: '12px',
                       backgroundColor: 'rgba(255, 255, 255, 0.8)',
                       '&:hover .MuiOutlinedInput-notchedOutline': {
-                        borderColor: '#059669',
+                        borderColor: validationErrors.appointmentDetails.doctorName ? '#ef4444' : '#059669',
                       },
                       '&.Mui-focused .MuiOutlinedInput-notchedOutline': {
-                        borderColor: '#2d5016',
+                        borderColor: validationErrors.appointmentDetails.doctorName ? '#ef4444' : '#2d5016',
+                      },
+                      '&.Mui-error .MuiOutlinedInput-notchedOutline': {
+                        borderColor: '#ef4444',
                       },
                     }}
                   >
@@ -548,6 +876,12 @@ function HospitalBooking() {
                       </MenuItem>
                     )}
                   </Select>
+                  {validationErrors.appointmentDetails.doctorName && (
+                    <span className="text-red-500 text-sm mt-1 flex items-center">
+                      <FaExclamationTriangle className="mr-1" />
+                      {validationErrors.appointmentDetails.doctorName}
+                    </span>
+                  )}
                 </FormControl>
               </Grid>
               <Grid item xs={12} md={6}>
@@ -558,6 +892,13 @@ function HospitalBooking() {
                   value={bookingData.appointmentDetails.appointmentDate}
                   onChange={(e) => handleInputChange('appointmentDetails', 'appointmentDate', e.target.value)}
                   required
+                  error={!!validationErrors.appointmentDetails.appointmentDate}
+                  helperText={validationErrors.appointmentDetails.appointmentDate && (
+                    <span className="flex items-center">
+                      <FaExclamationTriangle className="mr-1" />
+                      {validationErrors.appointmentDetails.appointmentDate}
+                    </span>
+                  )}
                   slotProps={{
                     inputLabel: { shrink: true },
                     htmlInput: { min: new Date().toISOString().split('T')[0] }
@@ -567,10 +908,13 @@ function HospitalBooking() {
                       borderRadius: '12px',
                       backgroundColor: 'rgba(255, 255, 255, 0.8)',
                       '&:hover fieldset': {
-                        borderColor: '#059669',
+                        borderColor: validationErrors.appointmentDetails.appointmentDate ? '#ef4444' : '#059669',
                       },
                       '&.Mui-focused fieldset': {
-                        borderColor: '#2d5016',
+                        borderColor: validationErrors.appointmentDetails.appointmentDate ? '#ef4444' : '#2d5016',
+                      },
+                      '&.Mui-error fieldset': {
+                        borderColor: '#ef4444',
                       },
                     },
                   }}
@@ -584,6 +928,13 @@ function HospitalBooking() {
                   value={bookingData.appointmentDetails.appointmentTime}
                   onChange={(e) => handleInputChange('appointmentDetails', 'appointmentTime', e.target.value)}
                   required
+                  error={!!validationErrors.appointmentDetails.appointmentTime}
+                  helperText={validationErrors.appointmentDetails.appointmentTime && (
+                    <span className="flex items-center">
+                      <FaExclamationTriangle className="mr-1" />
+                      {validationErrors.appointmentDetails.appointmentTime}
+                    </span>
+                  )}
                   slotProps={{
                     inputLabel: { shrink: true }
                   }}
@@ -592,10 +943,13 @@ function HospitalBooking() {
                       borderRadius: '12px',
                       backgroundColor: 'rgba(255, 255, 255, 0.8)',
                       '&:hover fieldset': {
-                        borderColor: '#059669',
+                        borderColor: validationErrors.appointmentDetails.appointmentTime ? '#ef4444' : '#059669',
                       },
                       '&.Mui-focused fieldset': {
-                        borderColor: '#2d5016',
+                        borderColor: validationErrors.appointmentDetails.appointmentTime ? '#ef4444' : '#2d5016',
+                      },
+                      '&.Mui-error fieldset': {
+                        borderColor: '#ef4444',
                       },
                     },
                   }}
@@ -655,16 +1009,26 @@ function HospitalBooking() {
                     value={bookingData.medicalInfo.symptoms}
                     onChange={(e) => handleInputChange('medicalInfo', 'symptoms', e.target.value)}
                     required
+                    error={!!validationErrors.medicalInfo.symptoms}
+                    helperText={validationErrors.medicalInfo.symptoms && (
+                      <span className="flex items-center">
+                        <FaExclamationTriangle className="mr-1" />
+                        {validationErrors.medicalInfo.symptoms}
+                      </span>
+                    )}
                     placeholder="Please describe your current symptoms in detail..."
                     sx={{
                       '& .MuiOutlinedInput-root': {
                         borderRadius: '12px',
                         backgroundColor: 'rgba(255, 255, 255, 0.9)',
                         '&:hover fieldset': {
-                          borderColor: '#059669',
+                          borderColor: validationErrors.medicalInfo.symptoms ? '#ef4444' : '#059669',
                         },
                         '&.Mui-focused fieldset': {
-                          borderColor: '#2d5016',
+                          borderColor: validationErrors.medicalInfo.symptoms ? '#ef4444' : '#2d5016',
+                        },
+                        '&.Mui-error fieldset': {
+                          borderColor: '#ef4444',
                         },
                       },
                     }}
@@ -769,15 +1133,25 @@ function HospitalBooking() {
                         label="Contact Name"
                         value={bookingData.medicalInfo.emergencyContact.name}
                         onChange={(e) => handleNestedInputChange('medicalInfo', 'emergencyContact', 'name', e.target.value)}
+                        error={!!validationErrors.emergencyContact?.name}
+                        helperText={validationErrors.emergencyContact?.name && (
+                          <span className="flex items-center">
+                            <FaExclamationTriangle className="mr-1" />
+                            {validationErrors.emergencyContact.name}
+                          </span>
+                        )}
                         sx={{
                           '& .MuiOutlinedInput-root': {
                             borderRadius: '12px',
                             backgroundColor: 'rgba(255, 255, 255, 0.9)',
                             '&:hover fieldset': {
-                              borderColor: '#059669',
+                              borderColor: validationErrors.emergencyContact?.name ? '#ef4444' : '#059669',
                             },
                             '&.Mui-focused fieldset': {
-                              borderColor: '#2d5016',
+                              borderColor: validationErrors.emergencyContact?.name ? '#ef4444' : '#2d5016',
+                            },
+                            '&.Mui-error fieldset': {
+                              borderColor: '#ef4444',
                             },
                           },
                         }}
@@ -789,15 +1163,25 @@ function HospitalBooking() {
                         label="Contact Phone"
                         value={bookingData.medicalInfo.emergencyContact.phone}
                         onChange={(e) => handleNestedInputChange('medicalInfo', 'emergencyContact', 'phone', e.target.value)}
+                        error={!!validationErrors.emergencyContact?.phone}
+                        helperText={validationErrors.emergencyContact?.phone && (
+                          <span className="flex items-center">
+                            <FaExclamationTriangle className="mr-1" />
+                            {validationErrors.emergencyContact.phone}
+                          </span>
+                        )}
                         sx={{
                           '& .MuiOutlinedInput-root': {
                             borderRadius: '12px',
                             backgroundColor: 'rgba(255, 255, 255, 0.9)',
                             '&:hover fieldset': {
-                              borderColor: '#059669',
+                              borderColor: validationErrors.emergencyContact?.phone ? '#ef4444' : '#059669',
                             },
                             '&.Mui-focused fieldset': {
-                              borderColor: '#2d5016',
+                              borderColor: validationErrors.emergencyContact?.phone ? '#ef4444' : '#2d5016',
+                            },
+                            '&.Mui-error fieldset': {
+                              borderColor: '#ef4444',
                             },
                           },
                         }}
@@ -809,16 +1193,26 @@ function HospitalBooking() {
                         label="Relation"
                         value={bookingData.medicalInfo.emergencyContact.relation}
                         onChange={(e) => handleNestedInputChange('medicalInfo', 'emergencyContact', 'relation', e.target.value)}
+                        error={!!validationErrors.emergencyContact?.relation}
+                        helperText={validationErrors.emergencyContact?.relation && (
+                          <span className="flex items-center">
+                            <FaExclamationTriangle className="mr-1" />
+                            {validationErrors.emergencyContact.relation}
+                          </span>
+                        )}
                         placeholder="e.g., Spouse, Parent, Sibling"
                         sx={{
                           '& .MuiOutlinedInput-root': {
                             borderRadius: '12px',
                             backgroundColor: 'rgba(255, 255, 255, 0.9)',
                             '&:hover fieldset': {
-                              borderColor: '#059669',
+                              borderColor: validationErrors.emergencyContact?.relation ? '#ef4444' : '#059669',
                             },
                             '&.Mui-focused fieldset': {
-                              borderColor: '#2d5016',
+                              borderColor: validationErrors.emergencyContact?.relation ? '#ef4444' : '#2d5016',
+                            },
+                            '&.Mui-error fieldset': {
+                              borderColor: '#ef4444',
                             },
                           },
                         }}

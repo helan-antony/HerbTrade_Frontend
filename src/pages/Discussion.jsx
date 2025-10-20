@@ -2,7 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { 
   FaCommentDots, FaPlus, FaSearch, FaFilter, FaEye, FaReply, 
   FaThumbsUp, FaThumbsDown, FaClock, FaUser, FaTag, FaTimes,
-  FaHeart, FaShare, FaBookmark, FaFlag, FaEdit, FaTrash
+  FaHeart, FaShare, FaBookmark, FaFlag, FaEdit, FaTrash,
+  FaExclamationTriangle
 } from 'react-icons/fa';
 import { toast, ToastContainer } from 'react-toastify';
 import axios from 'axios';
@@ -18,6 +19,7 @@ function Discussion() {
   const [showDiscussionDetail, setShowDiscussionDetail] = useState(false);
   const [replies, setReplies] = useState([]);
   const [newReply, setNewReply] = useState('');
+  const [replyError, setReplyError] = useState('');
 
   // Form states
   const [newDiscussion, setNewDiscussion] = useState({
@@ -25,6 +27,14 @@ function Discussion() {
     content: '',
     category: 'general',
     tags: ''
+  });
+  
+  // Validation errors state
+  const [validationErrors, setValidationErrors] = useState({
+    title: '',
+    content: '',
+    tags: '',
+    reply: ''
   });
 
   const categories = [
@@ -45,6 +55,40 @@ function Discussion() {
   useEffect(() => {
     filterDiscussions();
   }, [discussions, searchTerm, selectedCategory]);
+
+  // Validation functions
+  const validateTitle = (title) => {
+    if (!title.trim()) return "Title is required";
+    if (title.trim().length < 5) return "Title must be at least 5 characters";
+    if (title.trim().length > 200) return "Title must be less than 200 characters";
+    return "";
+  };
+
+  const validateContent = (content) => {
+    if (!content.trim()) return "Content is required";
+    if (content.trim().length < 10) return "Content must be at least 10 characters";
+    if (content.trim().length > 5000) return "Content must be less than 5000 characters";
+    return "";
+  };
+
+  const validateTags = (tags) => {
+    if (tags && tags.trim()) {
+      const tagArray = tags.split(',').map(tag => tag.trim()).filter(tag => tag);
+      if (tagArray.length > 10) return "You can add up to 10 tags";
+      for (const tag of tagArray) {
+        if (tag.length > 30) return "Each tag must be less than 30 characters";
+        if (!/^[a-zA-Z0-9\-_ ]+$/.test(tag)) return "Tags can only contain letters, numbers, spaces, hyphens, and underscores";
+      }
+    }
+    return "";
+  };
+
+  const validateReply = (reply) => {
+    if (!reply.trim()) return "Reply content is required";
+    if (reply.trim().length < 5) return "Reply must be at least 5 characters";
+    if (reply.trim().length > 1000) return "Reply must be less than 1000 characters";
+    return "";
+  };
 
   const fetchDiscussions = async () => {
     try {
@@ -100,13 +144,19 @@ function Discussion() {
   };
 
   const handleCreateDiscussion = async () => {
-    if (!newDiscussion.title.trim() || !newDiscussion.content.trim()) {
-      toast.error('Please fill in all required fields');
-      return;
-    }
-
-    if (newDiscussion.title.length > 200) {
-      toast.error('Title must be less than 200 characters');
+    // Validate all fields
+    const titleError = validateTitle(newDiscussion.title);
+    const contentError = validateContent(newDiscussion.content);
+    const tagsError = validateTags(newDiscussion.tags);
+    
+    setValidationErrors({
+      title: titleError,
+      content: contentError,
+      tags: tagsError
+    });
+    
+    if (titleError || contentError || tagsError) {
+      toast.error('Please fix the validation errors before creating the discussion.');
       return;
     }
 
@@ -165,11 +215,17 @@ function Discussion() {
     setSelectedDiscussion(null);
     setReplies([]);
     setNewReply('');
+    setReplyError('');
+    setValidationErrors(prev => ({ ...prev, reply: '' }));
   };
 
   const handleAddReply = async () => {
-    if (!newReply.trim()) {
-      toast.error('Please enter a reply');
+    const replyError = validateReply(newReply);
+    setReplyError(replyError);
+    setValidationErrors(prev => ({ ...prev, reply: replyError }));
+    
+    if (replyError) {
+      toast.error('Please fix the validation errors before posting your reply.');
       return;
     }
 
@@ -200,6 +256,8 @@ function Discussion() {
       const newReplyData = await response.json();
       setReplies(prev => [...prev, newReplyData]);
       setNewReply('');
+      setReplyError('');
+      setValidationErrors(prev => ({ ...prev, reply: '' }));
       toast.success('Reply added successfully!');
     } catch (error) {
       console.error('Error adding reply:', error);
@@ -275,6 +333,38 @@ function Discussion() {
     if (diffInMinutes < 60) return `${diffInMinutes}m ago`;
     if (diffInMinutes < 1440) return `${Math.floor(diffInMinutes / 60)}h ago`;
     return `${Math.floor(diffInMinutes / 1440)}d ago`;
+  };
+
+  // Handle input changes with real-time validation
+  const handleDiscussionInputChange = (field, value) => {
+    setNewDiscussion(prev => ({ ...prev, [field]: value }));
+    
+    // Real-time validation
+    let error = "";
+    switch (field) {
+      case 'title':
+        error = validateTitle(value);
+        break;
+      case 'content':
+        error = validateContent(value);
+        break;
+      case 'tags':
+        error = validateTags(value);
+        break;
+      default:
+        break;
+    }
+    
+    setValidationErrors(prev => ({ ...prev, [field]: error }));
+  };
+
+  const handleReplyChange = (value) => {
+    setNewReply(value);
+    
+    // Real-time validation for reply
+    const error = validateReply(value);
+    setReplyError(error);
+    setValidationErrors(prev => ({ ...prev, reply: error }));
   };
 
   return (
@@ -494,13 +584,27 @@ function Discussion() {
                   <input
                     type="text"
                     value={newDiscussion.title}
-                    onChange={(e) => setNewDiscussion(prev => ({ ...prev, title: e.target.value }))}
+                    onChange={(e) => handleDiscussionInputChange('title', e.target.value)}
                     placeholder="What would you like to discuss?"
                     maxLength={200}
-                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
+                    className={`w-full px-4 py-3 border rounded-lg focus:ring-2 focus:border-emerald-500 transition-all duration-300 ${
+                      validationErrors.title 
+                        ? 'border-red-500 focus:ring-red-500/20' 
+                        : 'border-gray-300 focus:ring-emerald-500/20'
+                    }`}
                   />
-                  <div className="text-right text-sm text-gray-500 mt-1">
-                    {newDiscussion.title.length}/200 characters
+                  <div className="flex justify-between items-center mt-1">
+                    <div className="text-sm text-red-500 flex items-center">
+                      {validationErrors.title && (
+                        <>
+                          <FaExclamationTriangle className="mr-1" />
+                          <span>{validationErrors.title}</span>
+                        </>
+                      )}
+                    </div>
+                    <div className="text-right text-sm text-gray-500">
+                      {newDiscussion.title.length}/200 characters
+                    </div>
                   </div>
                 </div>
 
@@ -510,7 +614,7 @@ function Discussion() {
                   </label>
                   <select
                     value={newDiscussion.category}
-                    onChange={(e) => setNewDiscussion(prev => ({ ...prev, category: e.target.value }))}
+                    onChange={(e) => handleDiscussionInputChange('category', e.target.value)}
                     className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
                   >
                     {categories.filter(cat => cat.value !== 'all').map(category => (
@@ -527,11 +631,23 @@ function Discussion() {
                   </label>
                   <textarea
                     value={newDiscussion.content}
-                    onChange={(e) => setNewDiscussion(prev => ({ ...prev, content: e.target.value }))}
+                    onChange={(e) => handleDiscussionInputChange('content', e.target.value)}
                     placeholder="Share your thoughts, questions, or experiences..."
                     rows={6}
-                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
+                    className={`w-full px-4 py-3 border rounded-lg focus:ring-2 focus:border-emerald-500 transition-all duration-300 ${
+                      validationErrors.content 
+                        ? 'border-red-500 focus:ring-red-500/20' 
+                        : 'border-gray-300 focus:ring-emerald-500/20'
+                    }`}
                   />
+                  <div className="text-sm text-red-500 flex items-center mt-1">
+                    {validationErrors.content && (
+                      <>
+                        <FaExclamationTriangle className="mr-1" />
+                        <span>{validationErrors.content}</span>
+                      </>
+                    )}
+                  </div>
                 </div>
 
                 <div>
@@ -541,10 +657,22 @@ function Discussion() {
                   <input
                     type="text"
                     value={newDiscussion.tags}
-                    onChange={(e) => setNewDiscussion(prev => ({ ...prev, tags: e.target.value }))}
+                    onChange={(e) => handleDiscussionInputChange('tags', e.target.value)}
                     placeholder="e.g., stress, anxiety, natural-remedies"
-                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
+                    className={`w-full px-4 py-3 border rounded-lg focus:ring-2 focus:border-emerald-500 transition-all duration-300 ${
+                      validationErrors.tags 
+                        ? 'border-red-500 focus:ring-red-500/20' 
+                        : 'border-gray-300 focus:ring-emerald-500/20'
+                    }`}
                   />
+                  <div className="text-sm text-red-500 flex items-center mt-1">
+                    {validationErrors.tags && (
+                      <>
+                        <FaExclamationTriangle className="mr-1" />
+                        <span>{validationErrors.tags}</span>
+                      </>
+                    )}
+                  </div>
                 </div>
 
                 <div className="flex justify-end space-x-4">
@@ -556,9 +684,9 @@ function Discussion() {
                   </button>
                   <button
                     onClick={handleCreateDiscussion}
-                    disabled={!newDiscussion.title.trim() || !newDiscussion.content.trim()}
+                    disabled={!!validationErrors.title || !!validationErrors.content}
                     className={`px-6 py-3 rounded-lg transition-all duration-200 flex items-center space-x-2 ${
-                      !newDiscussion.title.trim() || !newDiscussion.content.trim()
+                      validationErrors.title || validationErrors.content
                         ? 'bg-gray-400 cursor-not-allowed'
                         : 'bg-emerald-600 hover:bg-emerald-700 hover:shadow-lg transform hover:scale-105'
                     } text-white`}
@@ -637,14 +765,31 @@ function Discussion() {
                   <div className="space-y-4">
                     <textarea
                       value={newReply}
-                      onChange={(e) => setNewReply(e.target.value)}
+                      onChange={(e) => handleReplyChange(e.target.value)}
                       placeholder="Share your thoughts or experiences..."
                       rows={4}
-                      className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
+                      className={`w-full px-4 py-3 border rounded-lg focus:ring-2 focus:border-emerald-500 transition-all duration-300 ${
+                        replyError 
+                          ? 'border-red-500 focus:ring-red-500/20' 
+                          : 'border-gray-300 focus:ring-emerald-500/20'
+                      }`}
                     />
+                    <div className="text-sm text-red-500 flex items-center">
+                      {replyError && (
+                        <>
+                          <FaExclamationTriangle className="mr-1" />
+                          <span>{replyError}</span>
+                        </>
+                      )}
+                    </div>
                     <button
                       onClick={handleAddReply}
-                      className="bg-emerald-600 hover:bg-emerald-700 text-white px-6 py-3 rounded-lg font-medium transition-colors flex items-center space-x-2"
+                      disabled={!!replyError || !newReply.trim()}
+                      className={`px-6 py-3 rounded-lg font-medium transition-colors flex items-center space-x-2 ${
+                        replyError || !newReply.trim()
+                          ? 'bg-gray-400 cursor-not-allowed text-white'
+                          : 'bg-emerald-600 hover:bg-emerald-700 text-white hover:shadow-lg transform hover:scale-105'
+                      }`}
                     >
                       <FaReply />
                       <span>Post Reply</span>

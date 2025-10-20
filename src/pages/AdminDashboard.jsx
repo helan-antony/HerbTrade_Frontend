@@ -63,6 +63,9 @@ function AdminDashboard() {
   const [leaveComment, setLeaveComment] = useState('');
   const [notifications, setNotifications] = useState([]);
   const [showNotifications, setShowNotifications] = useState(false);
+  
+  // Validation states
+  const [leaveErrors, setLeaveErrors] = useState({});
 
   useEffect(() => {
     // Check if user is admin
@@ -189,7 +192,20 @@ function AdminDashboard() {
     }
   };
 
-
+  // Validation functions
+  const validateLeaveAction = (comment, action) => {
+    const errors = {};
+    
+    // For rejection, comment is required
+    if (action === 'rejected' && !comment.trim()) {
+      errors.comment = 'Comment is required when rejecting a leave application';
+    } else if (comment.trim().length > 500) {
+      errors.comment = 'Comment must be less than 500 characters';
+    }
+    
+    setLeaveErrors(errors);
+    return Object.keys(errors).length === 0;
+  };
 
   const handleUserAction = async (userId, action) => {
     try {
@@ -253,6 +269,12 @@ function AdminDashboard() {
 
   // Leave management functions
   const handleLeaveAction = async (leaveId, status, comment = '') => {
+    // Validate form
+    if (!validateLeaveAction(comment, status)) {
+      toast.error('Please fix the validation errors');
+      return;
+    }
+    
     try {
       const token = localStorage.getItem('token');
       const response = await fetch(`http://localhost:5000/api/admin/leaves/${leaveId}/status`, {
@@ -284,6 +306,7 @@ function AdminDashboard() {
         setShowLeaveModal(false);
         setSelectedLeave(null);
         setLeaveComment('');
+        setLeaveErrors({});
         
         // Refresh data
         fetchDashboardData();
@@ -299,13 +322,15 @@ function AdminDashboard() {
 
   const openLeaveModal = (leave) => {
     setSelectedLeave(leave);
-    setLeaveComment('');
+    setLeaveComment(leave.adminComment || '');
+    setLeaveErrors({});
     setShowLeaveModal(true);
   };
 
   const closeLeaveModal = () => {
     setSelectedLeave(null);
     setLeaveComment('');
+    setLeaveErrors({});
     setShowLeaveModal(false);
   };
 
@@ -1456,13 +1481,24 @@ function AdminDashboard() {
                   {/* Admin Comment */}
                   <div className="p-4 bg-white/60 rounded-xl border border-stone-200/50">
                     <label className="block text-sm text-slate-600 mb-2">Admin Comment (Optional)</label>
-                    <textarea
-                      value={leaveComment}
-                      onChange={(e) => setLeaveComment(e.target.value)}
-                      className="w-full px-4 py-3 border border-stone-300/50 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 bg-white/80 backdrop-blur-sm"
-                      rows="3"
-                      placeholder="Add a comment about your decision..."
-                    />
+                    <div>
+                      <textarea
+                        value={leaveComment}
+                        onChange={(e) => {
+                          setLeaveComment(e.target.value);
+                          if (leaveErrors.comment && e.target.value.trim().length <= 500) {
+                            setLeaveErrors({ ...leaveErrors, comment: '' });
+                          }
+                        }}
+                        className={`w-full px-4 py-3 border ${leaveErrors.comment ? 'border-red-500' : 'border-stone-300/50'} rounded-xl focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 bg-white/80 backdrop-blur-sm`}
+                        rows="3"
+                        placeholder="Add a comment about your decision..."
+                      />
+                      {leaveErrors.comment && (
+                        <p className="mt-1 text-sm text-red-600">{leaveErrors.comment}</p>
+                      )}
+                      <p className="text-xs text-stone-500 mt-1">Required when rejecting. Max 500 characters.</p>
+                    </div>
                   </div>
                 </div>
 

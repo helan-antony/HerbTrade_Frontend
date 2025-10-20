@@ -2,7 +2,8 @@ import { useState, useEffect } from "react";
 import {
   FaPenFancy, FaCommentDots, FaHeart, FaReply,
   FaTimes, FaChevronDown, FaChevronUp, FaPlus, FaSearch,
-  FaCalendar, FaUser, FaEye, FaShare, FaChevronRight
+  FaCalendar, FaUser, FaEye, FaShare, FaChevronRight,
+  FaExclamationTriangle
 } from "react-icons/fa";
 import axios from "axios";
 import { toast, ToastContainer } from 'react-toastify';
@@ -31,6 +32,13 @@ function Blog() {
   const [likeCounts, setLikeCounts] = useState({});
   const [likedPosts, setLikedPosts] = useState(new Set());
   const [postComments, setPostComments] = useState({}); // Store comments for each post
+  
+  // Validation errors state
+  const [validationErrors, setValidationErrors] = useState({
+    title: '',
+    content: '',
+    comment: ''
+  });
 
   useEffect(() => {
     fetchPosts();
@@ -52,6 +60,28 @@ function Blog() {
     );
     setFilteredPosts(filtered);
   }, [posts, searchTerm]);
+
+  // Validation functions
+  const validateTitle = (title) => {
+    if (!title.trim()) return "Title is required";
+    if (title.trim().length < 5) return "Title must be at least 5 characters";
+    if (title.trim().length > 100) return "Title must be less than 100 characters";
+    return "";
+  };
+
+  const validateContent = (content) => {
+    if (!content.trim()) return "Content is required";
+    if (content.trim().length < 20) return "Content must be at least 20 characters";
+    if (content.trim().length > 5000) return "Content must be less than 5000 characters";
+    return "";
+  };
+
+  const validateComment = (comment) => {
+    if (!comment.trim()) return "Comment is required";
+    if (comment.trim().length < 5) return "Comment must be at least 5 characters";
+    if (comment.trim().length > 1000) return "Comment must be less than 1000 characters";
+    return "";
+  };
 
   const fetchPosts = async () => {
     try {
@@ -77,16 +107,24 @@ function Blog() {
 
   const handleSubmit = async () => {
     console.log('Submitting blog post:', { title, content });
+    
+    // Validate all fields
+    const titleError = validateTitle(title);
+    const contentError = validateContent(content);
+    
+    setValidationErrors({
+      title: titleError,
+      content: contentError
+    });
+    
+    if (titleError || contentError) {
+      toast.error('Please fix the validation errors before publishing.');
+      return;
+    }
+    
     setError("");
     setSuccess("");
     setIsSubmitting(true);
-
-    if (!title || !content) {
-      setError("Title and content are required");
-      toast.error("Please fill in both title and content");
-      setIsSubmitting(false);
-      return;
-    }
 
     const user = JSON.parse(localStorage.getItem('user'));
     const author = user?.name || "Anonymous";
@@ -124,7 +162,13 @@ function Blog() {
   };
 
   const handleCommentSubmit = async () => {
-    if (!newComment.trim()) return;
+    const commentError = validateComment(newComment);
+    setValidationErrors(prev => ({ ...prev, comment: commentError }));
+    
+    if (commentError) {
+      toast.error('Please fix the validation errors before posting your comment.');
+      return;
+    }
 
     try {
       const user = JSON.parse(localStorage.getItem('user'));
@@ -155,6 +199,7 @@ function Blog() {
 
       setNewComment("");
       setReplyTo(null);
+      setValidationErrors(prev => ({ ...prev, comment: '' }));
 
       toast.success(replyTo ? "Reply added successfully!" : "Comment added successfully!");
     } catch (error) {
@@ -416,6 +461,7 @@ function Blog() {
     setComments([]);
     setNewComment("");
     setReplyTo(null);
+    setValidationErrors(prev => ({ ...prev, comment: '' }));
   };
 
   const toggleCommentExpansion = (commentId) => {
@@ -433,6 +479,31 @@ function Blog() {
       hour: '2-digit',
       minute: '2-digit'
     });
+  };
+
+  // Handle input changes with real-time validation
+  const handleTitleChange = (value) => {
+    setTitle(value);
+    
+    // Real-time validation for title
+    const error = validateTitle(value);
+    setValidationErrors(prev => ({ ...prev, title: error }));
+  };
+
+  const handleContentChange = (value) => {
+    setContent(value);
+    
+    // Real-time validation for content
+    const error = validateContent(value);
+    setValidationErrors(prev => ({ ...prev, content: error }));
+  };
+
+  const handleCommentChange = (value) => {
+    setNewComment(value);
+    
+    // Real-time validation for comment
+    const error = validateComment(value);
+    setValidationErrors(prev => ({ ...prev, comment: error }));
   };
 
   const CommentItem = ({ comment, isReply = false }) => (
@@ -589,11 +660,28 @@ function Blog() {
                   value={title}
                   onChange={(e) => {
                     if (e.target.value.length <= 100) {
-                      setTitle(e.target.value);
+                      handleTitleChange(e.target.value);
                     }
                   }}
-                  className="w-full px-4 py-4 border border-gray-300 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none text-lg font-medium placeholder-gray-400 transition-all duration-200 hover:border-gray-400"
+                  className={`w-full px-4 py-4 border rounded-xl focus:ring-2 focus:border-emerald-500 outline-none text-lg font-medium placeholder-gray-400 transition-all duration-200 hover:border-gray-400 ${
+                    validationErrors.title 
+                      ? 'border-red-500 focus:ring-red-500/20' 
+                      : 'border-gray-300 focus:ring-emerald-500/20'
+                  }`}
                 />
+                <div className="flex justify-between items-center mt-1">
+                  <div className="text-sm text-red-500 flex items-center">
+                    {validationErrors.title && (
+                      <>
+                        <FaExclamationTriangle className="mr-1" />
+                        <span>{validationErrors.title}</span>
+                      </>
+                    )}
+                  </div>
+                  <div className="text-right text-sm text-gray-500">
+                    {title.length}/100 title
+                  </div>
+                </div>
               </div>
 
               <div className="space-y-2">
@@ -603,26 +691,43 @@ function Blog() {
                   value={content}
                   onChange={(e) => {
                     if (e.target.value.length <= 5000) {
-                      setContent(e.target.value);
+                      handleContentChange(e.target.value);
                     }
                   }}
                   onKeyDown={(e) => {
                     if (e.ctrlKey && e.key === 'Enter') {
                       e.preventDefault();
-                      if (title.trim() && content.trim() && !isSubmitting) {
+                      if (title.trim() && content.trim() && !isSubmitting && !validationErrors.title && !validationErrors.content) {
                         handleSubmit();
                       }
                     }
                   }}
                   rows={8}
-                  className="w-full px-4 py-4 border border-gray-300 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none resize-none placeholder-gray-400 transition-all duration-200 hover:border-gray-400"
+                  className={`w-full px-4 py-4 border rounded-xl focus:ring-2 focus:border-emerald-500 outline-none resize-none placeholder-gray-400 transition-all duration-200 hover:border-gray-400 ${
+                    validationErrors.content 
+                      ? 'border-red-500 focus:ring-red-500/20' 
+                      : 'border-gray-300 focus:ring-emerald-500/20'
+                  }`}
                 />
+                <div className="flex justify-between items-center mt-1">
+                  <div className="text-sm text-red-500 flex items-center">
+                    {validationErrors.content && (
+                      <>
+                        <FaExclamationTriangle className="mr-1" />
+                        <span>{validationErrors.content}</span>
+                      </>
+                    )}
+                  </div>
+                  <div className="text-right text-sm text-gray-500">
+                    {content.length}/5000 content
+                  </div>
+                </div>
               </div>
               
               <div className="flex flex-col sm:flex-row gap-4">
                 <button
                   onClick={handleSubmit}
-                  disabled={!title.trim() || !content.trim() || isSubmitting}
+                  disabled={!!validationErrors.title || !!validationErrors.content || !title.trim() || !content.trim() || isSubmitting}
                   className="flex-1 sm:flex-none bg-gradient-to-r from-emerald-600 to-emerald-700 hover:from-emerald-700 hover:to-emerald-800 disabled:from-gray-300 disabled:to-gray-300 disabled:cursor-not-allowed text-white px-8 py-4 rounded-xl font-semibold transition-all duration-300 flex items-center justify-center gap-3 shadow-lg hover:shadow-xl transform hover:scale-105 disabled:transform-none disabled:shadow-none"
                 >
                   {isSubmitting ? (
@@ -644,6 +749,7 @@ function Blog() {
                     setShowCreateForm(false);
                     setError("");
                     setSuccess("");
+                    setValidationErrors({ title: '', content: '', comment: '' });
                   }}
                   className="flex-1 sm:flex-none bg-gray-100 hover:bg-gray-200 text-gray-700 px-8 py-4 rounded-xl font-semibold transition-all duration-200 flex items-center justify-center gap-3 hover:shadow-md"
                 >
@@ -908,16 +1014,28 @@ function Blog() {
                       <textarea
                         placeholder={replyTo ? "Write your reply..." : "Share your thoughts..."}
                         value={newComment}
-                        onChange={(e) => setNewComment(e.target.value)}
+                        onChange={(e) => handleCommentChange(e.target.value)}
                         rows={3}
-                        className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none resize-none mb-4"
+                        className={`w-full px-4 py-3 border rounded-lg focus:ring-2 focus:border-emerald-500 outline-none resize-none mb-4 ${
+                          validationErrors.comment 
+                            ? 'border-red-500 focus:ring-red-500/20' 
+                            : 'border-gray-300 focus:ring-emerald-500/20'
+                        }`}
                       />
+                      <div className="text-sm text-red-500 flex items-center mb-2">
+                        {validationErrors.comment && (
+                          <>
+                            <FaExclamationTriangle className="mr-1" />
+                            <span>{validationErrors.comment}</span>
+                          </>
+                        )}
+                      </div>
 
                   <button
                     onClick={handleCommentSubmit}
-                    disabled={isSubmitting || !newComment.trim()}
+                    disabled={isSubmitting || !newComment.trim() || !!validationErrors.comment}
                     className={`px-6 py-3 rounded-lg font-medium transition-all duration-200 flex items-center gap-2 ${
-                      isSubmitting || !newComment.trim()
+                      isSubmitting || !newComment.trim() || validationErrors.comment
                         ? 'bg-gray-400 cursor-not-allowed'
                         : 'bg-emerald-600 hover:bg-emerald-700 hover:shadow-lg transform hover:scale-105'
                     } text-white`}

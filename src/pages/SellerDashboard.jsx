@@ -64,6 +64,12 @@ const SellerDashboard = () => {
     description: ''
   });
   
+  // Validation states
+  const [productErrors, setProductErrors] = useState({});
+  const [profileErrors, setProfileErrors] = useState({});
+  const [passwordErrors, setPasswordErrors] = useState({});
+  const [leaveErrors, setLeaveErrors] = useState({});
+  
   const navigate = useNavigate();
   const location = useLocation();
 
@@ -124,6 +130,7 @@ const SellerDashboard = () => {
     setSnackbar({ ...snackbar, open: false });
   };
 
+  // Validation functions
   const validatePrice = (price) => {
     const priceValue = parseFloat(price);
     if (isNaN(priceValue) || priceValue < 50) {
@@ -132,6 +139,183 @@ const SellerDashboard = () => {
     }
     setPriceError('');
     return true;
+  };
+
+  const validateProductForm = () => {
+    const errors = {};
+    
+    // Basic validation
+    if (!newProduct.name.trim()) {
+      errors.name = 'Product name is required';
+    } else if (newProduct.name.trim().length < 3) {
+      errors.name = 'Product name must be at least 3 characters';
+    }
+    
+    if (!newProduct.category) {
+      errors.category = 'Category is required';
+    }
+    
+    if (!newProduct.price) {
+      errors.price = 'Price is required';
+    } else if (!validatePrice(newProduct.price)) {
+      errors.price = 'Price must be at least ₹50';
+    }
+    
+    if (!newProduct.inStock) {
+      errors.inStock = 'Stock is required';
+    } else if (parseInt(newProduct.inStock) < 0) {
+      errors.inStock = newProduct.category === 'Medicines' ? 'Stock quantity cannot be negative' : 'Stock weight cannot be negative';
+    }
+    
+    if (!newProduct.description.trim()) {
+      errors.description = 'Description is required';
+    } else if (newProduct.description.trim().length < 10) {
+      errors.description = 'Description must be at least 10 characters';
+    }
+    
+    // Image validation - require either uploaded file or URL
+    if (!selectedImageFile && !newProduct.image) {
+      errors.image = 'Please upload an image or provide an image URL';
+    }
+    
+    // Medicine-specific validation
+    if (newProduct.category === 'Medicines') {
+      if (!newProduct.dosageForm) {
+        errors.dosageForm = 'Dosage form is required';
+      }
+      
+      if (!newProduct.strength.trim()) {
+        errors.strength = 'Strength is required';
+      }
+      
+      if (!newProduct.manufacturer.trim()) {
+        errors.manufacturer = 'Manufacturer is required';
+      }
+      
+      if (!newProduct.licenseNumber.trim()) {
+        errors.licenseNumber = 'License number is required';
+      }
+      
+      if (!newProduct.batchNumber.trim()) {
+        errors.batchNumber = 'Batch number is required';
+      }
+      
+      if (!newProduct.expiryDate) {
+        errors.expiryDate = 'Expiry date is required';
+      } else {
+        // Check expiry date is in future
+        const expiryDate = new Date(newProduct.expiryDate);
+        const today = new Date();
+        if (expiryDate <= today) {
+          errors.expiryDate = 'Expiry date must be in the future';
+        }
+      }
+      
+      if (!newProduct.activeIngredients.length || (Array.isArray(newProduct.activeIngredients) && newProduct.activeIngredients.join('').trim() === '')) {
+        errors.activeIngredients = 'At least one active ingredient is required';
+      }
+      
+      if (!newProduct.indications.length || (Array.isArray(newProduct.indications) && newProduct.indications.join('').trim() === '')) {
+        errors.indications = 'At least one indication is required';
+      }
+      
+      if (!newProduct.dosage.trim()) {
+        errors.dosage = 'Dosage instructions are required';
+      }
+    }
+    
+    setProductErrors(errors);
+    return Object.keys(errors).length === 0;
+  };
+
+  const validateProfileForm = () => {
+    const errors = {};
+    
+    if (!profileForm.name.trim()) {
+      errors.name = 'Name is required';
+    } else if (profileForm.name.trim().length < 2) {
+      errors.name = 'Name must be at least 2 characters';
+    }
+    
+    if (profileForm.phone && !/^\d{10}$/.test(profileForm.phone)) {
+      errors.phone = 'Please enter a valid 10-digit phone number';
+    }
+    
+    if (profileForm.profilePic && !/^https?:\/\/.+\..+/.test(profileForm.profilePic)) {
+      errors.profilePic = 'Please enter a valid URL';
+    }
+    
+    setProfileErrors(errors);
+    return Object.keys(errors).length === 0;
+  };
+
+  const validatePasswordForm = () => {
+    const errors = {};
+    
+    if (!passwordForm.currentPassword) {
+      errors.currentPassword = 'Current password is required';
+    }
+    
+    if (!passwordForm.newPassword) {
+      errors.newPassword = 'New password is required';
+    } else if (passwordForm.newPassword.length < 6) {
+      errors.newPassword = 'New password must be at least 6 characters long';
+    }
+    
+    if (!passwordForm.confirmPassword) {
+      errors.confirmPassword = 'Please confirm your new password';
+    } else if (passwordForm.newPassword !== passwordForm.confirmPassword) {
+      errors.confirmPassword = 'Passwords do not match';
+    }
+    
+    setPasswordErrors(errors);
+    return Object.keys(errors).length === 0;
+  };
+
+  const validateLeaveForm = () => {
+    const errors = {};
+    
+    if (!leaveForm.type) {
+      errors.type = 'Leave type is required';
+    }
+    
+    if (!leaveForm.reason.trim()) {
+      errors.reason = 'Reason is required';
+    } else if (leaveForm.reason.trim().length < 3) {
+      errors.reason = 'Reason must be at least 3 characters';
+    }
+    
+    if (!leaveForm.startDate) {
+      errors.startDate = 'Start date is required';
+    }
+    
+    if (!leaveForm.endDate) {
+      errors.endDate = 'End date is required';
+    }
+    
+    if (leaveForm.startDate && leaveForm.endDate) {
+      const startDate = new Date(leaveForm.startDate);
+      const endDate = new Date(leaveForm.endDate);
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+
+      if (startDate < today) {
+        errors.startDate = 'Start date cannot be in the past';
+      }
+
+      if (endDate < startDate) {
+        errors.endDate = 'End date cannot be before start date';
+      }
+    }
+    
+    if (!leaveForm.description.trim()) {
+      errors.description = 'Description is required';
+    } else if (leaveForm.description.trim().length < 10) {
+      errors.description = 'Description must be at least 10 characters';
+    }
+    
+    setLeaveErrors(errors);
+    return Object.keys(errors).length === 0;
   };
 
   // Handle image file selection
@@ -163,6 +347,11 @@ const SellerDashboard = () => {
     reader.onload = (e) => {
       setImagePreviewUrl(e.target.result);
       setNewProduct({ ...newProduct, image: e.target.result });
+      
+      // Clear image error when file is selected
+      if (productErrors.image) {
+        setProductErrors({ ...productErrors, image: '' });
+      }
     };
     reader.readAsDataURL(file);
   };
@@ -211,42 +400,9 @@ const SellerDashboard = () => {
   };
 
   const handleAddProduct = async () => {
-    // Basic validation
-    if (!newProduct.name || !newProduct.category || !newProduct.price || !newProduct.inStock || !newProduct.description) {
-      showSnackbar('Please fill in all required fields', 'error');
-      return;
-    }
-
-    // Image validation - require either uploaded file or URL
-    if (!selectedImageFile && !newProduct.image) {
-      showSnackbar('Please upload an image or provide an image URL', 'error');
-      return;
-    }
-
-    // Medicine-specific validation
-    if (newProduct.category === 'Medicines') {
-      if (!newProduct.dosageForm || !newProduct.strength || !newProduct.manufacturer || 
-          !newProduct.licenseNumber || !newProduct.batchNumber || !newProduct.expiryDate ||
-          !newProduct.activeIngredients.length || !newProduct.indications.length || !newProduct.dosage) {
-        showSnackbar('Please fill in all required medicine fields', 'error');
-        return;
-      }
-
-      // Check expiry date is in future
-      const expiryDate = new Date(newProduct.expiryDate);
-      const today = new Date();
-      if (expiryDate <= today) {
-        showSnackbar('Expiry date must be in the future', 'error');
-        return;
-      }
-    }
-
-    if (!validatePrice(newProduct.price)) {
-      return;
-    }
-
-    if (parseInt(newProduct.inStock) < 0) {
-      showSnackbar(newProduct.category === 'Medicines' ? 'Stock quantity cannot be negative' : 'Stock weight cannot be negative', 'error');
+    // Validate form
+    if (!validateProductForm()) {
+      showSnackbar('Please fix the validation errors', 'error');
       return;
     }
 
@@ -290,42 +446,9 @@ const SellerDashboard = () => {
   };
 
   const handleEditProduct = async () => {
-    // Basic validation
-    if (!newProduct.name || !newProduct.category || !newProduct.price || !newProduct.inStock || !newProduct.description) {
-      showSnackbar('Please fill in all required fields', 'error');
-      return;
-    }
-
-    // Image validation - require either uploaded file or URL
-    if (!selectedImageFile && !newProduct.image) {
-      showSnackbar('Please upload an image or provide an image URL', 'error');
-      return;
-    }
-
-    // Medicine-specific validation
-    if (newProduct.category === 'Medicines') {
-      if (!newProduct.dosageForm || !newProduct.strength || !newProduct.manufacturer || 
-          !newProduct.licenseNumber || !newProduct.batchNumber || !newProduct.expiryDate ||
-          !newProduct.activeIngredients.length || !newProduct.indications.length || !newProduct.dosage) {
-        showSnackbar('Please fill in all required medicine fields', 'error');
-        return;
-      }
-
-      // Check expiry date is in future
-      const expiryDate = new Date(newProduct.expiryDate);
-      const today = new Date();
-      if (expiryDate <= today) {
-        showSnackbar('Expiry date must be in the future', 'error');
-        return;
-      }
-    }
-
-    if (!validatePrice(newProduct.price)) {
-      return;
-    }
-
-    if (parseInt(newProduct.inStock) < 0) {
-      showSnackbar(newProduct.category === 'Medicines' ? 'Stock quantity cannot be negative' : 'Stock weight cannot be negative', 'error');
+    // Validate form
+    if (!validateProductForm()) {
+      showSnackbar('Please fix the validation errors', 'error');
       return;
     }
 
@@ -483,11 +606,18 @@ const SellerDashboard = () => {
     setSelectedImageFile(null);
     setImagePreviewUrl('');
     setPriceError('');
+    setProductErrors({});
     
     setOpenProductDialog(false);
   };
 
   const handleUpdateProfile = async () => {
+    // Validate form
+    if (!validateProfileForm()) {
+      showSnackbar('Please fix the validation errors', 'error');
+      return;
+    }
+
     try {
       const token = localStorage.getItem('token');
       const response = await fetch('http://localhost:5000/api/seller/profile', {
@@ -519,18 +649,9 @@ const SellerDashboard = () => {
   };
 
   const handleChangePassword = async () => {
-    if (!passwordForm.currentPassword || !passwordForm.newPassword || !passwordForm.confirmPassword) {
-      showSnackbar('Please fill in all password fields', 'error');
-      return;
-    }
-
-    if (passwordForm.newPassword !== passwordForm.confirmPassword) {
-      showSnackbar('New passwords do not match', 'error');
-      return;
-    }
-
-    if (passwordForm.newPassword.length < 6) {
-      showSnackbar('New password must be at least 6 characters long', 'error');
+    // Validate form
+    if (!validatePasswordForm()) {
+      showSnackbar('Please fix the validation errors', 'error');
       return;
     }
 
@@ -573,32 +694,14 @@ const SellerDashboard = () => {
   const handleApplyLeave = async () => {
     if (leaveSubmitting) return; // Prevent double submission
     
+    // Validate form
+    if (!validateLeaveForm()) {
+      showSnackbar('Please fix the validation errors', 'error');
+      return;
+    }
+    
     setLeaveSubmitting(true);
     
-    // Validation
-    if (!leaveForm.startDate || !leaveForm.endDate || !leaveForm.reason || !leaveForm.description) {
-      showSnackbar('Please fill in all required fields', 'error');
-      setLeaveSubmitting(false);
-      return;
-    }
-
-    const startDate = new Date(leaveForm.startDate + 'T00:00:00');
-    const endDate = new Date(leaveForm.endDate + 'T00:00:00');
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-
-    if (startDate < today) {
-      showSnackbar('Start date cannot be in the past', 'error');
-      setLeaveSubmitting(false);
-      return;
-    }
-
-    if (endDate < startDate) {
-      showSnackbar('End date cannot be before start date', 'error');
-      setLeaveSubmitting(false);
-      return;
-    }
-
     try {
       const token = localStorage.getItem('token');
       const response = await fetch('http://localhost:5000/api/seller/leaves', {
@@ -660,6 +763,7 @@ const SellerDashboard = () => {
     });
     setLeaveSubmitting(false);
     setOpenLeaveDialog(false);
+    setLeaveErrors({});
   };
 
   const getLeaveStatusColor = (status) => {
@@ -1300,12 +1404,22 @@ const SellerDashboard = () => {
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">Name</label>
                     {editingProfile ? (
-                      <input
-                        type="text"
-                        value={profileForm.name}
-                        onChange={(e) => setProfileForm({ ...profileForm, name: e.target.value })}
-                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
-                      />
+                      <div>
+                        <input
+                          type="text"
+                          value={profileForm.name}
+                          onChange={(e) => {
+                            setProfileForm({ ...profileForm, name: e.target.value });
+                            if (profileErrors.name && e.target.value.trim().length >= 2) {
+                              setProfileErrors({ ...profileErrors, name: '' });
+                            }
+                          }}
+                          className={`w-full px-3 py-2 border ${profileErrors.name ? 'border-red-500' : 'border-gray-300'} rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500`}
+                        />
+                        {profileErrors.name && (
+                          <p className="mt-1 text-sm text-red-600">{profileErrors.name}</p>
+                        )}
+                      </div>
                     ) : (
                       <p className="text-gray-900">{sellerProfile?.name || 'Not provided'}</p>
                     )}
@@ -1319,12 +1433,22 @@ const SellerDashboard = () => {
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">Phone</label>
                     {editingProfile ? (
-                      <input
-                        type="text"
-                        value={profileForm.phone}
-                        onChange={(e) => setProfileForm({ ...profileForm, phone: e.target.value })}
-                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
-                      />
+                      <div>
+                        <input
+                          type="text"
+                          value={profileForm.phone}
+                          onChange={(e) => {
+                            setProfileForm({ ...profileForm, phone: e.target.value });
+                            if (profileErrors.phone && /^\d{10}$/.test(e.target.value)) {
+                              setProfileErrors({ ...profileErrors, phone: '' });
+                            }
+                          }}
+                          className={`w-full px-3 py-2 border ${profileErrors.phone ? 'border-red-500' : 'border-gray-300'} rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500`}
+                        />
+                        {profileErrors.phone && (
+                          <p className="mt-1 text-sm text-red-600">{profileErrors.phone}</p>
+                        )}
+                      </div>
                     ) : (
                       <p className="text-gray-900">{sellerProfile?.phone || 'Not provided'}</p>
                     )}
@@ -1333,12 +1457,22 @@ const SellerDashboard = () => {
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">Profile Picture URL</label>
                     {editingProfile ? (
-                      <input
-                        type="url"
-                        value={profileForm.profilePic}
-                        onChange={(e) => setProfileForm({ ...profileForm, profilePic: e.target.value })}
-                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
-                      />
+                      <div>
+                        <input
+                          type="url"
+                          value={profileForm.profilePic}
+                          onChange={(e) => {
+                            setProfileForm({ ...profileForm, profilePic: e.target.value });
+                            if (profileErrors.profilePic && /^https?:\/\/.+\..+/.test(e.target.value)) {
+                              setProfileErrors({ ...profileErrors, profilePic: '' });
+                            }
+                          }}
+                          className={`w-full px-3 py-2 border ${profileErrors.profilePic ? 'border-red-500' : 'border-gray-300'} rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500`}
+                        />
+                        {profileErrors.profilePic && (
+                          <p className="mt-1 text-sm text-red-600">{profileErrors.profilePic}</p>
+                        )}
+                      </div>
                     ) : (
                       <p className="text-gray-900">{sellerProfile?.profilePic || 'Not provided'}</p>
                     )}
@@ -1401,35 +1535,65 @@ const SellerDashboard = () => {
                       <div className="space-y-4 bg-gray-50 p-4 rounded-lg">
                         <div>
                           <label className="block text-sm font-medium text-gray-700 mb-1">Current Password</label>
-                          <input
-                            type="password"
-                            value={passwordForm.currentPassword}
-                            onChange={(e) => setPasswordForm({ ...passwordForm, currentPassword: e.target.value })}
-                            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
-                            placeholder="Enter current password"
-                          />
+                          <div>
+                            <input
+                              type="password"
+                              value={passwordForm.currentPassword}
+                              onChange={(e) => {
+                                setPasswordForm({ ...passwordForm, currentPassword: e.target.value });
+                                if (passwordErrors.currentPassword) {
+                                  setPasswordErrors({ ...passwordErrors, currentPassword: '' });
+                                }
+                              }}
+                              className={`w-full px-3 py-2 border ${passwordErrors.currentPassword ? 'border-red-500' : 'border-gray-300'} rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500`}
+                              placeholder="Enter current password"
+                            />
+                            {passwordErrors.currentPassword && (
+                              <p className="mt-1 text-sm text-red-600">{passwordErrors.currentPassword}</p>
+                            )}
+                          </div>
                         </div>
 
                         <div>
                           <label className="block text-sm font-medium text-gray-700 mb-1">New Password</label>
-                          <input
-                            type="password"
-                            value={passwordForm.newPassword}
-                            onChange={(e) => setPasswordForm({ ...passwordForm, newPassword: e.target.value })}
-                            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
-                            placeholder="Enter new password (min 6 characters)"
-                          />
+                          <div>
+                            <input
+                              type="password"
+                              value={passwordForm.newPassword}
+                              onChange={(e) => {
+                                setPasswordForm({ ...passwordForm, newPassword: e.target.value });
+                                if (passwordErrors.newPassword && e.target.value.length >= 6) {
+                                  setPasswordErrors({ ...passwordErrors, newPassword: '' });
+                                }
+                              }}
+                              className={`w-full px-3 py-2 border ${passwordErrors.newPassword ? 'border-red-500' : 'border-gray-300'} rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500`}
+                              placeholder="Enter new password (min 6 characters)"
+                            />
+                            {passwordErrors.newPassword && (
+                              <p className="mt-1 text-sm text-red-600">{passwordErrors.newPassword}</p>
+                            )}
+                          </div>
                         </div>
 
                         <div>
                           <label className="block text-sm font-medium text-gray-700 mb-1">Confirm New Password</label>
-                          <input
-                            type="password"
-                            value={passwordForm.confirmPassword}
-                            onChange={(e) => setPasswordForm({ ...passwordForm, confirmPassword: e.target.value })}
-                            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
-                            placeholder="Confirm new password"
-                          />
+                          <div>
+                            <input
+                              type="password"
+                              value={passwordForm.confirmPassword}
+                              onChange={(e) => {
+                                setPasswordForm({ ...passwordForm, confirmPassword: e.target.value });
+                                if (passwordErrors.confirmPassword && passwordForm.newPassword === e.target.value) {
+                                  setPasswordErrors({ ...passwordErrors, confirmPassword: '' });
+                                }
+                              }}
+                              className={`w-full px-3 py-2 border ${passwordErrors.confirmPassword ? 'border-red-500' : 'border-gray-300'} rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500`}
+                              placeholder="Confirm new password"
+                            />
+                            {passwordErrors.confirmPassword && (
+                              <p className="mt-1 text-sm text-red-600">{passwordErrors.confirmPassword}</p>
+                            )}
+                          </div>
                         </div>
 
                         <div className="flex space-x-3 pt-2">
@@ -1445,6 +1609,7 @@ const SellerDashboard = () => {
                             onClick={() => {
                               setShowPasswordSection(false);
                               setPasswordForm({ currentPassword: '', newPassword: '', confirmPassword: '' });
+                              setPasswordErrors({});
                             }}
                             className="bg-gray-300 hover:bg-gray-400 text-gray-700 px-4 py-2 rounded-lg transition-colors"
                           >
@@ -1464,7 +1629,10 @@ const SellerDashboard = () => {
                         Save Changes
                       </button>
                       <button
-                        onClick={() => setEditingProfile(false)}
+                        onClick={() => {
+                          setEditingProfile(false);
+                          setProfileErrors({});
+                        }}
                         className="bg-gray-300 hover:bg-gray-400 text-gray-700 px-6 py-2 rounded-lg transition-colors"
                       >
                         Cancel
@@ -1667,14 +1835,24 @@ const SellerDashboard = () => {
                   <label className="block text-sm font-medium text-gray-700 mb-1">
                     Product Name <span className="text-red-500">*</span>
                   </label>
-                  <input
-                    type="text"
-                    value={newProduct.name}
-                    onChange={(e) => setNewProduct({ ...newProduct, name: e.target.value })}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
-                    placeholder="Enter product name"
-                    required
-                  />
+                  <div>
+                    <input
+                      type="text"
+                      value={newProduct.name}
+                      onChange={(e) => {
+                        setNewProduct({ ...newProduct, name: e.target.value });
+                        if (productErrors.name && e.target.value.trim().length >= 3) {
+                          setProductErrors({ ...productErrors, name: '' });
+                        }
+                      }}
+                      className={`w-full px-3 py-2 border ${productErrors.name ? 'border-red-500' : 'border-gray-300'} rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500`}
+                      placeholder="Enter product name"
+                      required
+                    />
+                    {productErrors.name && (
+                      <p className="mt-1 text-sm text-red-600">{productErrors.name}</p>
+                    )}
+                  </div>
                 </div>
 
                 <div>
@@ -1683,12 +1861,17 @@ const SellerDashboard = () => {
                   </label>
                   <select
                     value={newProduct.category}
-                    onChange={(e) => setNewProduct({ 
-                      ...newProduct, 
-                      category: e.target.value,
-                      quantityUnit: e.target.value === 'Medicines' ? 'count' : 'grams'
-                    })}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
+                    onChange={(e) => {
+                      setNewProduct({ 
+                        ...newProduct, 
+                        category: e.target.value,
+                        quantityUnit: e.target.value === 'Medicines' ? 'count' : 'grams'
+                      });
+                      if (productErrors.category) {
+                        setProductErrors({ ...productErrors, category: '' });
+                      }
+                    }}
+                    className={`w-full px-3 py-2 border ${productErrors.category ? 'border-red-500' : 'border-gray-300'} rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500`}
                   >
                     <option value="">Select Category</option>
                     <option value="Herbs">Herbs</option>
@@ -1700,47 +1883,65 @@ const SellerDashboard = () => {
                     <option value="Essential Oils">Essential Oils</option>
                     <option value="Organic">Organic</option>
                   </select>
+                  {productErrors.category && (
+                    <p className="mt-1 text-sm text-red-600">{productErrors.category}</p>
+                  )}
                 </div>
 
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
                     Price (₹) <span className="text-red-500">*</span>
                   </label>
-                  <input
-                    type="number"
-                    step="0.01"
-                    value={newProduct.price}
-                    onChange={(e) => {
-                      setNewProduct({ ...newProduct, price: e.target.value });
-                      validatePrice(e.target.value);
-                    }}
-                    className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 ${
-                      priceError ? 'border-red-500' : 'border-gray-300'
-                    }`}
-                    placeholder="50.00"
-                  />
-                  {priceError && (
-                    <p className="mt-1 text-sm text-red-600">{priceError}</p>
-                  )}
+                  <div>
+                    <input
+                      type="number"
+                      step="0.01"
+                      value={newProduct.price}
+                      onChange={(e) => {
+                        setNewProduct({ ...newProduct, price: e.target.value });
+                        validatePrice(e.target.value);
+                        if (productErrors.price && parseFloat(e.target.value) >= 50) {
+                          setProductErrors({ ...productErrors, price: '' });
+                        }
+                      }}
+                      className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 ${
+                        priceError || productErrors.price ? 'border-red-500' : 'border-gray-300'
+                      }`}
+                      placeholder="50.00"
+                    />
+                    {(priceError || productErrors.price) && (
+                      <p className="mt-1 text-sm text-red-600">{priceError || productErrors.price}</p>
+                    )}
+                  </div>
                 </div>
 
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
                     {newProduct.category === 'Medicines' ? 'Stock Quantity (count)' : 'Stock Weight (grams)'} <span className="text-red-500">*</span>
                   </label>
-                  <input
-                    type="number"
-                    value={newProduct.inStock}
-                    onChange={(e) => setNewProduct({ ...newProduct, inStock: e.target.value })}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
-                    placeholder={newProduct.category === 'Medicines' ? 'Enter quantity (e.g., 100 tablets)' : 'Enter weight in grams (e.g., 500)'}
-                  />
-                  <p className="text-sm text-gray-500 mt-1">
-                    {newProduct.category === 'Medicines' 
-                      ? 'Enter number of units (tablets, capsules, bottles, etc.)'
-                      : 'Enter weight in grams (1000g = 1kg)'
-                    }
-                  </p>
+                  <div>
+                    <input
+                      type="number"
+                      value={newProduct.inStock}
+                      onChange={(e) => {
+                        setNewProduct({ ...newProduct, inStock: e.target.value });
+                        if (productErrors.inStock && parseInt(e.target.value) >= 0) {
+                          setProductErrors({ ...productErrors, inStock: '' });
+                        }
+                      }}
+                      className={`w-full px-3 py-2 border ${productErrors.inStock ? 'border-red-500' : 'border-gray-300'} rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500`}
+                      placeholder={newProduct.category === 'Medicines' ? 'Enter quantity (e.g., 100 tablets)' : 'Enter weight in grams (e.g., 500)'}
+                    />
+                    {productErrors.inStock && (
+                      <p className="mt-1 text-sm text-red-600">{productErrors.inStock}</p>
+                    )}
+                    <p className="text-sm text-gray-500 mt-1">
+                      {newProduct.category === 'Medicines' 
+                        ? 'Enter number of units (tablets, capsules, bottles, etc.)'
+                        : 'Enter weight in grams (1000g = 1kg)'
+                      }
+                    </p>
+                  </div>
                 </div>
 
                 <div>
@@ -1776,7 +1977,9 @@ const SellerDashboard = () => {
                   
                   {/* File Upload Area */}
                   <div 
-                    className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center hover:border-emerald-500 transition-colors"
+                    className={`border-2 border-dashed rounded-lg p-6 text-center hover:border-emerald-500 transition-colors ${
+                      productErrors.image ? 'border-red-500' : 'border-gray-300'
+                    }`}
                     onDragOver={handleDragOver}
                     onDragEnter={handleDragEnter}
                     onDragLeave={handleDragLeave}
@@ -1836,6 +2039,9 @@ const SellerDashboard = () => {
                       </div>
                     )}
                   </div>
+                  {productErrors.image && (
+                    <p className="mt-1 text-sm text-red-600">{productErrors.image}</p>
+                  )}
                   
                   {/* Alternative: Image URL input (optional) */}
                   <div className="mt-4">
@@ -1851,6 +2057,9 @@ const SellerDashboard = () => {
                       onChange={(e) => {
                         if (!selectedImageFile) {
                           setNewProduct({ ...newProduct, image: e.target.value });
+                          if (productErrors.image) {
+                            setProductErrors({ ...productErrors, image: '' });
+                          }
                         }
                       }}
                       disabled={!!selectedImageFile}
@@ -1880,13 +2089,23 @@ const SellerDashboard = () => {
                 <label className="block text-sm font-medium text-gray-700 mb-1">
                   Description <span className="text-red-500">*</span>
                 </label>
-                <textarea
-                  rows={3}
-                  value={newProduct.description}
-                  onChange={(e) => setNewProduct({ ...newProduct, description: e.target.value })}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
-                  placeholder="Enter product description"
-                />
+                <div>
+                  <textarea
+                    rows={3}
+                    value={newProduct.description}
+                    onChange={(e) => {
+                      setNewProduct({ ...newProduct, description: e.target.value });
+                      if (productErrors.description && e.target.value.trim().length >= 10) {
+                        setProductErrors({ ...productErrors, description: '' });
+                      }
+                    }}
+                    className={`w-full px-3 py-2 border ${productErrors.description ? 'border-red-500' : 'border-gray-300'} rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500`}
+                    placeholder="Enter product description"
+                  />
+                  {productErrors.description && (
+                    <p className="mt-1 text-sm text-red-600">{productErrors.description}</p>
+                  )}
+                </div>
               </div>
 
               <div>
@@ -1927,8 +2146,13 @@ const SellerDashboard = () => {
                       </label>
                       <select
                         value={newProduct.dosageForm}
-                        onChange={(e) => setNewProduct({ ...newProduct, dosageForm: e.target.value })}
-                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
+                        onChange={(e) => {
+                          setNewProduct({ ...newProduct, dosageForm: e.target.value });
+                          if (productErrors.dosageForm) {
+                            setProductErrors({ ...productErrors, dosageForm: '' });
+                          }
+                        }}
+                        className={`w-full px-3 py-2 border ${productErrors.dosageForm ? 'border-red-500' : 'border-gray-300'} rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500`}
                         required
                       >
                         <option value="">Select Dosage Form</option>
@@ -1943,20 +2167,33 @@ const SellerDashboard = () => {
                         <option value="ghrita">Ghrita</option>
                         <option value="asava">Asava/Arishta</option>
                       </select>
+                      {productErrors.dosageForm && (
+                        <p className="mt-1 text-sm text-red-600">{productErrors.dosageForm}</p>
+                      )}
                     </div>
 
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-1">
                         Strength <span className="text-red-500">*</span>
                       </label>
-                      <input
-                        type="text"
-                        value={newProduct.strength}
-                        onChange={(e) => setNewProduct({ ...newProduct, strength: e.target.value })}
-                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
-                        placeholder="e.g., 500mg, 10ml, 250mg per tablet"
-                        required
-                      />
+                      <div>
+                        <input
+                          type="text"
+                          value={newProduct.strength}
+                          onChange={(e) => {
+                            setNewProduct({ ...newProduct, strength: e.target.value });
+                            if (productErrors.strength) {
+                              setProductErrors({ ...productErrors, strength: '' });
+                            }
+                          }}
+                          className={`w-full px-3 py-2 border ${productErrors.strength ? 'border-red-500' : 'border-gray-300'} rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500`}
+                          placeholder="e.g., 500mg, 10ml, 250mg per tablet"
+                          required
+                        />
+                        {productErrors.strength && (
+                          <p className="mt-1 text-sm text-red-600">{productErrors.strength}</p>
+                        )}
+                      </div>
                     </div>
                   </div>
 
@@ -1965,28 +2202,48 @@ const SellerDashboard = () => {
                       <label className="block text-sm font-medium text-gray-700 mb-1">
                         Manufacturer <span className="text-red-500">*</span>
                       </label>
-                      <input
-                        type="text"
-                        value={newProduct.manufacturer}
-                        onChange={(e) => setNewProduct({ ...newProduct, manufacturer: e.target.value })}
-                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
-                        placeholder="Manufacturer name"
-                        required
-                      />
+                      <div>
+                        <input
+                          type="text"
+                          value={newProduct.manufacturer}
+                          onChange={(e) => {
+                            setNewProduct({ ...newProduct, manufacturer: e.target.value });
+                            if (productErrors.manufacturer) {
+                              setProductErrors({ ...productErrors, manufacturer: '' });
+                            }
+                          }}
+                          className={`w-full px-3 py-2 border ${productErrors.manufacturer ? 'border-red-500' : 'border-gray-300'} rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500`}
+                          placeholder="Manufacturer name"
+                          required
+                        />
+                        {productErrors.manufacturer && (
+                          <p className="mt-1 text-sm text-red-600">{productErrors.manufacturer}</p>
+                        )}
+                      </div>
                     </div>
 
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-1">
                         License Number <span className="text-red-500">*</span>
                       </label>
-                      <input
-                        type="text"
-                        value={newProduct.licenseNumber}
-                        onChange={(e) => setNewProduct({ ...newProduct, licenseNumber: e.target.value })}
-                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
-                        placeholder="Manufacturing license number"
-                        required
-                      />
+                      <div>
+                        <input
+                          type="text"
+                          value={newProduct.licenseNumber}
+                          onChange={(e) => {
+                            setNewProduct({ ...newProduct, licenseNumber: e.target.value });
+                            if (productErrors.licenseNumber) {
+                              setProductErrors({ ...productErrors, licenseNumber: '' });
+                            }
+                          }}
+                          className={`w-full px-3 py-2 border ${productErrors.licenseNumber ? 'border-red-500' : 'border-gray-300'} rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500`}
+                          placeholder="Manufacturing license number"
+                          required
+                        />
+                        {productErrors.licenseNumber && (
+                          <p className="mt-1 text-sm text-red-600">{productErrors.licenseNumber}</p>
+                        )}
+                      </div>
                     </div>
                   </div>
 
@@ -1995,28 +2252,52 @@ const SellerDashboard = () => {
                       <label className="block text-sm font-medium text-gray-700 mb-1">
                         Batch Number <span className="text-red-500">*</span>
                       </label>
-                      <input
-                        type="text"
-                        value={newProduct.batchNumber}
-                        onChange={(e) => setNewProduct({ ...newProduct, batchNumber: e.target.value })}
-                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
-                        placeholder="Batch number"
-                        required
-                      />
+                      <div>
+                        <input
+                          type="text"
+                          value={newProduct.batchNumber}
+                          onChange={(e) => {
+                            setNewProduct({ ...newProduct, batchNumber: e.target.value });
+                            if (productErrors.batchNumber) {
+                              setProductErrors({ ...productErrors, batchNumber: '' });
+                            }
+                          }}
+                          className={`w-full px-3 py-2 border ${productErrors.batchNumber ? 'border-red-500' : 'border-gray-300'} rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500`}
+                          placeholder="Batch number"
+                          required
+                        />
+                        {productErrors.batchNumber && (
+                          <p className="mt-1 text-sm text-red-600">{productErrors.batchNumber}</p>
+                        )}
+                      </div>
                     </div>
 
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-1">
                         Expiry Date <span className="text-red-500">*</span>
                       </label>
-                      <input
-                        type="date"
-                        value={newProduct.expiryDate}
-                        onChange={(e) => setNewProduct({ ...newProduct, expiryDate: e.target.value })}
-                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
-                        min={new Date().toISOString().split('T')[0]}
-                        required
-                      />
+                      <div>
+                        <input
+                          type="date"
+                          value={newProduct.expiryDate}
+                          onChange={(e) => {
+                            setNewProduct({ ...newProduct, expiryDate: e.target.value });
+                            if (productErrors.expiryDate) {
+                              const expiryDate = new Date(e.target.value);
+                              const today = new Date();
+                              if (expiryDate > today) {
+                                setProductErrors({ ...productErrors, expiryDate: '' });
+                              }
+                            }
+                          }}
+                          className={`w-full px-3 py-2 border ${productErrors.expiryDate ? 'border-red-500' : 'border-gray-300'} rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500`}
+                          min={new Date().toISOString().split('T')[0]}
+                          required
+                        />
+                        {productErrors.expiryDate && (
+                          <p className="mt-1 text-sm text-red-600">{productErrors.expiryDate}</p>
+                        )}
+                      </div>
                     </div>
                   </div>
 
@@ -2024,50 +2305,80 @@ const SellerDashboard = () => {
                     <label className="block text-sm font-medium text-gray-700 mb-1">
                       Active Ingredients <span className="text-red-500">*</span>
                     </label>
-                    <input
-                      type="text"
-                      value={Array.isArray(newProduct.activeIngredients) ? newProduct.activeIngredients.join(', ') : newProduct.activeIngredients}
-                      onChange={(e) => setNewProduct({
-                        ...newProduct,
-                        activeIngredients: e.target.value.split(',').map(ingredient => ingredient.trim()).filter(ingredient => ingredient)
-                      })}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
-                      placeholder="Ashwagandha, Brahmi, Shankhpushpi"
-                      required
-                    />
-                    <p className="text-sm text-gray-500 mt-1">Enter main ingredients separated by commas</p>
+                    <div>
+                      <input
+                        type="text"
+                        value={Array.isArray(newProduct.activeIngredients) ? newProduct.activeIngredients.join(', ') : newProduct.activeIngredients}
+                        onChange={(e) => {
+                          setNewProduct({
+                            ...newProduct,
+                            activeIngredients: e.target.value.split(',').map(ingredient => ingredient.trim()).filter(ingredient => ingredient)
+                          });
+                          if (productErrors.activeIngredients && e.target.value.trim()) {
+                            setProductErrors({ ...productErrors, activeIngredients: '' });
+                          }
+                        }}
+                        className={`w-full px-3 py-2 border ${productErrors.activeIngredients ? 'border-red-500' : 'border-gray-300'} rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500`}
+                        placeholder="Ashwagandha, Brahmi, Shankhpushpi"
+                        required
+                      />
+                      {productErrors.activeIngredients && (
+                        <p className="mt-1 text-sm text-red-600">{productErrors.activeIngredients}</p>
+                      )}
+                      <p className="text-sm text-gray-500 mt-1">Enter main ingredients separated by commas</p>
+                    </div>
                   </div>
 
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">
                       Indications <span className="text-red-500">*</span>
                     </label>
-                    <input
-                      type="text"
-                      value={Array.isArray(newProduct.indications) ? newProduct.indications.join(', ') : newProduct.indications}
-                      onChange={(e) => setNewProduct({
-                        ...newProduct,
-                        indications: e.target.value.split(',').map(indication => indication.trim()).filter(indication => indication)
-                      })}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
-                      placeholder="Stress relief, Memory enhancement, Anxiety"
-                      required
-                    />
-                    <p className="text-sm text-gray-500 mt-1">What conditions this medicine treats</p>
+                    <div>
+                      <input
+                        type="text"
+                        value={Array.isArray(newProduct.indications) ? newProduct.indications.join(', ') : newProduct.indications}
+                        onChange={(e) => {
+                          setNewProduct({
+                            ...newProduct,
+                            indications: e.target.value.split(',').map(indication => indication.trim()).filter(indication => indication)
+                          });
+                          if (productErrors.indications && e.target.value.trim()) {
+                            setProductErrors({ ...productErrors, indications: '' });
+                          }
+                        }}
+                        className={`w-full px-3 py-2 border ${productErrors.indications ? 'border-red-500' : 'border-gray-300'} rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500`}
+                        placeholder="Stress relief, Memory enhancement, Anxiety"
+                        required
+                      />
+                      {productErrors.indications && (
+                        <p className="mt-1 text-sm text-red-600">{productErrors.indications}</p>
+                      )}
+                      <p className="text-sm text-gray-500 mt-1">What conditions this medicine treats</p>
+                    </div>
                   </div>
 
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">
                       Dosage Instructions <span className="text-red-500">*</span>
                     </label>
-                    <textarea
-                      rows={2}
-                      value={newProduct.dosage}
-                      onChange={(e) => setNewProduct({ ...newProduct, dosage: e.target.value })}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
-                      placeholder="1-2 tablets twice daily after meals or as directed by physician"
-                      required
-                    />
+                    <div>
+                      <textarea
+                        rows={2}
+                        value={newProduct.dosage}
+                        onChange={(e) => {
+                          setNewProduct({ ...newProduct, dosage: e.target.value });
+                          if (productErrors.dosage && e.target.value.trim()) {
+                            setProductErrors({ ...productErrors, dosage: '' });
+                          }
+                        }}
+                        className={`w-full px-3 py-2 border ${productErrors.dosage ? 'border-red-500' : 'border-gray-300'} rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500`}
+                        placeholder="1-2 tablets twice daily after meals or as directed by physician"
+                        required
+                      />
+                      {productErrors.dosage && (
+                        <p className="mt-1 text-sm text-red-600">{productErrors.dosage}</p>
+                      )}
+                    </div>
                   </div>
 
                   <div>
@@ -2149,8 +2460,13 @@ const SellerDashboard = () => {
                   </label>
                   <select
                     value={leaveForm.type}
-                    onChange={(e) => setLeaveForm({ ...leaveForm, type: e.target.value })}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
+                    onChange={(e) => {
+                      setLeaveForm({ ...leaveForm, type: e.target.value });
+                      if (leaveErrors.type) {
+                        setLeaveErrors({ ...leaveErrors, type: '' });
+                      }
+                    }}
+                    className={`w-full px-3 py-2 border ${leaveErrors.type ? 'border-red-500' : 'border-gray-300'} rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500`}
                     required
                   >
                     <option value="sick">Sick Leave</option>
@@ -2158,20 +2474,33 @@ const SellerDashboard = () => {
                     <option value="vacation">Vacation</option>
                     <option value="emergency">Emergency Leave</option>
                   </select>
+                  {leaveErrors.type && (
+                    <p className="mt-1 text-sm text-red-600">{leaveErrors.type}</p>
+                  )}
                 </div>
 
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
                     Reason <span className="text-red-500">*</span>
                   </label>
-                  <input
-                    type="text"
-                    value={leaveForm.reason}
-                    onChange={(e) => setLeaveForm({ ...leaveForm, reason: e.target.value })}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
-                    placeholder="Brief reason for leave"
-                    required
-                  />
+                  <div>
+                    <input
+                      type="text"
+                      value={leaveForm.reason}
+                      onChange={(e) => {
+                        setLeaveForm({ ...leaveForm, reason: e.target.value });
+                        if (leaveErrors.reason && e.target.value.trim().length >= 3) {
+                          setLeaveErrors({ ...leaveErrors, reason: '' });
+                        }
+                      }}
+                      className={`w-full px-3 py-2 border ${leaveErrors.reason ? 'border-red-500' : 'border-gray-300'} rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500`}
+                      placeholder="Brief reason for leave"
+                      required
+                    />
+                    {leaveErrors.reason && (
+                      <p className="mt-1 text-sm text-red-600">{leaveErrors.reason}</p>
+                    )}
+                  </div>
                 </div>
               </div>
 
@@ -2180,28 +2509,57 @@ const SellerDashboard = () => {
                   <label className="block text-sm font-medium text-gray-700 mb-1">
                     Start Date <span className="text-red-500">*</span>
                   </label>
-                  <input
-                    type="date"
-                    value={leaveForm.startDate}
-                    onChange={(e) => setLeaveForm({ ...leaveForm, startDate: e.target.value })}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
-                    min={new Date().toISOString().split('T')[0]}
-                    required
-                  />
+                  <div>
+                    <input
+                      type="date"
+                      value={leaveForm.startDate}
+                      onChange={(e) => {
+                        setLeaveForm({ ...leaveForm, startDate: e.target.value });
+                        if (leaveErrors.startDate) {
+                          const startDate = new Date(e.target.value);
+                          const today = new Date();
+                          today.setHours(0, 0, 0, 0);
+                          if (startDate >= today) {
+                            setLeaveErrors({ ...leaveErrors, startDate: '' });
+                          }
+                        }
+                      }}
+                      className={`w-full px-3 py-2 border ${leaveErrors.startDate ? 'border-red-500' : 'border-gray-300'} rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500`}
+                      min={new Date().toISOString().split('T')[0]}
+                      required
+                    />
+                    {leaveErrors.startDate && (
+                      <p className="mt-1 text-sm text-red-600">{leaveErrors.startDate}</p>
+                    )}
+                  </div>
                 </div>
 
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
                     End Date <span className="text-red-500">*</span>
                   </label>
-                  <input
-                    type="date"
-                    value={leaveForm.endDate}
-                    onChange={(e) => setLeaveForm({ ...leaveForm, endDate: e.target.value })}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
-                    min={leaveForm.startDate || new Date().toISOString().split('T')[0]}
-                    required
-                  />
+                  <div>
+                    <input
+                      type="date"
+                      value={leaveForm.endDate}
+                      onChange={(e) => {
+                        setLeaveForm({ ...leaveForm, endDate: e.target.value });
+                        if (leaveErrors.endDate) {
+                          const endDate = new Date(e.target.value);
+                          const startDate = new Date(leaveForm.startDate);
+                          if (endDate >= startDate) {
+                            setLeaveErrors({ ...leaveErrors, endDate: '' });
+                          }
+                        }
+                      }}
+                      className={`w-full px-3 py-2 border ${leaveErrors.endDate ? 'border-red-500' : 'border-gray-300'} rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500`}
+                      min={leaveForm.startDate || new Date().toISOString().split('T')[0]}
+                      required
+                    />
+                    {leaveErrors.endDate && (
+                      <p className="mt-1 text-sm text-red-600">{leaveErrors.endDate}</p>
+                    )}
+                  </div>
                 </div>
               </div>
 
@@ -2209,14 +2567,24 @@ const SellerDashboard = () => {
                 <label className="block text-sm font-medium text-gray-700 mb-1">
                   Detailed Description <span className="text-red-500">*</span>
                 </label>
-                <textarea
-                  value={leaveForm.description}
-                  onChange={(e) => setLeaveForm({ ...leaveForm, description: e.target.value })}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
-                  rows={4}
-                  placeholder="Provide detailed explanation for your leave request..."
-                  required
-                />
+                <div>
+                  <textarea
+                    value={leaveForm.description}
+                    onChange={(e) => {
+                      setLeaveForm({ ...leaveForm, description: e.target.value });
+                      if (leaveErrors.description && e.target.value.trim().length >= 10) {
+                        setLeaveErrors({ ...leaveErrors, description: '' });
+                      }
+                    }}
+                    className={`w-full px-3 py-2 border ${leaveErrors.description ? 'border-red-500' : 'border-gray-300'} rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500`}
+                    rows={4}
+                    placeholder="Provide detailed explanation for your leave request..."
+                    required
+                  />
+                  {leaveErrors.description && (
+                    <p className="mt-1 text-sm text-red-600">{leaveErrors.description}</p>
+                  )}
+                </div>
               </div>
 
               {leaveForm.startDate && leaveForm.endDate && (

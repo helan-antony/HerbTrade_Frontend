@@ -228,18 +228,23 @@ function Login() {
 
         setSuccess(true);
 
-        // Navigate based on user role after a short delay
-        setTimeout(() => {
-          if (data.user.role === 'admin') {
-            navigate('/admin-dashboard');
-          } else if (['seller', 'employee', 'manager', 'supervisor'].includes(data.user.role)) {
-            navigate('/seller-dashboard');
-          } else if (data.user.role === 'delivery') {
-            navigate('/delivery-dashboard');
-          } else {
-            navigate('/herbs');
-          }
-        }, 1500);
+        // For delivery users, navigate immediately to avoid delays
+        if (data.user.role === 'delivery') {
+          navigate('/delivery-dashboard');
+        } else {
+          // Navigate based on user role after a short delay for other roles
+          setTimeout(() => {
+            if (data.user.role === 'admin') {
+              navigate('/admin-dashboard');
+            } else if (['seller', 'employee', 'manager', 'supervisor'].includes(data.user.role)) {
+              navigate('/seller-dashboard');
+            } else if (data.user.role === 'delivery') {
+              navigate('/delivery-dashboard');
+            } else {
+              navigate('/herbs');
+            }
+          }, 1500);
+        }
       } else {
         setError(data.error || 'Invalid credentials. Please try again.');
       }
@@ -278,13 +283,13 @@ function Login() {
           <Leaf className="w-10 h-10 text-teal-300 relative z-10 drop-shadow-lg" />
         </div>
       </div>
-      <div className="absolute top-1/3 right-1/4 animate-float" style={{ animationDelay: '1s' }}>
+      <div className="absolute top-1/3 right-1/4 animate-float" style={{ animationDelay: '1s' }} >
         <div className="relative">
           <div className="absolute inset-0 bg-pink-400/30 rounded-full blur-lg animate-pulse"></div>
           <Heart className="w-7 h-7 text-pink-300 relative z-10 drop-shadow-lg" />
         </div>
       </div>
-      <div className="absolute top-1/4 left-1/4 animate-bounce-slow" style={{ animationDelay: '3s' }}>
+      <div className="absolute top-1/4 left-1/4 animate-bounce-slow" style={{ animationDelay: '3s' }} >
         <div className="relative">
           <div className="absolute inset-0 bg-cyan-400/30 rounded-full blur-lg animate-pulse"></div>
           <Shield className="w-6 h-6 text-cyan-300 relative z-10 drop-shadow-lg" />
@@ -468,10 +473,4 @@ function Login() {
   );
 }
 
-export default Login; 
-
-
-
-
-
-
+export default Login;

@@ -47,16 +47,34 @@ const theme = createTheme({
   }
 });
 
-function ProtectedRoute({ children, adminOnly = false }) {
+function ProtectedRoute({ children, adminOnly = false, allowedRoles = [] }) {
   const user = JSON.parse(localStorage.getItem("user") || 'null');
   const token = localStorage.getItem("token");
   
   if (!user || !token) return <Navigate to="/login" />;
+  
+  // If adminOnly is true, only allow admin users
   if (adminOnly && user.role !== "admin") return <Navigate to="/herbs" />;
+  
+  // If allowedRoles is specified, check if user role is in the allowed list
+  if (allowedRoles.length > 0 && !allowedRoles.includes(user.role)) {
+    // Redirect based on user role
+    if (user.role === "admin") {
+      return <Navigate to="/admin-dashboard" />;
+    } else if (['seller', 'employee', 'manager', 'supervisor'].includes(user.role)) {
+      return <Navigate to="/seller-dashboard" />;
+    } else if (user.role === "delivery") {
+      return <Navigate to="/delivery-dashboard" />;
+    } else {
+      return <Navigate to="/herbs" />;
+    }
+  }
+  
   const currentPath = window.location.pathname;
   if (user.role === "admin" && currentPath === "/herbs") {
     return <Navigate to="/admin-dashboard" />;
   }
+  
   return children;
 }
 
@@ -92,9 +110,9 @@ function App() {
             <Route path="/my-orders" element={<ProtectedRoute><MyOrders /></ProtectedRoute>} />
             <Route path="/logout" element={<ProtectedRoute><Logout /></ProtectedRoute>} />
             <Route path="/edit-profile" element={<ProtectedRoute><EditProfile /></ProtectedRoute>} />
-            <Route path="/seller-dashboard" element={<ProtectedRoute><SellerDashboard /></ProtectedRoute>} />
-            <Route path="/employee-dashboard" element={<ProtectedRoute><EmployeeDashboard /></ProtectedRoute>} />
-            <Route path="/delivery-dashboard" element={<ProtectedRoute><DeliveryDashboard /></ProtectedRoute>} />
+            <Route path="/seller-dashboard" element={<ProtectedRoute allowedRoles={['seller', 'employee', 'manager', 'supervisor']}><SellerDashboard /></ProtectedRoute>} />
+            <Route path="/employee-dashboard" element={<ProtectedRoute allowedRoles={['employee', 'manager', 'supervisor']}><EmployeeDashboard /></ProtectedRoute>} />
+            <Route path="/delivery-dashboard" element={<ProtectedRoute allowedRoles={['delivery']}><DeliveryDashboard /></ProtectedRoute>} />
             <Route path="*" element={<Navigate to="/" />} />
           </Routes>
         </main>
@@ -117,4 +135,3 @@ function App() {
 }
 
 export default App;
-

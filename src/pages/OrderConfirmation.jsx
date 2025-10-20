@@ -20,6 +20,9 @@ import {
   FaSpinner
 } from 'react-icons/fa';
 
+// Import invoice generator
+import { generateInvoice, downloadInvoice } from '../utils/invoiceGenerator';
+
 // Auth utility functions
 const getAuthToken = () => localStorage.getItem('token');
 const getAuthHeaders = () => {
@@ -38,6 +41,30 @@ function OrderConfirmation() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
 
+  // Helper functions for order summary calculations
+  const calculateSubtotal = (totalAmount) => {
+    // Since totalAmount = subtotal + (subtotal * 0.18) = subtotal * 1.18
+    // Therefore subtotal = totalAmount / 1.18
+    return totalAmount / 1.18;
+  };
+
+  const calculateTax = (totalAmount) => {
+    // Tax = subtotal * 0.18 = (totalAmount / 1.18) * 0.18
+    const subtotal = calculateSubtotal(totalAmount);
+    return subtotal * 0.18;
+  };
+
+  // Verify that subtotal + tax equals total (with small tolerance for floating point errors)
+  const verifyCalculations = (totalAmount) => {
+    const subtotal = calculateSubtotal(totalAmount);
+    const tax = calculateTax(totalAmount);
+    const calculatedTotal = subtotal + tax;
+    const difference = Math.abs(totalAmount - calculatedTotal);
+    
+    // Allow for small floating point differences (less than 0.01)
+    return difference < 0.01;
+  };
+
   useEffect(() => {
     if (!isAuthenticated()) {
       navigate('/login');
@@ -54,7 +81,19 @@ function OrderConfirmation() {
       const response = await axios.get(`http://localhost:5000/api/orders/${orderId}`, {
         headers: getAuthHeaders()
       });
-      setOrder(response.data);
+      
+      // Log calculation details for debugging
+      const orderData = response.data;
+      console.log('Order data:', orderData);
+      console.log('Total amount:', orderData.totalAmount);
+      const subtotal = calculateSubtotal(orderData.totalAmount);
+      const tax = calculateTax(orderData.totalAmount);
+      console.log('Calculated subtotal:', subtotal);
+      console.log('Calculated tax:', tax);
+      console.log('Subtotal + Tax:', subtotal + tax);
+      console.log('Verification passed:', verifyCalculations(orderData.totalAmount));
+      
+      setOrder(orderData);
     } catch (error) {
       console.error('Error fetching order:', error);
       setError('Failed to load order details');
@@ -90,6 +129,18 @@ function OrderConfirmation() {
     window.print();
   };
 
+  const handleDownloadInvoice = () => {
+    try {
+      const user = JSON.parse(localStorage.getItem('user'));
+      const doc = generateInvoice(order, user);
+      const filename = `invoice-${order._id.slice(-8).toUpperCase()}.pdf`;
+      downloadInvoice(doc, filename);
+      toast.success('Invoice downloaded successfully!');
+    } catch (error) {
+      console.error('Error generating invoice:', error);
+      toast.error('Failed to generate invoice. Please try again.');
+    }
+  };
   if (loading) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-emerald-50 via-white to-teal-50 flex items-center justify-center">
@@ -312,7 +363,7 @@ function OrderConfirmation() {
               <div className="space-y-4 mb-8">
                 <div className="flex justify-between items-center py-2">
                   <span className="text-slate-600 font-medium">Subtotal ({order.items.length} items)</span>
-                  <span className="font-bold text-slate-900">₹{(order.totalAmount / 1.18).toFixed(2)}</span>
+                  <span className="font-bold text-slate-900">₹{calculateSubtotal(order.totalAmount).toFixed(2)}</span>
                 </div>
                 <div className="flex justify-between items-center py-2">
                   <span className="text-slate-600 font-medium">Shipping</span>
@@ -320,7 +371,7 @@ function OrderConfirmation() {
                 </div>
                 <div className="flex justify-between items-center py-2">
                   <span className="text-slate-600 font-medium">Tax (18%)</span>
-                  <span className="font-bold text-slate-900">₹{(order.totalAmount - (order.totalAmount / 1.18)).toFixed(2)}</span>
+                  <span className="font-bold text-slate-900">₹{calculateTax(order.totalAmount).toFixed(2)}</span>
                 </div>
                 <hr className="border-slate-200" />
                 <div className="flex justify-between items-center text-2xl font-bold py-2">

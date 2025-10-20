@@ -15,6 +15,7 @@ import axios from "axios";
 import { toast, ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 import { useNavigate } from 'react-router-dom';
+import { API_ENDPOINTS } from '../config/api';
 
 function HospitalDiscovery() {
   const navigate = useNavigate();
@@ -48,11 +49,68 @@ function HospitalDiscovery() {
   const [locationSuggestions, setLocationSuggestions] = useState([]);
   const [showSuggestions, setShowSuggestions] = useState(false);
 
+  // Validation states
+  const [placeError, setPlaceError] = useState("");
+  const [appointmentErrors, setAppointmentErrors] = useState({});
+
   useEffect(() => {
     fetchHospitals();
     getUserLocation();
   }, []);
 
+  // Validation functions
+  const validatePlace = (placeValue) => {
+    if (!placeValue.trim()) {
+      setPlaceError("Place is required");
+      return false;
+    }
+    setPlaceError("");
+    return true;
+  };
+
+  const validateAppointmentForm = () => {
+    const errors = {};
+    
+    if (!appointmentData.patientName.trim()) {
+      errors.patientName = "Patient name is required";
+    } else if (appointmentData.patientName.trim().length < 2) {
+      errors.patientName = "Patient name must be at least 2 characters";
+    }
+    
+    if (!appointmentData.patientPhone.trim()) {
+      errors.patientPhone = "Phone number is required";
+    } else if (!/^\d{10}$/.test(appointmentData.patientPhone)) {
+      errors.patientPhone = "Please enter a valid 10-digit phone number";
+    }
+    
+    if (appointmentData.patientEmail && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(appointmentData.patientEmail)) {
+      errors.patientEmail = "Please enter a valid email address";
+    }
+    
+    if (!appointmentData.date) {
+      errors.date = "Appointment date is required";
+    } else {
+      const selectedDate = new Date(appointmentData.date);
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      if (selectedDate < today) {
+        errors.date = "Appointment date cannot be in the past";
+      }
+    }
+    
+    if (!appointmentData.time) {
+      errors.time = "Appointment time is required";
+    }
+    
+    if (!appointmentData.reason.trim()) {
+      errors.reason = "Reason for visit is required";
+    } else if (appointmentData.reason.trim().length < 10) {
+      errors.reason = "Reason must be at least 10 characters";
+    }
+    
+    setAppointmentErrors(errors);
+    return Object.keys(errors).length === 0;
+  };
 
   const fetchHospitals = async () => {
     try {
@@ -60,7 +118,7 @@ function HospitalDiscovery() {
       console.log('Fetching hospitals from API...');
 
       // Use the correct hospitals endpoint
-      const response = await axios.get('http://localhost:5000/api/hospitals');
+      const response = await axios.get(API_ENDPOINTS.HOSPITALS.BASE);
       console.log('Hospitals response:', response.data);
 
       const hospitalsData = Array.isArray(response.data) ? response.data : [];
@@ -238,7 +296,7 @@ function HospitalDiscovery() {
     try {
       console.log(`🔍 Searching for Ayurvedic hospitals in: ${placeName}`);
 
-      const response = await fetch(`http://localhost:5000/api/google-places/search-hospitals/${encodeURIComponent(placeName)}`);
+      const response = await fetch(`${API_ENDPOINTS.GOOGLE_PLACES.SEARCH(placeName)}`);
 
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);
@@ -295,9 +353,14 @@ function HospitalDiscovery() {
     'Pathanamthitta'
   ];
 
-  // Handle place input change with suggestions
+  // Handle place input change with suggestions and validation
   const handlePlaceInputChange = (value) => {
     setPlace(value);
+    
+    // Clear error when user starts typing
+    if (value.trim()) {
+      setPlaceError("");
+    }
     
     if (value.length > 1) {
       const filtered = locationSuggestionsData.filter(location =>
@@ -321,7 +384,9 @@ function HospitalDiscovery() {
   // Handle place search on Enter key or button click
   const handlePlaceSearch = (e) => {
     if (e.key === 'Enter' || e.type === 'click') {
-      searchHospitalsByPlace(place);
+      if (validatePlace(place)) {
+        searchHospitalsByPlace(place);
+      }
     }
   };
 
@@ -336,11 +401,14 @@ function HospitalDiscovery() {
       patientPhone: '',
       patientEmail: ''
     });
+    // Clear previous errors when opening dialog
+    setAppointmentErrors({});
   };
 
   const closeAppointmentDialog = () => {
     setAppointmentDialog(false);
     setSelectedDoctor(null);
+    setAppointmentErrors({});
   };
 
   const getAvailableTimeSlots = () => {
@@ -352,6 +420,11 @@ function HospitalDiscovery() {
   };
 
   const handleAppointmentSubmit = async () => {
+    if (!validateAppointmentForm()) {
+      toast.error("Please fix the validation errors");
+      return;
+    }
+    
     try {
       const token = localStorage.getItem('token');
       if (!token) {
@@ -380,7 +453,7 @@ function HospitalDiscovery() {
         status: 'pending'
       };
 
-      const response = await axios.post('http://localhost:5000/api/appointments', appointmentPayload, {
+      const response = await axios.post(API_ENDPOINTS.APPOINTMENTS.BASE, appointmentPayload, {
         headers: { 'Authorization': `Bearer ${token}` }
       });
 
@@ -537,7 +610,6 @@ function HospitalDiscovery() {
       toast.error('Failed to open directions');
     }
   };
-
 
   // Handle call functionality
   const handleCall = (hospital) => {
@@ -736,8 +808,11 @@ function HospitalDiscovery() {
                     // Delay hiding suggestions to allow clicking on them
                     setTimeout(() => setShowSuggestions(false), 200);
                   }}
-                  className="w-full pl-12 pr-16 py-4 bg-white/90 border border-slate-200 rounded-2xl focus:ring-4 focus:ring-blue-300/50 focus:border-blue-500 transition-all duration-300 text-slate-900 placeholder-slate-500"
+                  className={`w-full pl-12 pr-16 py-4 bg-white/90 border ${placeError ? 'border-red-500' : 'border-slate-200'} rounded-2xl focus:ring-4 focus:ring-blue-300/50 focus:border-blue-500 transition-all duration-300 text-slate-900 placeholder-slate-500`}
                 />
+                {placeError && (
+                  <p className="mt-1 text-sm text-red-600">{placeError}</p>
+                )}
                 <button
                   onClick={handlePlaceSearch}
                   disabled={searchingPlace || !place.trim()}
@@ -811,6 +886,7 @@ function HospitalDiscovery() {
                   setSelectedSpecialty("");
                   setSelectedCity("");
                   setPlace("");
+                  setPlaceError("");
                 }}
                 className="w-full px-4 py-4 bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold rounded-2xl transition-all duration-300 flex items-center justify-center space-x-2 mt-7"
               >
@@ -899,6 +975,7 @@ function HospitalDiscovery() {
                       setSelectedSpecialty("");
                       setSelectedCity("");
                       setPlace("");
+                      setPlaceError("");
                     }}
                     className="bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white font-semibold px-6 py-3 rounded-2xl shadow-lg hover:shadow-xl transition-all duration-300"
                   >
@@ -1093,7 +1170,6 @@ function HospitalDiscovery() {
           </>
         )}
       </div>
-
 
       {hospitalDialog && selectedHospital && (
         <Dialog
@@ -1331,7 +1407,6 @@ function HospitalDiscovery() {
         </Dialog>
       )}
 
-
       {appointmentDialog && selectedDoctor && (
         <Dialog
           open={appointmentDialog}
@@ -1382,50 +1457,98 @@ function HospitalDiscovery() {
                   fullWidth
                   label="Patient Name *"
                   value={appointmentData.patientName}
-                  onChange={(e) => setAppointmentData({...appointmentData, patientName: e.target.value})}
+                  onChange={(e) => {
+                    setAppointmentData({...appointmentData, patientName: e.target.value});
+                    if (appointmentErrors.patientName && e.target.value.trim().length >= 2) {
+                      setAppointmentErrors({...appointmentErrors, patientName: ''});
+                    }
+                  }}
+                  error={!!appointmentErrors.patientName}
+                  helperText={appointmentErrors.patientName}
                 />
                 <TextField
                   fullWidth
                   label="Phone Number *"
                   value={appointmentData.patientPhone}
-                  onChange={(e) => setAppointmentData({...appointmentData, patientPhone: e.target.value})}
+                  onChange={(e) => {
+                    setAppointmentData({...appointmentData, patientPhone: e.target.value});
+                    if (appointmentErrors.patientPhone && /^\d{10}$/.test(e.target.value)) {
+                      setAppointmentErrors({...appointmentErrors, patientPhone: ''});
+                    }
+                  }}
+                  error={!!appointmentErrors.patientPhone}
+                  helperText={appointmentErrors.patientPhone}
                 />
                 <TextField
                   fullWidth
                   label="Email Address"
                   type="email"
                   value={appointmentData.patientEmail}
-                  onChange={(e) => setAppointmentData({...appointmentData, patientEmail: e.target.value})}
+                  onChange={(e) => {
+                    setAppointmentData({...appointmentData, patientEmail: e.target.value});
+                    if (appointmentErrors.patientEmail && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(e.target.value)) {
+                      setAppointmentErrors({...appointmentErrors, patientEmail: ''});
+                    }
+                  }}
+                  error={!!appointmentErrors.patientEmail}
+                  helperText={appointmentErrors.patientEmail}
                 />
                 <TextField
                   fullWidth
                   label="Preferred Date *"
                   type="date"
                   value={appointmentData.date}
-                  onChange={(e) => setAppointmentData({...appointmentData, date: e.target.value})}
+                  onChange={(e) => {
+                    setAppointmentData({...appointmentData, date: e.target.value});
+                    if (appointmentErrors.date) {
+                      const selectedDate = new Date(e.target.value);
+                      const today = new Date();
+                      today.setHours(0, 0, 0, 0);
+                      if (selectedDate >= today) {
+                        setAppointmentErrors({...appointmentErrors, date: ''});
+                      }
+                    }
+                  }}
                   InputLabelProps={{ shrink: true }}
                   inputProps={{ min: new Date().toISOString().split('T')[0] }}
+                  error={!!appointmentErrors.date}
+                  helperText={appointmentErrors.date}
                 />
-                <FormControl fullWidth>
+                <FormControl fullWidth error={!!appointmentErrors.time}>
                   <InputLabel>Preferred Time *</InputLabel>
                   <Select
                     value={appointmentData.time}
-                    onChange={(e) => setAppointmentData({...appointmentData, time: e.target.value})}
+                    onChange={(e) => {
+                      setAppointmentData({...appointmentData, time: e.target.value});
+                      if (appointmentErrors.time) {
+                        setAppointmentErrors({...appointmentErrors, time: ''});
+                      }
+                    }}
                   >
                     {getAvailableTimeSlots().map(time => (
                       <MenuItem key={time} value={time}>{time}</MenuItem>
                     ))}
                   </Select>
+                  {appointmentErrors.time && (
+                    <p className="text-red-600 text-sm mt-1">{appointmentErrors.time}</p>
+                  )}
                 </FormControl>
                 <TextField
                   fullWidth
-                  label="Reason for Visit"
+                  label="Reason for Visit *"
                   multiline
                   rows={3}
                   value={appointmentData.reason}
-                  onChange={(e) => setAppointmentData({...appointmentData, reason: e.target.value})}
+                  onChange={(e) => {
+                    setAppointmentData({...appointmentData, reason: e.target.value});
+                    if (appointmentErrors.reason && e.target.value.trim().length >= 10) {
+                      setAppointmentErrors({...appointmentErrors, reason: ''});
+                    }
+                  }}
                   placeholder="Please describe your symptoms or reason for consultation..."
                   sx={{ gridColumn: 'span 2' }}
+                  error={!!appointmentErrors.reason}
+                  helperText={appointmentErrors.reason}
                 />
               </div>
 
