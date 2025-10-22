@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { API_ENDPOINTS, apiCall } from '../config/api';
+import { Calendar, Clock, CheckCircle, X, AlertCircle, Info, FileText } from 'lucide-react';
 
 function DeliveryDashboard() {
   const [user, setUser] = useState(() => JSON.parse(localStorage.getItem('user') || '{}'));
@@ -13,6 +14,19 @@ function DeliveryDashboard() {
   const [locationDialog, setLocationDialog] = useState(false);
   const [locationData, setLocationData] = useState({ latitude: '', longitude: '' });
   const [availabilityDialog, setAvailabilityDialog] = useState(false);
+  
+  // Leave management states
+  const [leaves, setLeaves] = useState([]);
+  const [openLeaveDialog, setOpenLeaveDialog] = useState(false);
+  const [leaveSubmitting, setLeaveSubmitting] = useState(false);
+  const [leaveForm, setLeaveForm] = useState({
+    startDate: '',
+    endDate: '',
+    reason: '',
+    type: 'sick', // sick, personal, vacation, emergency
+    description: ''
+  });
+  const [leaveErrors, setLeaveErrors] = useState({});
 
   async function loadOrders() {
     setLoading(true);
@@ -39,6 +53,164 @@ function DeliveryDashboard() {
       // Non-fatal
     }
   }
+
+  // Leave management functions
+  async function loadLeaves() {
+    try {
+      const res = await apiCall(API_ENDPOINTS.DELIVERY.LEAVES);
+      const data = await res.json();
+      if (res.ok) {
+        setLeaves(data);
+      }
+    } catch (e) {
+      console.error('Failed to load leaves:', e.message);
+    }
+  }
+
+  const validateLeaveForm = () => {
+    const errors = {};
+    
+    if (!leaveForm.reason.trim()) {
+      errors.reason = 'Reason is required';
+    } else if (leaveForm.reason.trim().length < 3) {
+      errors.reason = 'Reason must be at least 3 characters';
+    }
+    
+    if (!leaveForm.startDate) {
+      errors.startDate = 'Start date is required';
+    } else {
+      const startDate = new Date(leaveForm.startDate);
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      
+      if (startDate < today) {
+        errors.startDate = 'Start date cannot be in the past';
+      }
+    }
+    
+    if (!leaveForm.endDate) {
+      errors.endDate = 'End date is required';
+    } else {
+      const startDate = new Date(leaveForm.startDate);
+      const endDate = new Date(leaveForm.endDate);
+      
+      if (endDate < startDate) {
+        errors.endDate = 'End date cannot be before start date';
+      }
+    }
+    
+    if (!leaveForm.description.trim()) {
+      errors.description = 'Description is required';
+    } else if (leaveForm.description.trim().length < 10) {
+      errors.description = 'Description must be at least 10 characters';
+    }
+    
+    setLeaveErrors(errors);
+    return Object.keys(errors).length === 0;
+  };
+
+  const handleApplyLeave = async () => {
+    if (leaveSubmitting) return; // Prevent double submission
+    
+    // Validate form
+    if (!validateLeaveForm()) {
+      return;
+    }
+    
+    setLeaveSubmitting(true);
+    
+    try {
+      const res = await apiCall(API_ENDPOINTS.DELIVERY.LEAVES, {
+        method: 'POST',
+        body: JSON.stringify(leaveForm)
+      });
+      
+      const data = await res.json();
+      
+      if (res.ok) {
+        const createdLeave = data.leave || data;
+        setLeaves([createdLeave, ...leaves]);
+        setLeaveForm({
+          startDate: '',
+          endDate: '',
+          reason: '',
+          type: 'sick',
+          description: ''
+        });
+        setOpenLeaveDialog(false);
+        alert('Leave application submitted successfully! Admin will review and send email notification.');
+      } else {
+        alert(data.error || 'Failed to apply for leave');
+      }
+    } catch (error) {
+      console.error('Error applying for leave:', error);
+      alert('Failed to apply for leave');
+    } finally {
+      setLeaveSubmitting(false);
+    }
+  };
+
+  const resetLeaveForm = () => {
+    setLeaveForm({
+      startDate: '',
+      endDate: '',
+      reason: '',
+      type: 'sick',
+      description: ''
+    });
+    setLeaveSubmitting(false);
+    setOpenLeaveDialog(false);
+    setLeaveErrors({});
+  };
+
+  const getLeaveStatusColor = (status) => {
+    switch (status) {
+      case 'approved': return 'bg-green-100 text-green-800';
+      case 'rejected': return 'bg-red-100 text-red-800';
+      case 'pending': return 'bg-yellow-100 text-yellow-800';
+      case 'cancelled': return 'bg-gray-200 text-gray-800';
+      default: return 'bg-gray-100 text-gray-800';
+    }
+  };
+
+  const getLeaveTypeColor = (type) => {
+    switch (type) {
+      case 'sick': return 'bg-red-100 text-red-800';
+      case 'personal': return 'bg-blue-100 text-blue-800';
+      case 'vacation': return 'bg-green-100 text-green-800';
+      case 'emergency': return 'bg-orange-100 text-orange-800';
+      default: return 'bg-gray-100 text-gray-800';
+    }
+  };
+
+  const calculateLeaveDays = (startDate, endDate) => {
+    const start = new Date(startDate);
+    const end = new Date(endDate);
+    const timeDiff = end.getTime() - start.getTime();
+    return Math.ceil(timeDiff / (1000 * 3600 * 24)) + 1;
+  };
+
+  const handleCancelLeave = async (leaveId) => {
+    if (!leaveId) return;
+    if (!window.confirm('Cancel this leave request?')) return;
+    
+    try {
+      const res = await apiCall(API_ENDPOINTS.DELIVERY.LEAVES + `/${leaveId}`, {
+        method: 'DELETE'
+      });
+      
+      if (res.ok) {
+        setLeaves(leaves.filter(leave => leave._id !== leaveId));
+        alert('Leave cancelled successfully');
+      } else {
+        const data = await res.json();
+        alert(data.error || 'Failed to cancel leave');
+      }
+    } catch (error) {
+      console.error('Error cancelling leave:', error);
+      alert('Failed to cancel leave');
+    }
+  };
 
   async function loadProfile() {
     try {
@@ -89,7 +261,7 @@ function DeliveryDashboard() {
     }
   }
 
-  useEffect(() => { loadOrders(); loadAvailable(); loadProfile(); }, []);
+  useEffect(() => { loadOrders(); loadAvailable(); loadProfile(); loadLeaves(); }, []);
 
   async function updateStatus(orderId, status) {
     try {
@@ -284,6 +456,16 @@ function DeliveryDashboard() {
           >
             Available Orders ({available.length})
           </button>
+          <button
+            onClick={() => setActiveTab('leaves')}
+            className={`px-6 py-3 rounded-xl font-medium transition-all ${
+              activeTab === 'leaves'
+                ? 'bg-emerald-600 text-white shadow-lg'
+                : 'bg-white/80 text-slate-700 hover:bg-white border border-slate-200'
+            }`}
+          >
+            Leave Management ({leaves.length})
+          </button>
         </div>
 
         {/* Content */}
@@ -326,6 +508,129 @@ function DeliveryDashboard() {
             {available.length === 0 && (
               <div className="col-span-full text-gray-600">No available orders right now.</div>
             )}
+          </div>
+        )}
+
+        {/* Leave Management Tab */}
+        {activeTab === 'leaves' && (
+          <div className="bg-white rounded-2xl shadow-lg p-6">
+            <div className="flex items-center justify-between mb-6">
+              <h2 className="text-xl font-bold text-slate-900 flex items-center">
+                <Calendar className="w-6 h-6 mr-2 text-emerald-600" />
+                Leave Management
+              </h2>
+              <button
+                onClick={() => setOpenLeaveDialog(true)}
+                className="bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 rounded-lg flex items-center space-x-2 transition-colors"
+              >
+                <span>Apply for Leave</span>
+              </button>
+            </div>
+
+            {/* Leave Statistics */}
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+              <div className="bg-blue-50 p-4 rounded-xl">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-blue-600 text-sm font-medium">Total Applied</p>
+                    <p className="text-2xl font-bold text-blue-700">{leaves.length}</p>
+                  </div>
+                  <FileText className="w-8 h-8 text-blue-500" />
+                </div>
+              </div>
+              <div className="bg-green-50 p-4 rounded-xl">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-green-600 text-sm font-medium">Approved</p>
+                    <p className="text-2xl font-bold text-green-700">
+                      {leaves.filter(leave => leave.status === 'approved').length}
+                    </p>
+                  </div>
+                  <CheckCircle className="w-8 h-8 text-green-500" />
+                </div>
+              </div>
+              <div className="bg-yellow-50 p-4 rounded-xl">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-yellow-600 text-sm font-medium">Pending</p>
+                    <p className="text-2xl font-bold text-yellow-700">
+                      {leaves.filter(leave => leave.status === 'pending').length}
+                    </p>
+                  </div>
+                  <Clock className="w-8 h-8 text-yellow-500" />
+                </div>
+              </div>
+              <div className="bg-red-50 p-4 rounded-xl">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-red-600 text-sm font-medium">Rejected</p>
+                    <p className="text-2xl font-bold text-red-700">
+                      {leaves.filter(leave => leave.status === 'rejected').length}
+                    </p>
+                  </div>
+                  <X className="w-8 h-8 text-red-500" />
+                </div>
+              </div>
+            </div>
+
+            {/* Leave Applications Table */}
+            <div className="overflow-x-auto">
+              <table className="min-w-full divide-y divide-gray-200">
+                <thead className="bg-gray-50">
+                  <tr>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Type</th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Reason</th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Dates</th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Duration</th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+                  </tr>
+                </thead>
+                <tbody className="bg-white divide-y divide-gray-200">
+                  {leaves.length === 0 ? (
+                    <tr>
+                      <td colSpan="6" className="px-6 py-4 text-center text-gray-500">
+                        No leave applications found
+                      </td>
+                    </tr>
+                  ) : (
+                    leaves.map((leave) => (
+                      <tr key={leave._id}>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <span className={`inline-flex px-2 py-1 text-xs font-medium rounded-full ${getLeaveTypeColor(leave.type)}`}>
+                            {leave.type.charAt(0).toUpperCase() + leave.type.slice(1)}
+                          </span>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                          {leave.reason}
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                          {new Date(leave.startDate).toLocaleDateString()} - {new Date(leave.endDate).toLocaleDateString()}
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                          {calculateLeaveDays(leave.startDate, leave.endDate)} days
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <span className={`inline-flex px-2 py-1 text-xs font-medium rounded-full ${getLeaveStatusColor(leave.status)}`}>
+                            {leave.status.charAt(0).toUpperCase() + leave.status.slice(1)}
+                          </span>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                          {leave.status === 'pending' && (
+                            <button
+                              onClick={() => handleCancelLeave(leave._id)}
+                              className="text-red-600 hover:text-red-900"
+                            >
+                              Cancel
+                            </button>
+                          )}
+                        </td>
+                      </tr>
+                    ))
+                  )}
+                </tbody>
+              </table>
+            </div>
           </div>
         )}
       </div>
@@ -402,6 +707,167 @@ function DeliveryDashboard() {
               >
                 {profile?.isAvailable ? 'Mark Unavailable' : 'Mark Available'}
               </button>
+            </div>
+          </div>
+        </div>
+      )}
+      
+      {/* Leave Application Dialog */}
+      {openLeaveDialog && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-2xl w-full max-w-2xl mx-4 max-h-[90vh] overflow-y-auto">
+            <div className="p-6">
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="text-xl font-bold">Apply for Leave</h3>
+                <button
+                  onClick={resetLeaveForm}
+                  className="text-gray-500 hover:text-gray-700"
+                >
+                  <X className="w-6 h-6" />
+                </button>
+              </div>
+              
+              <form onSubmit={(e) => { e.preventDefault(); handleApplyLeave(); }} className="space-y-6">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Leave Type <span className="text-red-500">*</span>
+                    </label>
+                    <select
+                      value={leaveForm.type}
+                      onChange={(e) => setLeaveForm({ ...leaveForm, type: e.target.value })}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
+                    >
+                      <option value="sick">Sick Leave</option>
+                      <option value="personal">Personal Leave</option>
+                      <option value="vacation">Vacation</option>
+                      <option value="emergency">Emergency Leave</option>
+                    </select>
+                  </div>
+                  
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Reason <span className="text-red-500">*</span>
+                    </label>
+                    <input
+                      type="text"
+                      value={leaveForm.reason}
+                      onChange={(e) => setLeaveForm({ ...leaveForm, reason: e.target.value })}
+                      className={`w-full px-3 py-2 border ${leaveErrors.reason ? 'border-red-500' : 'border-gray-300'} rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500`}
+                      placeholder="e.g., Medical appointment, Family event"
+                    />
+                    {leaveErrors.reason && (
+                      <p className="mt-1 text-sm text-red-600">{leaveErrors.reason}</p>
+                    )}
+                  </div>
+                </div>
+                
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Start Date <span className="text-red-500">*</span>
+                    </label>
+                    <input
+                      type="date"
+                      value={leaveForm.startDate}
+                      onChange={(e) => setLeaveForm({ ...leaveForm, startDate: e.target.value })}
+                      className={`w-full px-3 py-2 border ${leaveErrors.startDate ? 'border-red-500' : 'border-gray-300'} rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500`}
+                      min={new Date().toISOString().split('T')[0]}
+                    />
+                    {leaveErrors.startDate && (
+                      <p className="mt-1 text-sm text-red-600">{leaveErrors.startDate}</p>
+                    )}
+                  </div>
+                  
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      End Date <span className="text-red-500">*</span>
+                    </label>
+                    <input
+                      type="date"
+                      value={leaveForm.endDate}
+                      onChange={(e) => setLeaveForm({ ...leaveForm, endDate: e.target.value })}
+                      className={`w-full px-3 py-2 border ${leaveErrors.endDate ? 'border-red-500' : 'border-gray-300'} rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500`}
+                      min={leaveForm.startDate || new Date().toISOString().split('T')[0]}
+                    />
+                    {leaveErrors.endDate && (
+                      <p className="mt-1 text-sm text-red-600">{leaveErrors.endDate}</p>
+                    )}
+                  </div>
+                </div>
+                
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Detailed Description <span className="text-red-500">*</span>
+                  </label>
+                  <textarea
+                    value={leaveForm.description}
+                    onChange={(e) => setLeaveForm({ ...leaveForm, description: e.target.value })}
+                    className={`w-full px-3 py-2 border ${leaveErrors.description ? 'border-red-500' : 'border-gray-300'} rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500`}
+                    rows={4}
+                    placeholder="Provide detailed explanation for your leave request..."
+                  />
+                  {leaveErrors.description && (
+                    <p className="mt-1 text-sm text-red-600">{leaveErrors.description}</p>
+                  )}
+                </div>
+                
+                {leaveForm.startDate && leaveForm.endDate && (
+                  <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                    <div className="flex items-center">
+                      <Info className="w-5 h-5 text-blue-600 mr-2" />
+                      <div className="text-sm text-blue-800">
+                        <p className="font-medium">Leave Duration: {calculateLeaveDays(leaveForm.startDate, leaveForm.endDate)} days</p>
+                        <p className="text-blue-600">
+                          From {new Date(leaveForm.startDate).toLocaleDateString()} to {new Date(leaveForm.endDate).toLocaleDateString()}
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                )}
+                
+                <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
+                  <div className="flex items-start">
+                    <AlertCircle className="w-5 h-5 text-yellow-600 mt-0.5 mr-2 flex-shrink-0" />
+                    <div className="text-sm text-yellow-800">
+                      <p className="font-medium mb-1">Important Notes:</p>
+                      <ul className="list-disc list-inside space-y-1 text-yellow-700">
+                        <li>Leave applications must be submitted at least 24 hours in advance</li>
+                        <li>Admin will review your application and send email notification</li>
+                        <li>Emergency leaves may be approved with shorter notice</li>
+                        <li>All fields marked with <span className="text-red-500">*</span> are required</li>
+                      </ul>
+                    </div>
+                  </div>
+                </div>
+                
+                <div className="flex justify-end space-x-4 pt-4">
+                  <button
+                    type="button"
+                    onClick={resetLeaveForm}
+                    className="px-6 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={leaveSubmitting}
+                    className={`px-6 py-2 ${leaveSubmitting ? 'bg-gray-400 cursor-not-allowed' : 'bg-emerald-600 hover:bg-emerald-700'} text-white rounded-lg transition-colors flex items-center space-x-2`}
+                  >
+                    {leaveSubmitting ? (
+                      <>
+                        <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                        <span>Submitting...</span>
+                      </>
+                    ) : (
+                      <>
+                        <Calendar className="w-4 h-4" />
+                        <span>Submit Application</span>
+                      </>
+                    )}
+                  </button>
+                </div>
+              </form>
             </div>
           </div>
         </div>
