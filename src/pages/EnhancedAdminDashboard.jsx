@@ -1,4 +1,5 @@
 
+
 import { useState, useEffect } from 'react';
 import { getAddressFromCoords } from '../utils/reverseGeocode';
 import GoogleMapPicker from '../components/GoogleMapPicker';
@@ -82,6 +83,8 @@ function EnhancedAdminDashboard() {
     lng: '',
     address: ''
   });
+  const [editEmployeeValidationErrors, setEditEmployeeValidationErrors] = useState({});
+  const [employeeValidationErrors, setEmployeeValidationErrors] = useState({});
   const [editEmployeeData, setEditEmployeeData] = useState({
     name: '',
     email: '',
@@ -105,6 +108,130 @@ function EnhancedAdminDashboard() {
     if (employeeData.role === 'delivery') fetchAddress();
     // eslint-disable-next-line
   }, [employeeData.lat, employeeData.lng, employeeData.role]);
+
+  // Add validation functions for employee form
+  const validateEmployeeName = (value) => {
+    if (!value) return "Name is required";
+    if (value.length < 2) return "Name must be at least 2 characters";
+    if (value.length > 50) return "Name must be less than 50 characters";
+    if (/^\s/.test(value)) return "Name cannot start with a space";
+    if (/\s$/.test(value)) return "Name cannot end with a space";
+    if (/\s{2,}/.test(value)) return "Only single spaces allowed between words";
+    if (/[^a-zA-Z\s]/.test(value)) return "Only letters and spaces allowed";
+    
+    // Check if each word starts with capital letter
+    const words = value.split(' ');
+    for (let word of words) {
+      if (word && !/^[A-Z]/.test(word)) {
+        return "Each word must start with a capital letter";
+      }
+    }
+    return "";
+  };
+
+  const validateEmployeeEmail = (value) => {
+    if (!value) return "Email is required";
+    const emailRegex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
+    if (!emailRegex.test(value)) {
+      return "Please enter a valid email address";
+    }
+    if (value.length > 254) return "Email address is too long";
+    return "";
+  };
+
+  // Handle real-time validation for employee form
+  const handleEmployeeFieldChange = (field, value) => {
+    let error = "";
+    let processedValue = value;
+    
+    switch (field) {
+      case 'name':
+        // Only allow letters and single spaces, then capitalize first letter of each word
+        processedValue = value.replace(/[^a-zA-Z\s]/g, '').replace(/\s{2,}/g, ' ');
+        // Auto-capitalize first letter of each word
+        processedValue = processedValue.replace(/\b\w/g, l => l.toUpperCase());
+        setEmployeeData(prev => ({ ...prev, name: processedValue }));
+        error = validateEmployeeName(processedValue);
+        break;
+      case 'email':
+        // Convert to lowercase and remove spaces
+        processedValue = value.toLowerCase().replace(/\s/g, '');
+        setEmployeeData(prev => ({ ...prev, email: processedValue }));
+        error = validateEmployeeEmail(processedValue);
+        break;
+      case 'location':
+        setEmployeeData(prev => ({ ...prev, location: value }));
+        // Location is optional, so no validation error needed
+        break;
+      case 'department':
+        setEmployeeData(prev => ({ ...prev, department: value }));
+        // Department is optional, so no validation error needed
+        break;
+      default:
+        setEmployeeData(prev => ({ ...prev, [field]: value }));
+        break;
+    }
+    
+    setEmployeeValidationErrors(prev => ({ ...prev, [field]: error }));
+  };
+
+  // Handle real-time validation for edit employee form
+  const handleEditEmployeeFieldChange = (field, value) => {
+    let error = "";
+    let processedValue = value;
+    
+    switch (field) {
+      case 'name':
+        // Only allow letters and single spaces, then capitalize first letter of each word
+        processedValue = value.replace(/[^a-zA-Z\s]/g, '').replace(/\s{2,}/g, ' ');
+        // Auto-capitalize first letter of each word
+        processedValue = processedValue.replace(/\b\w/g, l => l.toUpperCase());
+        setEditEmployeeData(prev => ({ ...prev, name: processedValue }));
+        error = validateEmployeeName(processedValue);
+        break;
+      case 'email':
+        // Convert to lowercase and remove spaces
+        processedValue = value.toLowerCase().replace(/\s/g, '');
+        setEditEmployeeData(prev => ({ ...prev, email: processedValue }));
+        error = validateEmployeeEmail(processedValue);
+        break;
+      case 'department':
+        setEditEmployeeData(prev => ({ ...prev, department: value }));
+        // Department is optional, so no validation error needed
+        break;
+      default:
+        setEditEmployeeData(prev => ({ ...prev, [field]: value }));
+        break;
+    }
+    
+    setEditEmployeeValidationErrors(prev => ({ ...prev, [field]: error }));
+  };
+
+  // Validate employee form before submission
+  const validateEmployeeForm = () => {
+    const nameError = validateEmployeeName(employeeData.name);
+    const emailError = validateEmployeeEmail(employeeData.email);
+    
+    const errors = {};
+    if (nameError) errors.name = nameError;
+    if (emailError) errors.email = emailError;
+    
+    setEmployeeValidationErrors(errors);
+    return Object.keys(errors).length === 0;
+  };
+
+  // Validate edit employee form before submission
+  const validateEditEmployeeForm = () => {
+    const nameError = validateEmployeeName(editEmployeeData.name);
+    const emailError = validateEmployeeEmail(editEmployeeData.email);
+    
+    const errors = {};
+    if (nameError) errors.name = nameError;
+    if (emailError) errors.email = emailError;
+    
+    setEditEmployeeValidationErrors(errors);
+    return Object.keys(errors).length === 0;
+  };
 
   // Address lookup for Edit Employee (map picker)
   useEffect(() => {
@@ -371,6 +498,12 @@ function EnhancedAdminDashboard() {
   };
 
   const addEmployee = async () => {
+    // Validate form before submission
+    if (!validateEmployeeForm()) {
+      toast.error('Please fix the validation errors');
+      return;
+    }
+    
     try {
       setActionLoading(true);
       const token = localStorage.getItem('token');
@@ -387,7 +520,8 @@ function EnhancedAdminDashboard() {
       if (response.ok) {
         const result = await response.json();
         setEmployees(prev => [result.employee, ...prev]);
-        setEmployeeData({ name: '', email: '', role: 'employee', department: '' });
+        setEmployeeData({ name: '', email: '', role: 'employee', department: '', lat: '', lng: '', address: '' });
+        setEmployeeValidationErrors({});
         setAddEmployeeDialog(false);
         toast.success('Employee added successfully! Email sent with login credentials.');
       } else {
@@ -518,6 +652,12 @@ function EnhancedAdminDashboard() {
   };
 
   const updateEmployee = async () => {
+    // Validate form before submission
+    if (!validateEditEmployeeForm()) {
+      toast.error('Please fix the validation errors');
+      return;
+    }
+    
     try {
       setActionLoading(true);
       const token = localStorage.getItem('token');
@@ -2016,27 +2156,29 @@ function EnhancedAdminDashboard() {
                 fullWidth
                 label="Full Name *"
                 value={employeeData.name}
-                onChange={(e) => setEmployeeData(prev => ({ ...prev, name: e.target.value }))}
+                onChange={(e) => handleEmployeeFieldChange('name', e.target.value)}
                 required
+                error={!!employeeValidationErrors.name}
+                helperText={employeeValidationErrors.name}
                 sx={{
                   '& .MuiOutlinedInput-root': {
                     borderRadius: '16px',
                     backgroundColor: 'rgba(255, 255, 255, 0.8)',
                     backdropFilter: 'blur(10px)',
-                    border: '1px solid rgba(203, 213, 225, 0.5)',
+                    border: employeeValidationErrors.name ? '1px solid #f44336' : '1px solid rgba(203, 213, 225, 0.5)',
                     '&:hover': {
-                      border: '1px solid rgba(16, 185, 129, 0.5)',
+                      border: employeeValidationErrors.name ? '1px solid #f44336' : '1px solid rgba(16, 185, 129, 0.5)',
                     },
                     '&.Mui-focused': {
-                      border: '2px solid #10b981',
-                      boxShadow: '0 0 0 3px rgba(16, 185, 129, 0.1)'
+                      border: employeeValidationErrors.name ? '2px solid #f44336' : '2px solid #10b981',
+                      boxShadow: employeeValidationErrors.name ? '0 0 0 3px rgba(244, 67, 54, 0.1)' : '0 0 0 3px rgba(16, 185, 129, 0.1)'
                     }
                   },
                   '& .MuiInputLabel-root': {
                     color: '#6b7280',
                     fontWeight: 500,
                     '&.Mui-focused': {
-                      color: '#10b981'
+                      color: employeeValidationErrors.name ? '#f44336' : '#10b981'
                     }
                   },
                   '& .MuiOutlinedInput-input': {
@@ -2044,6 +2186,12 @@ function EnhancedAdminDashboard() {
                     fontSize: '1rem',
                     fontWeight: 500,
                     color: '#1e293b'
+                  },
+                  '& .MuiFormHelperText-root': {
+                    marginLeft: 0,
+                    fontSize: '0.75rem',
+                    fontWeight: 500,
+                    color: '#f44336'
                   }
                 }}
               />
@@ -2092,27 +2240,29 @@ function EnhancedAdminDashboard() {
                 label="Email Address *"
                 type="email"
                 value={employeeData.email}
-                onChange={(e) => setEmployeeData(prev => ({ ...prev, email: e.target.value }))}
+                onChange={(e) => handleEmployeeFieldChange('email', e.target.value)}
                 required
+                error={!!employeeValidationErrors.email}
+                helperText={employeeValidationErrors.email}
                 sx={{
                   '& .MuiOutlinedInput-root': {
                     borderRadius: '16px',
                     backgroundColor: 'rgba(255, 255, 255, 0.8)',
                     backdropFilter: 'blur(10px)',
-                    border: '1px solid rgba(203, 213, 225, 0.5)',
+                    border: employeeValidationErrors.email ? '1px solid #f44336' : '1px solid rgba(203, 213, 225, 0.5)',
                     '&:hover': {
-                      border: '1px solid rgba(16, 185, 129, 0.5)',
+                      border: employeeValidationErrors.email ? '1px solid #f44336' : '1px solid rgba(16, 185, 129, 0.5)',
                     },
                     '&.Mui-focused': {
-                      border: '2px solid #10b981',
-                      boxShadow: '0 0 0 3px rgba(16, 185, 129, 0.1)'
+                      border: employeeValidationErrors.email ? '2px solid #f44336' : '2px solid #10b981',
+                      boxShadow: employeeValidationErrors.email ? '0 0 0 3px rgba(244, 67, 54, 0.1)' : '0 0 0 3px rgba(16, 185, 129, 0.1)'
                     }
                   },
                   '& .MuiInputLabel-root': {
                     color: '#6b7280',
                     fontWeight: 500,
                     '&.Mui-focused': {
-                      color: '#10b981'
+                      color: employeeValidationErrors.email ? '#f44336' : '#10b981'
                     }
                   },
                   '& .MuiOutlinedInput-input': {
@@ -2120,6 +2270,12 @@ function EnhancedAdminDashboard() {
                     fontSize: '1rem',
                     fontWeight: 500,
                     color: '#1e293b'
+                  },
+                  '& .MuiFormHelperText-root': {
+                    marginLeft: 0,
+                    fontSize: '0.75rem',
+                    fontWeight: 500,
+                    color: '#f44336'
                   }
                 }}
               />
@@ -2255,7 +2411,7 @@ function EnhancedAdminDashboard() {
           <Button
             variant="contained"
             onClick={addEmployee}
-            disabled={actionLoading || !employeeData.name || !employeeData.email}
+            disabled={actionLoading}
             startIcon={actionLoading ? <CircularProgress size={20} color="inherit" /> : <FaPlus />}
             sx={{
               px: 6,
@@ -2534,27 +2690,29 @@ function EnhancedAdminDashboard() {
                 fullWidth
                 label="Full Name *"
                 value={editEmployeeData.name}
-                onChange={(e) => setEditEmployeeData(prev => ({ ...prev, name: e.target.value }))}
+                onChange={(e) => handleEditEmployeeFieldChange('name', e.target.value)}
                 required
+                error={!!editEmployeeValidationErrors.name}
+                helperText={editEmployeeValidationErrors.name}
                 sx={{
                   '& .MuiOutlinedInput-root': {
                     borderRadius: '16px',
                     backgroundColor: 'rgba(255, 255, 255, 0.8)',
                     backdropFilter: 'blur(10px)',
-                    border: '1px solid rgba(203, 213, 225, 0.5)',
+                    border: editEmployeeValidationErrors.name ? '1px solid #f44336' : '1px solid rgba(203, 213, 225, 0.5)',
                     '&:hover': {
-                      border: '1px solid rgba(16, 185, 129, 0.5)',
+                      border: editEmployeeValidationErrors.name ? '1px solid #f44336' : '1px solid rgba(16, 185, 129, 0.5)',
                     },
                     '&.Mui-focused': {
-                      border: '2px solid #10b981',
-                      boxShadow: '0 0 0 3px rgba(16, 185, 129, 0.1)'
+                      border: editEmployeeValidationErrors.name ? '2px solid #f44336' : '2px solid #10b981',
+                      boxShadow: editEmployeeValidationErrors.name ? '0 0 0 3px rgba(244, 67, 54, 0.1)' : '0 0 0 3px rgba(16, 185, 129, 0.1)'
                     }
                   },
                   '& .MuiInputLabel-root': {
                     color: '#6b7280',
                     fontWeight: 500,
                     '&.Mui-focused': {
-                      color: '#10b981'
+                      color: editEmployeeValidationErrors.name ? '#f44336' : '#10b981'
                     }
                   },
                   '& .MuiOutlinedInput-input': {
@@ -2562,6 +2720,12 @@ function EnhancedAdminDashboard() {
                     fontSize: '1rem',
                     fontWeight: 500,
                     color: '#1e293b'
+                  },
+                  '& .MuiFormHelperText-root': {
+                    marginLeft: 0,
+                    fontSize: '0.75rem',
+                    fontWeight: 500,
+                    color: '#f44336'
                   }
                 }}
               />
@@ -2600,27 +2764,29 @@ function EnhancedAdminDashboard() {
                 label="Email Address *"
                 type="email"
                 value={editEmployeeData.email}
-                onChange={(e) => setEditEmployeeData(prev => ({ ...prev, email: e.target.value }))}
+                onChange={(e) => handleEditEmployeeFieldChange('email', e.target.value)}
                 required
+                error={!!editEmployeeValidationErrors.email}
+                helperText={editEmployeeValidationErrors.email}
                 sx={{
                   '& .MuiOutlinedInput-root': {
                     borderRadius: '16px',
                     backgroundColor: 'rgba(255, 255, 255, 0.8)',
                     backdropFilter: 'blur(10px)',
-                    border: '1px solid rgba(203, 213, 225, 0.5)',
+                    border: editEmployeeValidationErrors.email ? '1px solid #f44336' : '1px solid rgba(203, 213, 225, 0.5)',
                     '&:hover': {
-                      border: '1px solid rgba(16, 185, 129, 0.5)',
+                      border: editEmployeeValidationErrors.email ? '1px solid #f44336' : '1px solid rgba(16, 185, 129, 0.5)',
                     },
                     '&.Mui-focused': {
-                      border: '2px solid #10b981',
-                      boxShadow: '0 0 0 3px rgba(16, 185, 129, 0.1)'
+                      border: editEmployeeValidationErrors.email ? '2px solid #f44336' : '2px solid #10b981',
+                      boxShadow: editEmployeeValidationErrors.email ? '0 0 0 3px rgba(244, 67, 54, 0.1)' : '0 0 0 3px rgba(16, 185, 129, 0.1)'
                     }
                   },
                   '& .MuiInputLabel-root': {
                     color: '#6b7280',
                     fontWeight: 500,
                     '&.Mui-focused': {
-                      color: '#10b981'
+                      color: editEmployeeValidationErrors.email ? '#f44336' : '#10b981'
                     }
                   },
                   '& .MuiOutlinedInput-input': {
@@ -2628,6 +2794,12 @@ function EnhancedAdminDashboard() {
                     fontSize: '1rem',
                     fontWeight: 500,
                     color: '#1e293b'
+                  },
+                  '& .MuiFormHelperText-root': {
+                    marginLeft: 0,
+                    fontSize: '0.75rem',
+                    fontWeight: 500,
+                    color: '#f44336'
                   }
                 }}
               />
@@ -2745,7 +2917,7 @@ function EnhancedAdminDashboard() {
           <Button
             variant="contained"
             onClick={updateEmployee}
-            disabled={actionLoading || !editEmployeeData.name || !editEmployeeData.email}
+            disabled={actionLoading}
             startIcon={actionLoading ? <CircularProgress size={20} color="inherit" /> : <FaEdit />}
             sx={{
               px: 6,
