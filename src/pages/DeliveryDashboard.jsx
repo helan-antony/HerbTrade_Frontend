@@ -33,6 +33,10 @@ function DeliveryDashboard() {
     setError('');
     try {
       const res = await apiCall(API_ENDPOINTS.DELIVERY.ORDERS);
+      const contentType = res.headers.get('content-type');
+      if (!contentType || !contentType.includes('application/json')) {
+        throw new Error('Server returned non-JSON response');
+      }
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || 'Failed to load orders');
       setOrders(data);
@@ -46,6 +50,10 @@ function DeliveryDashboard() {
   async function loadAvailable() {
     try {
       const res = await apiCall(API_ENDPOINTS.DELIVERY.AVAILABLE);
+      const contentType = res.headers.get('content-type');
+      if (!contentType || !contentType.includes('application/json')) {
+        throw new Error('Server returned non-JSON response');
+      }
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || 'Failed to load available orders');
       setAvailable(data);
@@ -58,6 +66,10 @@ function DeliveryDashboard() {
   async function loadLeaves() {
     try {
       const res = await apiCall(API_ENDPOINTS.DELIVERY.LEAVES);
+      const contentType = res.headers.get('content-type');
+      if (!contentType || !contentType.includes('application/json')) {
+        throw new Error('Server returned non-JSON response');
+      }
       const data = await res.json();
       if (res.ok) {
         setLeaves(data);
@@ -125,6 +137,11 @@ function DeliveryDashboard() {
         body: JSON.stringify(leaveForm)
       });
       
+      const contentType = res.headers.get('content-type');
+      if (!contentType || !contentType.includes('application/json')) {
+        throw new Error('Server returned non-JSON response');
+      }
+      
       const data = await res.json();
       
       if (res.ok) {
@@ -144,7 +161,7 @@ function DeliveryDashboard() {
       }
     } catch (error) {
       console.error('Error applying for leave:', error);
-      alert('Failed to apply for leave');
+      alert('Failed to apply for leave: ' + error.message);
     } finally {
       setLeaveSubmitting(false);
     }
@@ -195,7 +212,7 @@ function DeliveryDashboard() {
     if (!window.confirm('Cancel this leave request?')) return;
     
     try {
-      const res = await apiCall(API_ENDPOINTS.DELIVERY.LEAVES + `/${leaveId}`, {
+      const res = await apiCall(`${API_ENDPOINTS.DELIVERY.LEAVES}/${leaveId}`, {
         method: 'DELETE'
       });
       
@@ -203,18 +220,27 @@ function DeliveryDashboard() {
         setLeaves(leaves.filter(leave => leave._id !== leaveId));
         alert('Leave cancelled successfully');
       } else {
-        const data = await res.json();
-        alert(data.error || 'Failed to cancel leave');
+        const contentType = res.headers.get('content-type');
+        if (contentType && contentType.includes('application/json')) {
+          const data = await res.json();
+          alert(data.error || 'Failed to cancel leave');
+        } else {
+          alert('Failed to cancel leave: Server returned invalid response');
+        }
       }
     } catch (error) {
       console.error('Error cancelling leave:', error);
-      alert('Failed to cancel leave');
+      alert('Failed to cancel leave: ' + error.message);
     }
   };
 
   async function loadProfile() {
     try {
       const res = await apiCall(API_ENDPOINTS.DELIVERY.PROFILE);
+      const contentType = res.headers.get('content-type');
+      if (!contentType || !contentType.includes('application/json')) {
+        throw new Error('Server returned non-JSON response');
+      }
       const data = await res.json();
       if (res.ok) {
         setProfile(data);
@@ -236,6 +262,10 @@ function DeliveryDashboard() {
         method: 'PUT',
         body: JSON.stringify(locationData)
       });
+      const contentType = res.headers.get('content-type');
+      if (!contentType || !contentType.includes('application/json')) {
+        throw new Error('Server returned non-JSON response');
+      }
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || 'Failed to update location');
       setLocationDialog(false);
@@ -251,6 +281,10 @@ function DeliveryDashboard() {
       const res = await apiCall(API_ENDPOINTS.DELIVERY.AVAILABILITY, {
         method: 'PUT'
       });
+      const contentType = res.headers.get('content-type');
+      if (!contentType || !contentType.includes('application/json')) {
+        throw new Error('Server returned non-JSON response');
+      }
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || 'Failed to toggle availability');
       setAvailabilityDialog(false);
@@ -270,6 +304,10 @@ function DeliveryDashboard() {
         method: 'PUT',
         body: JSON.stringify({ status })
       });
+      const contentType = res.headers.get('content-type');
+      if (!contentType || !contentType.includes('application/json')) {
+        throw new Error('Server returned non-JSON response');
+      }
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || 'Failed to update');
       setOrders(prev => prev.map(o => o._id === orderId ? data.order : o));
@@ -284,6 +322,10 @@ function DeliveryDashboard() {
     try {
       setUpdatingId(orderId);
       const res = await apiCall(API_ENDPOINTS.DELIVERY.CLAIM(orderId), { method: 'POST' });
+      const contentType = res.headers.get('content-type');
+      if (!contentType || !contentType.includes('application/json')) {
+        throw new Error('Server returned non-JSON response');
+      }
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || 'Failed to claim');
       setAvailable(prev => prev.filter(o => o._id !== orderId));
@@ -296,6 +338,11 @@ function DeliveryDashboard() {
   }
 
   function renderActions(order) {
+    // Don't show actions for cancelled orders
+    if (order.status === 'cancelled') {
+      return <div className="text-sm text-red-600">Order Cancelled - No Actions Available</div>;
+    }
+    
     const disabled = updatingId === order._id;
     const btn = (label, st, color = 'emerald') => (
       <button
@@ -326,8 +373,11 @@ function DeliveryDashboard() {
   }
 
   function Card({ order, actions }) {
+    // Highlight cancelled orders
+    const isCancelled = order.status === 'cancelled';
+    
     return (
-      <div className="bg-white rounded-3xl shadow p-4 border border-slate-100">
+      <div className={`bg-white rounded-3xl shadow p-4 border border-slate-100 ${isCancelled ? 'bg-red-50' : ''}`}>
         <div className="flex justify-between mb-2">
           <div className="font-semibold">#{String(order._id).slice(-6).toUpperCase()}</div>
           <div className="text-sm text-gray-600">{new Date(order.orderDate || order.createdAt).toLocaleString()}</div>
@@ -346,6 +396,7 @@ function DeliveryDashboard() {
             'bg-gray-100 text-gray-800'
           }`}>
             {order.status.charAt(0).toUpperCase() + order.status.slice(1).replace('_', ' ')}
+            {isCancelled && ' (CANCELLED)'}
           </span>
         </div>
         <div className="text-sm mb-2">
@@ -375,6 +426,11 @@ function DeliveryDashboard() {
           </div>
         )}
         <div className="mt-3">{actions}</div>
+        {isCancelled && (
+          <div className="mt-2 text-sm text-red-600 font-medium">
+            This order has been cancelled and cannot be delivered.
+          </div>
+        )}
       </div>
     );
   }
@@ -491,7 +547,9 @@ function DeliveryDashboard() {
                 key={order._id}
                 order={order}
                 actions={
-                  (!order.deliveryAssignee ? (
+                  order.status === 'cancelled' ? (
+                    <span className="inline-block px-3 py-1 rounded bg-red-100 text-red-600 text-sm">Cancelled</span>
+                  ) : !order.deliveryAssignee ? (
                     <button
                       disabled={updatingId === order._id}
                       onClick={() => claim(order._id)}
@@ -501,7 +559,7 @@ function DeliveryDashboard() {
                     </button>
                   ) : (
                     <span className="inline-block px-3 py-1 rounded bg-slate-100 text-slate-600 text-sm">Assigned</span>
-                  ))
+                  )
                 }
               />
             ))}

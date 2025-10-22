@@ -718,9 +718,15 @@ function Discussion() {
                 {/* Original Post */}
                 <div className="mb-8 pb-6 border-b border-gray-200">
                   <div className="flex items-center space-x-3 mb-4">
-                    <span className="text-2xl">{selectedDiscussion.author.avatar}</span>
+                    <span className="text-2xl">
+                      {selectedDiscussion.author?.profilePic ? (
+                        <img src={selectedDiscussion.author.profilePic} alt={selectedDiscussion.author?.name || 'User'} className="w-8 h-8 rounded-full object-cover" />
+                      ) : (
+                        <FaUser className="text-gray-400" />
+                      )}
+                    </span>
                     <div>
-                      <p className="font-semibold text-gray-900">{selectedDiscussion.author.name}</p>
+                      <p className="font-semibold text-gray-900">{selectedDiscussion.author?.name || 'Anonymous'}</p>
                       <p className="text-sm text-gray-500">{formatTimeAgo(selectedDiscussion.createdAt)}</p>
                     </div>
                     <span className="px-3 py-1 bg-emerald-100 text-emerald-700 rounded-full text-xs font-medium">
@@ -812,9 +818,15 @@ function Discussion() {
                       {replies.map(reply => (
                         <div key={reply._id} className="bg-gray-50 rounded-lg p-4">
                           <div className="flex items-center space-x-3 mb-3">
-                            <span className="text-xl">{reply.author.avatar}</span>
+                            <span className="text-xl">
+                              {reply.author?.profilePic ? (
+                                <img src={reply.author.profilePic} alt={reply.author?.name || 'User'} className="w-6 h-6 rounded-full object-cover" />
+                              ) : (
+                                <FaUser className="text-gray-400" />
+                              )}
+                            </span>
                             <div>
-                              <p className="font-semibold text-gray-900">{reply.author.name}</p>
+                              <p className="font-semibold text-gray-900">{reply.author?.name || 'Anonymous'}</p>
                               <p className="text-sm text-gray-500">{formatTimeAgo(reply.createdAt)}</p>
                             </div>
                           </div>

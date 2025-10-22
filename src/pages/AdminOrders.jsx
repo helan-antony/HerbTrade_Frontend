@@ -90,7 +90,7 @@ export default function AdminOrders() {
       ) : (
         <div className="space-y-4">
           {orders.map(order => (
-            <div key={order._id} className="bg-white rounded-2xl border border-slate-100 shadow p-4">
+            <div key={order._id} className={`bg-white rounded-2xl border border-slate-100 shadow p-4 ${order.status === 'cancelled' ? 'bg-red-50' : ''}`}>
               <div className="flex flex-wrap items-center justify-between gap-3">
                 <div className="font-semibold">#{String(order._id).slice(-6).toUpperCase()} — {order.user?.name || 'User'}</div>
                 <div className="text-sm text-slate-600">{new Date(order.orderDate || order.createdAt).toLocaleString()}</div>

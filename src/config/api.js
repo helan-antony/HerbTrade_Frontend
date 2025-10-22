@@ -124,6 +124,7 @@ export const API_ENDPOINTS = {
     CHANGE_PASSWORD: `${API_BASE_URL}/api/delivery/change-password`,
     LOCATION: `${API_BASE_URL}/api/delivery/location`,
     AVAILABILITY: `${API_BASE_URL}/api/delivery/availability`,
+    LEAVES: `${API_BASE_URL}/api/seller/leaves`,
   },
   
   ORDERS: {

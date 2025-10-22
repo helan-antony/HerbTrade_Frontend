@@ -157,14 +157,30 @@ const SellerDashboard = () => {
     
     if (!newProduct.price) {
       errors.price = 'Price is required';
-    } else if (!validatePrice(newProduct.price)) {
-      errors.price = 'Price must be at least ₹50';
+    } else {
+      const priceValue = parseFloat(newProduct.price);
+      if (isNaN(priceValue)) {
+        errors.price = 'Price must be a valid number';
+      } else if (priceValue <= 0) {
+        errors.price = 'Price must be a positive number';
+      } else if (priceValue < 50) {
+        errors.price = 'Price must be at least ₹50';
+      }
     }
     
     if (!newProduct.inStock) {
       errors.inStock = 'Stock is required';
-    } else if (parseInt(newProduct.inStock) < 0) {
-      errors.inStock = newProduct.category === 'Medicines' ? 'Stock quantity cannot be negative' : 'Stock weight cannot be negative';
+    } else {
+      const stockValue = parseFloat(newProduct.inStock);
+      if (newProduct.inStock.includes('-')) {
+        errors.inStock = newProduct.category === 'Medicines' ? 'Stock quantity cannot be negative' : 'Stock weight cannot be negative';
+      } else if (isNaN(stockValue)) {
+        errors.inStock = 'Stock must be a valid number';
+      } else if (stockValue < 0) {
+        errors.inStock = newProduct.category === 'Medicines' ? 'Stock quantity cannot be negative' : 'Stock weight cannot be negative';
+      } else if (stockValue === 0) {
+        errors.inStock = newProduct.category === 'Medicines' ? 'Stock quantity must be greater than 0' : 'Stock weight must be greater than 0';
+      }
     }
     
     if (!newProduct.description.trim()) {
@@ -1925,10 +1941,26 @@ const SellerDashboard = () => {
                       value={newProduct.inStock}
                       onChange={(e) => {
                         setNewProduct({ ...newProduct, inStock: e.target.value });
-                        if (productErrors.inStock && parseInt(e.target.value) >= 0) {
-                          setProductErrors({ ...productErrors, inStock: '' });
+                        
+                        // Real-time validation as user types
+                        if (!e.target.value || e.target.value.trim() === "") {
+                          setProductErrors({ ...productErrors, inStock: 'Stock is required' });
+                        } else if (e.target.value.includes('-')) {
+                          setProductErrors({ ...productErrors, inStock: 'Stock cannot be negative' });
+                        } else {
+                          const stockValue = parseFloat(e.target.value);
+                          if (isNaN(stockValue)) {
+                            setProductErrors({ ...productErrors, inStock: 'Stock must be a valid number' });
+                          } else if (stockValue < 0) {
+                            setProductErrors({ ...productErrors, inStock: newProduct.category === 'Medicines' ? 'Stock quantity cannot be negative' : 'Stock weight cannot be negative' });
+                          } else if (stockValue === 0) {
+                            setProductErrors({ ...productErrors, inStock: newProduct.category === 'Medicines' ? 'Stock quantity must be greater than 0' : 'Stock weight must be greater than 0' });
+                          } else {
+                            setProductErrors({ ...productErrors, inStock: '' });
+                          }
                         }
                       }}
+                      min="0" step="1"
                       className={`w-full px-3 py-2 border ${productErrors.inStock ? 'border-red-500' : 'border-gray-300'} rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500`}
                       placeholder={newProduct.category === 'Medicines' ? 'Enter quantity (e.g., 100 tablets)' : 'Enter weight in grams (e.g., 500)'}
                     />

@@ -35,8 +35,10 @@ function UploadHerb() {
     const priceNum = parseFloat(priceStr);
     if (!priceStr || priceStr === "0.00") {
       newErrors.price = "Price is required";
-    } else if (isNaN(priceNum) || priceNum <= 0) {
-      newErrors.price = "Price must be a valid positive number";
+    } else if (isNaN(priceNum)) {
+      newErrors.price = "Price must be a valid number";
+    } else if (priceNum <= 0) {
+      newErrors.price = "Price must be a positive number";
     } else if (priceNum < 50) {
       newErrors.price = "Price must be at least ₹50.00";
     }
@@ -46,8 +48,12 @@ function UploadHerb() {
     const weightNum = parseFloat(weightStr);
     if (!weightStr) {
       newErrors.stockWeight = "Stock weight is required";
-    } else if (isNaN(weightNum) || weightNum <= 0) {
-      newErrors.stockWeight = "Weight must be a valid positive number";
+    } else if (isNaN(weightNum)) {
+      newErrors.stockWeight = "Weight must be a valid number";
+    } else if (weightNum < 0) {
+      newErrors.stockWeight = "Weight cannot be negative";
+    } else if (weightNum === 0) {
+      newErrors.stockWeight = "Weight must be greater than 0";
     } else if (weightNum < 1) {
       newErrors.stockWeight = "Weight must be at least 1 gram";
     }
@@ -141,12 +147,20 @@ function UploadHerb() {
 
   const handleStockWeightChange = (value) => {
     setStockWeight(value);
+    
+    // Real-time validation as user types
     if (!value || value.trim() === "") {
       setFieldError("stockWeight", "Stock weight is required");
+    } else if (value.includes('-')) {
+      setFieldError("stockWeight", "Weight cannot be negative");
     } else {
       const weightNum = parseFloat(value);
-      if (isNaN(weightNum) || weightNum <= 0) {
-        setFieldError("stockWeight", "Weight must be a valid positive number");
+      if (isNaN(weightNum)) {
+        setFieldError("stockWeight", "Weight must be a valid number");
+      } else if (weightNum < 0) {
+        setFieldError("stockWeight", "Weight cannot be negative");
+      } else if (weightNum === 0) {
+        setFieldError("stockWeight", "Weight must be greater than 0");
       } else if (weightNum < 1) {
         setFieldError("stockWeight", "Weight must be at least 1 gram");
       } else {
@@ -247,7 +261,7 @@ function UploadHerb() {
             onChange={e => handlePriceChange(e.target.value)} 
             error={!!errors.price} 
             helperText={errors.price || "Minimum ₹50.00"} 
-            inputProps={{ min: 50, step: 0.01 }}
+            inputProps={{ min: "50", step: "0.01" }}
           />
 
           {/* Stock Weight */}
@@ -260,7 +274,7 @@ function UploadHerb() {
             error={!!errors.stockWeight} 
             helperText={errors.stockWeight || "Enter weight in grams (1000g = 1kg)"} 
             placeholder="Enter weight in grams (e.g., 500)"
-            inputProps={{ min: 1, step: 1 }}
+            inputProps={{ min: "1", step: "1" }}
           />
 
           {/* Quality and Grade Row */}
