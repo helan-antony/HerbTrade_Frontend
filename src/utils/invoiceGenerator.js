@@ -1,5 +1,5 @@
 import { jsPDF } from "jspdf";
-import "jspdf-autotable";
+import autoTable from "jspdf-autotable";
 
 /**
  * Generate PDF invoice for an order
@@ -82,7 +82,8 @@ export const generateInvoice = (order, user) => {
   const subtotal = order.totalAmount / 1.18;
   const tax = order.totalAmount - subtotal;
 
-  doc.autoTable({
+  // Use the autoTable function directly
+  autoTable(doc, {
     startY: 100,
     head: [['Item', 'Quantity', 'Unit Price', 'Total']],
     body: items,

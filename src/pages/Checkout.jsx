@@ -234,8 +234,15 @@ function Checkout() {
             // For now, we'll just show success since the order was already created
             // In a real implementation, you would verify the payment with Razorpay
             toast.success('Order placed successfully!');
-            localStorage.removeItem('cartItems');
-            setTimeout(() => navigate('/order-confirmation'), 1500);
+            
+            // Remove ordered items from cart
+            await removeOrderedItemsFromCart(cartItems);
+            
+            // Download invoice automatically
+            downloadInvoiceAutomatically(orderRes.data.order);
+            
+            // Navigate to order confirmation page with the order ID
+            setTimeout(() => navigate(`/order-confirmation/${orderId}`), 1500);
           },
           prefill: {
             name: shippingInfo.fullName,
@@ -248,7 +255,7 @@ function Checkout() {
         rzp.open();
       } else {
         // Cash on Delivery
-        await axios.post(
+        const orderRes = await axios.post(
           `${import.meta.env.VITE_API_URL || ''}/api/orders`,
           {
             items: cartItems,
@@ -259,9 +266,18 @@ function Checkout() {
           },
           { headers: getAuthHeaders() }
         );
+        
         toast.success('Order placed successfully!');
-        localStorage.removeItem('cartItems');
-        setTimeout(() => navigate('/order-confirmation'), 1500);
+        
+        // Remove ordered items from cart
+        await removeOrderedItemsFromCart(cartItems);
+        
+        // Download invoice automatically
+        downloadInvoiceAutomatically(orderRes.data.order);
+        
+        // Navigate to order confirmation page with the order ID
+        const orderId = orderRes.data.orderId || orderRes.data.order?._id;
+        setTimeout(() => navigate(`/order-confirmation/${orderId}`), 1500);
       }
     } catch (err) {
       console.error('Order placement error:', err);
@@ -271,6 +287,75 @@ function Checkout() {
       setSubmitting(false);
     }
   }
+  
+  // Function to remove ordered items from cart
+  async function removeOrderedItemsFromCart(orderedItems) {
+    try {
+      // Remove items from backend cart
+      for (const item of orderedItems) {
+        // Extract product ID based on item structure
+        const productId = item.productId?._id || item.productId || item.product?._id || item._id;
+        if (productId) {
+          try {
+            await axios.delete(`${import.meta.env.VITE_API_URL || ''}/api/cart/remove/${productId}`, {
+              headers: getAuthHeaders()
+            });
+          } catch (deleteError) {
+            console.warn(`Failed to remove item ${productId} from backend cart:`, deleteError);
+            // Continue with other items even if one fails
+          }
+        }
+      }
+      
+      // Clear localStorage cart
+      localStorage.removeItem('cartItems');
+      
+      // Update cart items in state
+      setCartItems([]);
+      
+      // Dispatch event to update navbar cart count
+      window.dispatchEvent(new Event('cartUpdated'));
+    } catch (error) {
+      console.error('Error removing ordered items from cart:', error);
+      // Even if we fail to remove from backend, clear localStorage
+      localStorage.removeItem('cartItems');
+      setCartItems([]);
+      window.dispatchEvent(new Event('cartUpdated'));
+    }
+  }
+  
+  // Function to automatically download invoice after order placement
+  function downloadInvoiceAutomatically(orderData) {
+    try {
+      import('../utils/invoiceGenerator').then(({ generateInvoice, downloadInvoice }) => {
+        const user = JSON.parse(localStorage.getItem('user'));
+        const doc = generateInvoice(orderData, user);
+        const filename = `invoice-${orderData._id.slice(-8).toUpperCase()}.pdf`;
+        downloadInvoice(doc, filename);
+        toast.success('Invoice downloaded successfully!');
+      }).catch(error => {
+        console.error('Error importing invoice generator:', error);
+        toast.info('Your order was placed successfully! You can download the invoice from the order confirmation page.');
+      });
+    } catch (error) {
+      console.error('Error auto-downloading invoice:', error);
+      toast.info('Your order was placed successfully! You can download the invoice from the order confirmation page.');
+    }
+  }
+  
+  // Helper function to get product ID from cart item
+  const getProductId = (item) => {
+    if (item.productId && typeof item.productId === 'object' && item.productId._id) {
+      return item.productId._id;
+    } else if (item.product && typeof item.product === 'object' && item.product._id) {
+      return item.product._id;
+    } else if (typeof item.productId === 'string') {
+      return item.productId;
+    } else {
+      return item._id;
+    }
+  };
+
   // Helper functions for order summary
   function getTotalPrice() {
     return cartItems.reduce((total, item) => {

@@ -78,7 +78,7 @@ function OrderConfirmation() {
   const fetchOrderDetails = async () => {
     try {
       setLoading(true);
-      const response = await axios.get(`http://localhost:5000/api/orders/${orderId}`, {
+      const response = await axios.get(`${import.meta.env.VITE_API_URL || ''}/api/orders/${orderId}`, {
         headers: getAuthHeaders()
       });
       
@@ -97,7 +97,7 @@ function OrderConfirmation() {
     } catch (error) {
       console.error('Error fetching order:', error);
       setError('Failed to load order details');
-      toast.error('Failed to load order details');
+      toast.error('Failed to load order details. Please try again later.');
     } finally {
       setLoading(false);
     }
@@ -132,10 +132,15 @@ function OrderConfirmation() {
   const handleDownloadInvoice = () => {
     try {
       const user = JSON.parse(localStorage.getItem('user'));
-      const doc = generateInvoice(order, user);
-      const filename = `invoice-${order._id.slice(-8).toUpperCase()}.pdf`;
-      downloadInvoice(doc, filename);
-      toast.success('Invoice downloaded successfully!');
+      import('../utils/invoiceGenerator').then(({ generateInvoice, downloadInvoice }) => {
+        const doc = generateInvoice(order, user);
+        const filename = `invoice-${order._id.slice(-8).toUpperCase()}.pdf`;
+        downloadInvoice(doc, filename);
+        toast.success('Invoice downloaded successfully!');
+      }).catch(error => {
+        console.error('Error importing invoice generator:', error);
+        toast.error('Failed to generate invoice. Please try again.');
+      });
     } catch (error) {
       console.error('Error generating invoice:', error);
       toast.error('Failed to generate invoice. Please try again.');
@@ -194,16 +199,22 @@ function OrderConfirmation() {
           <p className="text-lg text-emerald-600 font-semibold">
             Order ID: #{order._id.slice(-8).toUpperCase()}
           </p>
+          <div className="mt-4 p-4 bg-emerald-50 rounded-2xl border border-emerald-200 max-w-2xl mx-auto">
+            <p className="text-emerald-700 flex items-center justify-center">
+              <FaDownload className="mr-2" />
+              Your invoice has been automatically downloaded. Check your downloads folder!
+            </p>
+          </div>
         </div>
 
         {/* Action Buttons */}
         <div className="flex flex-wrap justify-center gap-4 mb-12">
           <button
-            onClick={() => navigate('/herbs')}
+            onClick={() => navigate('/dashboard')}
             className="group flex items-center text-slate-600 hover:text-emerald-600 transition-all duration-300 bg-white/80 backdrop-blur-sm px-6 py-3 rounded-2xl shadow-lg hover:shadow-xl border border-white/50"
           >
             <FaArrowLeft className="mr-3 group-hover:-translate-x-1 transition-transform duration-300" />
-            <span className="font-semibold">Continue Shopping</span>
+            <span className="font-semibold">Go to Dashboard</span>
           </button>
           
           <button
@@ -212,6 +223,14 @@ function OrderConfirmation() {
           >
             <FaPrint className="mr-3 group-hover:scale-110 transition-transform duration-300" />
             <span className="font-semibold">Print Order</span>
+          </button>
+          
+          <button
+            onClick={handleDownloadInvoice}
+            className="group flex items-center text-blue-600 hover:text-blue-700 transition-all duration-300 bg-blue-50 hover:bg-blue-100 px-6 py-3 rounded-2xl shadow-lg hover:shadow-xl border border-blue-200"
+          >
+            <FaDownload className="mr-3 group-hover:scale-110 transition-transform duration-300" />
+            <span className="font-semibold">Download Invoice</span>
           </button>
         </div>
 
