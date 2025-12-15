@@ -35,6 +35,15 @@ const getAuthHeaders = () => {
   };
 };
 const isAuthenticated = () => !!(getAuthToken() && localStorage.getItem('user'));
+const getCurrentUser = () => {
+  try {
+    const user = localStorage.getItem('user');
+    return user ? JSON.parse(user) : null;
+  } catch (error) {
+    console.error('Error parsing user data:', error);
+    return null;
+  }
+};
 const logout = () => {
   localStorage.removeItem('token');
   localStorage.removeItem('user');
@@ -59,6 +68,26 @@ function Checkout() {
     } else {
       setCartItems([]);
     }
+    
+    // Auto-populate shipping info with user details if authenticated
+    if (isAuthenticated()) {
+      const user = getCurrentUser();
+      if (user) {
+        setShippingInfo(prev => ({
+          ...prev,
+          fullName: prev.fullName || user.name || '',
+          email: prev.email || user.email || '',
+          phone: prev.phone || user.phone || '',
+          // Only populate address fields if they're completely empty
+          address: prev.address || '',
+          city: prev.city || '',
+          state: prev.state || '',
+          pincode: prev.pincode || '',
+          country: prev.country || 'India'
+        }));
+      }
+    }
+    
     setLoading(false);
   }, []);
 
