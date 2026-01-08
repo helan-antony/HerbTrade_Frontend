@@ -55,40 +55,79 @@ const logout = () => {
 function Checkout() {
   const [cartItems, setCartItems] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [isEditingAddress, setIsEditingAddress] = useState(true); // Default to editing if no address found
+  const [savedAddress, setSavedAddress] = useState(null); // Store the fetched saved address
 
-  // Load cart items from localStorage on mount
+  // Load cart items and user profile on mount
   useEffect(() => {
-    const storedCart = localStorage.getItem('cartItems');
-    if (storedCart) {
-      try {
-        setCartItems(JSON.parse(storedCart));
-      } catch (e) {
+    const loadData = async () => {
+      // 1. Load Cart
+      const storedCart = localStorage.getItem('cartItems');
+      if (storedCart) {
+        try {
+          setCartItems(JSON.parse(storedCart));
+        } catch (e) {
+          setCartItems([]);
+        }
+      } else {
         setCartItems([]);
       }
-    } else {
-      setCartItems([]);
-    }
-    
-    // Auto-populate shipping info with user details if authenticated
-    if (isAuthenticated()) {
-      const user = getCurrentUser();
-      if (user) {
-        setShippingInfo(prev => ({
-          ...prev,
-          fullName: prev.fullName || user.name || '',
-          email: prev.email || user.email || '',
-          phone: prev.phone || user.phone || '',
-          // Only populate address fields if they're completely empty
-          address: prev.address || '',
-          city: prev.city || '',
-          state: prev.state || '',
-          pincode: prev.pincode || '',
-          country: prev.country || 'India'
-        }));
+
+      // 2. Load User Profile for Address
+      if (isAuthenticated()) {
+        try {
+          const res = await axios.get(`${import.meta.env.VITE_API_URL || ''}/api/auth/profile`, {
+            headers: getAuthHeaders()
+          });
+
+          if (res.data.success && res.data.user) {
+            const user = res.data.user;
+            // Check if user has a saved address
+            const hasAddress = user.address && user.city && user.pincode;
+
+            if (hasAddress) {
+              const addressData = {
+                fullName: user.name || '',
+                email: user.email || '',
+                phone: user.phone || '',
+                address: user.address || '',
+                city: user.city || '',
+                state: user.state || '',
+                pincode: user.pincode || '',
+                country: user.country || 'India'
+              };
+              setShippingInfo(addressData);
+              setSavedAddress(addressData);
+              setIsEditingAddress(false); // Switch to view mode
+            } else {
+              // Pre-fill basic info but stay in edit mode
+              setShippingInfo(prev => ({
+                ...prev,
+                fullName: user.name || '',
+                email: user.email || '',
+                phone: user.phone || ''
+              }));
+              setIsEditingAddress(true);
+            }
+          }
+        } catch (err) {
+          console.error("Failed to fetch user profile for checkout:", err);
+          // Fallback to localStorage basic info if API fails
+          const user = getCurrentUser();
+          if (user) {
+            setShippingInfo(prev => ({
+              ...prev,
+              fullName: prev.fullName || user.name || '',
+              email: prev.email || user.email || '',
+              phone: prev.phone || user.phone || ''
+            }));
+          }
+        }
       }
-    }
-    
-    setLoading(false);
+      setLoading(false);
+    };
+
+    loadData();
   }, []);
 
   // Check for invalid cart items (missing price or quantity)
@@ -104,7 +143,7 @@ function Checkout() {
       }
     }
   }, [cartItems]);
-  
+
   // Validation errors state
   const [validationErrors, setValidationErrors] = useState({});
 
@@ -168,7 +207,7 @@ function Checkout() {
       ...prev,
       [field]: value
     }));
-    
+
     // Real-time validation
     let error = "";
     switch (field) {
@@ -196,7 +235,7 @@ function Checkout() {
       default:
         break;
     }
-    
+
     setValidationErrors(prev => ({
       ...prev,
       [field]: error
@@ -209,7 +248,7 @@ function Checkout() {
       toast.error('Your cart is empty.');
       return;
     }
-    
+
     // Validate all fields
     const errors = {};
     errors.fullName = validateFullName(shippingInfo.fullName);
@@ -219,16 +258,18 @@ function Checkout() {
     errors.address = validateAddress(shippingInfo.address);
     errors.city = validateCity(shippingInfo.city);
     errors.state = validateState(shippingInfo.state);
-    
+
     setValidationErrors(errors);
-    
+
     // Check if there are any validation errors
     const hasErrors = Object.values(errors).some(error => error !== "");
     if (hasErrors) {
       toast.error('Please fix the validation errors before placing your order.');
+      // Scroll to top to see errors
+      window.scrollTo({ top: 0, behavior: 'smooth' });
       return;
     }
-    
+
     setSubmitting(true);
     try {
       if (paymentMethod === 'razorpay') {
@@ -239,38 +280,58 @@ function Checkout() {
           setSubmitting(false);
           return;
         }
+
+        // Prepare cart items and total
+        const items = cartItems.map(item => ({
+          product: getProductId(item),
+          quantity: item.quantity
+        }));
+
+        const orderData = {
+          items,
+          totalAmount: getFinalTotal(),
+          shippingAddress: shippingInfo,
+          paymentMethod,
+          notes: orderNotes
+        };
+
         // Create order on backend
         const orderRes = await axios.post(
           `${import.meta.env.VITE_API_URL || ''}/api/orders`,
-          {
-            items: cartItems,
-            shippingAddress: shippingInfo,
-            paymentMethod: 'online',
-            notes: orderNotes,
-            totalAmount: getFinalTotal()
-          },
+          orderData,
           { headers: getAuthHeaders() }
         );
-        const { orderId, razorpayKey } = orderRes.data;
+
+        if (!orderRes.data.success) {
+          throw new Error(orderRes.data.message || 'Failed to initialize order');
+        }
+
+        const { orderId, razorpayOrderId, razorpayKey, amount, currency } = orderRes.data;
+
+        if (!razorpayOrderId) {
+          throw new Error('Failed to get payment details from server');
+        }
+
         const options = {
           key: razorpayKey,
-          amount: Math.round(getFinalTotal() * 100),
-          currency: 'INR',
+          amount: amount,
+          currency: currency || 'INR',
           name: 'HerbTrade',
-          description: 'Order Payment',
-          order_id: orderId,
+          description: 'Herbal Products Purchase',
+          order_id: razorpayOrderId,
           handler: async function (response) {
             // For now, we'll just show success since the order was already created
             // In a real implementation, you would verify the payment with Razorpay
-            toast.success('Order placed successfully!');
-            
+            toast.success('Payment Successful!');
+
             // Remove ordered items from cart
             await removeOrderedItemsFromCart(cartItems);
-            
+
             // Download invoice automatically
             downloadInvoiceAutomatically(orderRes.data.order);
-            
+
             // Navigate to order confirmation page with the order ID
+            // Using backend Order ID for our internal routing, not value returned by Razorpay hook
             setTimeout(() => navigate(`/order-confirmation/${orderId}`), 1500);
           },
           prefill: {
@@ -278,45 +339,65 @@ function Checkout() {
             email: shippingInfo.email,
             contact: shippingInfo.phone
           },
-          theme: { color: '#10b981' }
+          theme: { color: '#10b981' },
+          modal: {
+            ondismiss: function () {
+              setSubmitting(false);
+              toast.info('Payment cancelled or closed.');
+            }
+          }
         };
         const rzp = new window.Razorpay(options);
+        rzp.on('payment.failed', function (response) {
+          console.error("Payment Failed:", response.error);
+          toast.error(`Payment Failed: ${response.error.description}`);
+          // Don't auto-navigate on failure, let user try again or choose COD
+          setSubmitting(false);
+        });
         rzp.open();
+        // Do not setSubmitting(false) here, wait for handler or dismiss
       } else {
         // Cash on Delivery
+        const items = cartItems.map(item => ({
+          product: getProductId(item),
+          quantity: item.quantity
+        }));
+
+        const orderData = {
+          items,
+          totalAmount: getFinalTotal(),
+          shippingAddress: shippingInfo,
+          paymentMethod: 'cod',
+          notes: orderNotes
+        };
+
         const orderRes = await axios.post(
           `${import.meta.env.VITE_API_URL || ''}/api/orders`,
-          {
-            items: cartItems,
-            shippingAddress: shippingInfo,
-            paymentMethod: 'cod',
-            notes: orderNotes,
-            totalAmount: getFinalTotal()
-          },
+          orderData,
           { headers: getAuthHeaders() }
         );
-        
+
         toast.success('Order placed successfully!');
-        
+
         // Remove ordered items from cart
         await removeOrderedItemsFromCart(cartItems);
-        
+
         // Download invoice automatically
         downloadInvoiceAutomatically(orderRes.data.order);
-        
+
         // Navigate to order confirmation page with the order ID
         const orderId = orderRes.data.orderId || orderRes.data.order?._id;
         setTimeout(() => navigate(`/order-confirmation/${orderId}`), 1500);
+        setSubmitting(false);
       }
     } catch (err) {
       console.error('Order placement error:', err);
       const errorMessage = err.response?.data?.error || err.response?.data?.message || err.message || 'Failed to place order. Please try again.';
       toast.error(errorMessage);
-    } finally {
       setSubmitting(false);
     }
   }
-  
+
   // Function to remove ordered items from cart
   async function removeOrderedItemsFromCart(orderedItems) {
     try {
@@ -335,13 +416,13 @@ function Checkout() {
           }
         }
       }
-      
+
       // Clear localStorage cart
       localStorage.removeItem('cartItems');
-      
+
       // Update cart items in state
       setCartItems([]);
-      
+
       // Dispatch event to update navbar cart count
       window.dispatchEvent(new Event('cartUpdated'));
     } catch (error) {
@@ -352,7 +433,7 @@ function Checkout() {
       window.dispatchEvent(new Event('cartUpdated'));
     }
   }
-  
+
   // Function to automatically download invoice after order placement
   function downloadInvoiceAutomatically(orderData) {
     try {
@@ -371,7 +452,7 @@ function Checkout() {
       toast.info('Your order was placed successfully! You can download the invoice from the order confirmation page.');
     }
   }
-  
+
   // Helper function to get product ID from cart item
   const getProductId = (item) => {
     if (item.productId && typeof item.productId === 'object' && item.productId._id) {
@@ -464,173 +545,217 @@ function Checkout() {
           <div className="lg:col-span-2 space-y-8">
             {/* Shipping Information */}
             <div className="bg-white/80 backdrop-blur-sm rounded-3xl shadow-lg p-8 border border-white/50">
-              <h2 className="text-2xl font-playfair font-bold text-slate-900 mb-6 flex items-center">
-                <FaMapMarkerAlt className="mr-3 text-emerald-600" />
-                Shipping Information
-              </h2>
-              <div className="grid md:grid-cols-2 gap-6">
-                <div>
-                  <label className="block text-sm font-semibold text-slate-700 mb-2">
-                    <FaUser className="inline mr-2 text-emerald-600" />
-                    Full Name *
-                  </label>
-                  <input
-                    type="text"
-                    value={shippingInfo.fullName}
-                    onChange={(e) => handleInputChange('fullName', e.target.value)}
-                    className={`w-full px-4 py-3 border rounded-xl focus:ring-2 focus:border-emerald-500 transition-all duration-300 ${
-                      validationErrors.fullName 
-                        ? 'border-red-500 focus:ring-red-500/20' 
-                        : 'border-slate-300 focus:ring-emerald-500/20'
-                    }`}
-                    placeholder="Enter your full name"
-                  />
-                  {validationErrors.fullName && (
-                    <div className="flex items-center mt-1 text-red-500 text-sm">
-                      <FaExclamationTriangle className="mr-1" />
-                      <span>{validationErrors.fullName}</span>
-                    </div>
-                  )}
-                </div>
-                <div>
-                  <label className="block text-sm font-semibold text-slate-700 mb-2">
-                    <FaEnvelope className="inline mr-2 text-emerald-600" />
-                    Email Address *
-                  </label>
-                  <input
-                    type="email"
-                    value={shippingInfo.email}
-                    onChange={(e) => handleInputChange('email', e.target.value)}
-                    className={`w-full px-4 py-3 border rounded-xl focus:ring-2 focus:border-emerald-500 transition-all duration-300 ${
-                      validationErrors.email 
-                        ? 'border-red-500 focus:ring-red-500/20' 
-                        : 'border-slate-300 focus:ring-emerald-500/20'
-                    }`}
-                    placeholder="Enter your email"
-                  />
-                  {validationErrors.email && (
-                    <div className="flex items-center mt-1 text-red-500 text-sm">
-                      <FaExclamationTriangle className="mr-1" />
-                      <span>{validationErrors.email}</span>
-                    </div>
-                  )}
-                </div>
-                <div>
-                  <label className="block text-sm font-semibold text-slate-700 mb-2">
-                    <FaPhone className="inline mr-2 text-emerald-600" />
-                    Phone Number *
-                  </label>
-                  <input
-                    type="tel"
-                    value={shippingInfo.phone}
-                    onChange={(e) => handleInputChange('phone', e.target.value)}
-                    className={`w-full px-4 py-3 border rounded-xl focus:ring-2 focus:border-emerald-500 transition-all duration-300 ${
-                      validationErrors.phone 
-                        ? 'border-red-500 focus:ring-red-500/20' 
-                        : 'border-slate-300 focus:ring-emerald-500/20'
-                    }`}
-                    placeholder="Enter 10-digit phone number"
-                  />
-                  {validationErrors.phone && (
-                    <div className="flex items-center mt-1 text-red-500 text-sm">
-                      <FaExclamationTriangle className="mr-1" />
-                      <span>{validationErrors.phone}</span>
-                    </div>
-                  )}
-                </div>
-                <div>
-                  <label className="block text-sm font-semibold text-slate-700 mb-2">
-                    <FaGlobe className="inline mr-2 text-emerald-600" />
-                    Pincode *
-                  </label>
-                  <input
-                    type="text"
-                    value={shippingInfo.pincode}
-                    onChange={(e) => handleInputChange('pincode', e.target.value)}
-                    className={`w-full px-4 py-3 border rounded-xl focus:ring-2 focus:border-emerald-500 transition-all duration-300 ${
-                      validationErrors.pincode 
-                        ? 'border-red-500 focus:ring-red-500/20' 
-                        : 'border-slate-300 focus:ring-emerald-500/20'
-                    }`}
-                    placeholder="Enter 6-digit pincode"
-                  />
-                  {validationErrors.pincode && (
-                    <div className="flex items-center mt-1 text-red-500 text-sm">
-                      <FaExclamationTriangle className="mr-1" />
-                      <span>{validationErrors.pincode}</span>
-                    </div>
-                  )}
-                </div>
-                <div className="md:col-span-2">
-                  <label className="block text-sm font-semibold text-slate-700 mb-2">
-                    <FaHome className="inline mr-2 text-emerald-600" />
-                    Address *
-                  </label>
-                  <textarea
-                    value={shippingInfo.address}
-                    onChange={(e) => handleInputChange('address', e.target.value)}
-                    rows="3"
-                    className={`w-full px-4 py-3 border rounded-xl focus:ring-2 focus:border-emerald-500 transition-all duration-300 ${
-                      validationErrors.address 
-                        ? 'border-red-500 focus:ring-red-500/20' 
-                        : 'border-slate-300 focus:ring-emerald-500/20'
-                    }`}
-                    placeholder="Enter your complete address"
-                  />
-                  {validationErrors.address && (
-                    <div className="flex items-center mt-1 text-red-500 text-sm">
-                      <FaExclamationTriangle className="mr-1" />
-                      <span>{validationErrors.address}</span>
-                    </div>
-                  )}
-                </div>
-                <div>
-                  <label className="block text-sm font-semibold text-slate-700 mb-2">
-                    <FaCity className="inline mr-2 text-emerald-600" />
-                    City *
-                  </label>
-                  <input
-                    type="text"
-                    value={shippingInfo.city}
-                    onChange={(e) => handleInputChange('city', e.target.value)}
-                    className={`w-full px-4 py-3 border rounded-xl focus:ring-2 focus:border-emerald-500 transition-all duration-300 ${
-                      validationErrors.city 
-                        ? 'border-red-500 focus:ring-red-500/20' 
-                        : 'border-slate-300 focus:ring-emerald-500/20'
-                    }`}
-                    placeholder="Enter your city"
-                  />
-                  {validationErrors.city && (
-                    <div className="flex items-center mt-1 text-red-500 text-sm">
-                      <FaExclamationTriangle className="mr-1" />
-                      <span>{validationErrors.city}</span>
-                    </div>
-                  )}
-                </div>
-                <div>
-                  <label className="block text-sm font-semibold text-slate-700 mb-2">
-                    <FaGlobe className="inline mr-2 text-emerald-600" />
-                    State *
-                  </label>
-                  <input
-                    type="text"
-                    value={shippingInfo.state}
-                    onChange={(e) => handleInputChange('state', e.target.value)}
-                    className={`w-full px-4 py-3 border rounded-xl focus:ring-2 focus:border-emerald-500 transition-all duration-300 ${
-                      validationErrors.state 
-                        ? 'border-red-500 focus:ring-red-500/20' 
-                        : 'border-slate-300 focus:ring-emerald-500/20'
-                    }`}
-                    placeholder="Enter your state"
-                  />
-                  {validationErrors.state && (
-                    <div className="flex items-center mt-1 text-red-500 text-sm">
-                      <FaExclamationTriangle className="mr-1" />
-                      <span>{validationErrors.state}</span>
-                    </div>
-                  )}
-                </div>
+              <div className="flex justify-between items-center mb-6">
+                <h2 className="text-2xl font-playfair font-bold text-slate-900 flex items-center">
+                  <FaMapMarkerAlt className="mr-3 text-emerald-600" />
+                  Shipping Information
+                </h2>
+                {!isEditingAddress && (
+                  <button
+                    onClick={() => setIsEditingAddress(true)}
+                    className="text-emerald-600 font-semibold hover:text-emerald-700 underline flex items-center"
+                  >
+                    Change
+                  </button>
+                )}
               </div>
+
+              {!isEditingAddress ? (
+                // View Mode
+                <div className="bg-slate-50 p-6 rounded-2xl border border-slate-200 hover:border-emerald-300 transition-colors duration-300">
+                  <div className="flex items-start">
+                    <div className="bg-white p-3 rounded-full shadow-sm mr-4 text-emerald-600">
+                      <FaHome size={24} />
+                    </div>
+                    <div>
+                      <h3 className="font-bold text-slate-900 text-lg mb-1">{shippingInfo.fullName}</h3>
+                      <p className="text-slate-600 mb-1">{shippingInfo.address}</p>
+                      <p className="text-slate-600 mb-2">{shippingInfo.city}, {shippingInfo.state} - {shippingInfo.pincode}</p>
+                      <div className="flex flex-wrap gap-4 text-sm text-slate-500 mt-3">
+                        <div className="flex items-center">
+                          <FaPhone className="mr-2" />
+                          {shippingInfo.phone}
+                        </div>
+                        <div className="flex items-center">
+                          <FaEnvelope className="mr-2" />
+                          {shippingInfo.email}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              ) : (
+                // Edit Mode
+                <div className="grid md:grid-cols-2 gap-6 animate-fadeIn">
+                  <div>
+                    <label className="block text-sm font-semibold text-slate-700 mb-2">
+                      <FaUser className="inline mr-2 text-emerald-600" />
+                      Full Name *
+                    </label>
+                    <input
+                      type="text"
+                      value={shippingInfo.fullName}
+                      onChange={(e) => handleInputChange('fullName', e.target.value)}
+                      className={`w-full px-4 py-3 border rounded-xl focus:ring-2 focus:border-emerald-500 transition-all duration-300 ${validationErrors.fullName
+                        ? 'border-red-500 focus:ring-red-500/20'
+                        : 'border-slate-300 focus:ring-emerald-500/20'
+                        }`}
+                      placeholder="Enter your full name"
+                    />
+                    {validationErrors.fullName && (
+                      <div className="flex items-center mt-1 text-red-500 text-sm">
+                        <FaExclamationTriangle className="mr-1" />
+                        <span>{validationErrors.fullName}</span>
+                      </div>
+                    )}
+                  </div>
+                  <div>
+                    <label className="block text-sm font-semibold text-slate-700 mb-2">
+                      <FaEnvelope className="inline mr-2 text-emerald-600" />
+                      Email Address *
+                    </label>
+                    <input
+                      type="email"
+                      value={shippingInfo.email}
+                      onChange={(e) => handleInputChange('email', e.target.value)}
+                      className={`w-full px-4 py-3 border rounded-xl focus:ring-2 focus:border-emerald-500 transition-all duration-300 ${validationErrors.email
+                        ? 'border-red-500 focus:ring-red-500/20'
+                        : 'border-slate-300 focus:ring-emerald-500/20'
+                        }`}
+                      placeholder="Enter your email"
+                    />
+                    {validationErrors.email && (
+                      <div className="flex items-center mt-1 text-red-500 text-sm">
+                        <FaExclamationTriangle className="mr-1" />
+                        <span>{validationErrors.email}</span>
+                      </div>
+                    )}
+                  </div>
+                  <div>
+                    <label className="block text-sm font-semibold text-slate-700 mb-2">
+                      <FaPhone className="inline mr-2 text-emerald-600" />
+                      Phone Number *
+                    </label>
+                    <input
+                      type="tel"
+                      value={shippingInfo.phone}
+                      onChange={(e) => handleInputChange('phone', e.target.value)}
+                      className={`w-full px-4 py-3 border rounded-xl focus:ring-2 focus:border-emerald-500 transition-all duration-300 ${validationErrors.phone
+                        ? 'border-red-500 focus:ring-red-500/20'
+                        : 'border-slate-300 focus:ring-emerald-500/20'
+                        }`}
+                      placeholder="Enter 10-digit phone number"
+                    />
+                    {validationErrors.phone && (
+                      <div className="flex items-center mt-1 text-red-500 text-sm">
+                        <FaExclamationTriangle className="mr-1" />
+                        <span>{validationErrors.phone}</span>
+                      </div>
+                    )}
+                  </div>
+                  <div>
+                    <label className="block text-sm font-semibold text-slate-700 mb-2">
+                      <FaGlobe className="inline mr-2 text-emerald-600" />
+                      Pincode *
+                    </label>
+                    <input
+                      type="text"
+                      value={shippingInfo.pincode}
+                      onChange={(e) => handleInputChange('pincode', e.target.value)}
+                      className={`w-full px-4 py-3 border rounded-xl focus:ring-2 focus:border-emerald-500 transition-all duration-300 ${validationErrors.pincode
+                        ? 'border-red-500 focus:ring-red-500/20'
+                        : 'border-slate-300 focus:ring-emerald-500/20'
+                        }`}
+                      placeholder="Enter 6-digit pincode"
+                    />
+                    {validationErrors.pincode && (
+                      <div className="flex items-center mt-1 text-red-500 text-sm">
+                        <FaExclamationTriangle className="mr-1" />
+                        <span>{validationErrors.pincode}</span>
+                      </div>
+                    )}
+                  </div>
+                  <div className="md:col-span-2">
+                    <label className="block text-sm font-semibold text-slate-700 mb-2">
+                      <FaHome className="inline mr-2 text-emerald-600" />
+                      Address *
+                    </label>
+                    <textarea
+                      value={shippingInfo.address}
+                      onChange={(e) => handleInputChange('address', e.target.value)}
+                      rows="3"
+                      className={`w-full px-4 py-3 border rounded-xl focus:ring-2 focus:border-emerald-500 transition-all duration-300 ${validationErrors.address
+                        ? 'border-red-500 focus:ring-red-500/20'
+                        : 'border-slate-300 focus:ring-emerald-500/20'
+                        }`}
+                      placeholder="Enter your complete address"
+                    />
+                    {validationErrors.address && (
+                      <div className="flex items-center mt-1 text-red-500 text-sm">
+                        <FaExclamationTriangle className="mr-1" />
+                        <span>{validationErrors.address}</span>
+                      </div>
+                    )}
+                  </div>
+                  <div>
+                    <label className="block text-sm font-semibold text-slate-700 mb-2">
+                      <FaCity className="inline mr-2 text-emerald-600" />
+                      City *
+                    </label>
+                    <input
+                      type="text"
+                      value={shippingInfo.city}
+                      onChange={(e) => handleInputChange('city', e.target.value)}
+                      className={`w-full px-4 py-3 border rounded-xl focus:ring-2 focus:border-emerald-500 transition-all duration-300 ${validationErrors.city
+                        ? 'border-red-500 focus:ring-red-500/20'
+                        : 'border-slate-300 focus:ring-emerald-500/20'
+                        }`}
+                      placeholder="Enter your city"
+                    />
+                    {validationErrors.city && (
+                      <div className="flex items-center mt-1 text-red-500 text-sm">
+                        <FaExclamationTriangle className="mr-1" />
+                        <span>{validationErrors.city}</span>
+                      </div>
+                    )}
+                  </div>
+                  <div>
+                    <label className="block text-sm font-semibold text-slate-700 mb-2">
+                      <FaGlobe className="inline mr-2 text-emerald-600" />
+                      State *
+                    </label>
+                    <input
+                      type="text"
+                      value={shippingInfo.state}
+                      onChange={(e) => handleInputChange('state', e.target.value)}
+                      className={`w-full px-4 py-3 border rounded-xl focus:ring-2 focus:border-emerald-500 transition-all duration-300 ${validationErrors.state
+                        ? 'border-red-500 focus:ring-red-500/20'
+                        : 'border-slate-300 focus:ring-emerald-500/20'
+                        }`}
+                      placeholder="Enter your state"
+                    />
+                    {validationErrors.state && (
+                      <div className="flex items-center mt-1 text-red-500 text-sm">
+                        <FaExclamationTriangle className="mr-1" />
+                        <span>{validationErrors.state}</span>
+                      </div>
+                    )}
+                  </div>
+                  {savedAddress && (
+                    <div className="md:col-span-2 flex justify-end mt-2">
+                      <button
+                        onClick={() => {
+                          setShippingInfo(savedAddress);
+                          setIsEditingAddress(false);
+                        }}
+                        className="bg-slate-100 text-slate-600 hover:bg-slate-200 hover:text-slate-800 font-medium px-6 py-2 rounded-lg transition-colors"
+                      >
+                        Cancel
+                      </button>
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
             {/* Payment Method */}
             <div className="bg-white/80 backdrop-blur-sm rounded-3xl shadow-lg p-8 border border-white/50">
@@ -639,18 +764,16 @@ function Checkout() {
                 Payment Method
               </h2>
               <div className="space-y-4">
-                <div 
-                  className={`p-4 border-2 rounded-xl cursor-pointer transition-all duration-300 ${
-                    paymentMethod === 'cod' 
-                      ? 'border-emerald-500 bg-emerald-50' 
-                      : 'border-slate-200 hover:border-emerald-300'
-                  }`}
+                <div
+                  className={`p-4 border-2 rounded-xl cursor-pointer transition-all duration-300 ${paymentMethod === 'cod'
+                    ? 'border-emerald-500 bg-emerald-50'
+                    : 'border-slate-200 hover:border-emerald-300'
+                    }`}
                   onClick={() => setPaymentMethod('cod')}
                 >
                   <div className="flex items-center">
-                    <div className={`w-5 h-5 rounded-full border-2 mr-3 flex items-center justify-center ${
-                      paymentMethod === 'cod' ? 'border-emerald-500 bg-emerald-500' : 'border-slate-300'
-                    }`}>
+                    <div className={`w-5 h-5 rounded-full border-2 mr-3 flex items-center justify-center ${paymentMethod === 'cod' ? 'border-emerald-500 bg-emerald-500' : 'border-slate-300'
+                      }`}>
                       {paymentMethod === 'cod' && <FaCheck className="text-white text-xs" />}
                     </div>
                     <FaMoneyBillWave className="text-emerald-600 mr-3" />
@@ -660,26 +783,36 @@ function Checkout() {
                     </div>
                   </div>
                 </div>
-                <div 
-                  className={`p-4 border-2 rounded-xl cursor-pointer transition-all duration-300 ${
-                    paymentMethod === 'razorpay' 
-                      ? 'border-emerald-500 bg-emerald-50' 
-                      : 'border-slate-200 hover:border-emerald-300'
-                  }`}
-                  onClick={() => setPaymentMethod('razorpay')}
+                {/* Mock Payment / UPI Option */}
+                <div
+                  className={`p-4 border-2 rounded-xl cursor-pointer transition-all duration-300 ${paymentMethod === 'mock_online'
+                    ? 'border-emerald-500 bg-emerald-50'
+                    : 'border-slate-200 hover:border-emerald-300'
+                    }`}
+                  onClick={() => setPaymentMethod('mock_online')}
                 >
-                  <div className="flex items-center">
-                    <div className={`w-5 h-5 rounded-full border-2 mr-3 flex items-center justify-center ${
-                      paymentMethod === 'razorpay' ? 'border-emerald-500 bg-emerald-500' : 'border-slate-300'
-                    }`}>
-                      {paymentMethod === 'razorpay' && <FaCheck className="text-white text-xs" />}
+                  <div className="flex items-center mb-2">
+                    <div className={`w-5 h-5 rounded-full border-2 mr-3 flex items-center justify-center ${paymentMethod === 'mock_online' ? 'border-emerald-500 bg-emerald-500' : 'border-slate-300'
+                      }`}>
+                      {paymentMethod === 'mock_online' && <FaCheck className="text-white text-xs" />}
                     </div>
                     <FaCreditCard className="text-emerald-600 mr-3" />
                     <div>
-                      <h3 className="font-semibold text-slate-900">Razorpay (Card/UPI/Netbanking)</h3>
-                      <p className="text-sm text-slate-600">Pay securely online with Razorpay</p>
+                      <h3 className="font-semibold text-slate-900">UPI Payment</h3>
+                      <p className="text-sm text-slate-600">Pay securely using UPI</p>
                     </div>
                   </div>
+                  {paymentMethod === 'mock_online' && (
+                    <div className="ml-8 mt-2 animate-fadeIn">
+                      <input
+                        type="text"
+                        placeholder="Enter UPI ID (e.g. user@oksbi)"
+                        className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:border-emerald-500 focus:outline-none"
+                        onClick={(e) => e.stopPropagation()}
+                      />
+                      <p className="text-xs text-emerald-600 mt-1">Simulated payment mechanism</p>
+                    </div>
+                  )}
                 </div>
               </div>
             </div>
@@ -726,7 +859,7 @@ function Checkout() {
                             ? `${item.quantity} units`
                             : item.quantity < 1000
                               ? `${item.quantity}g`
-                              : `${(item.quantity/1000).toFixed(1)}kg`
+                              : `${(item.quantity / 1000).toFixed(1)}kg`
                           }
                         </p>
                       </div>
@@ -763,7 +896,7 @@ function Checkout() {
                 </div>
               </div>
               {/* Place Order Button */}
-              <button 
+              <button
                 onClick={handlePlaceOrder}
                 disabled={submitting || cartItems.length === 0}
                 className="w-full bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 disabled:from-slate-400 disabled:to-slate-500 text-white font-bold py-5 rounded-2xl shadow-xl hover:shadow-2xl transform hover:-translate-y-1 disabled:transform-none transition-all duration-300 text-lg mb-6 flex items-center justify-center"
@@ -788,21 +921,21 @@ function Checkout() {
             </div>
           </div>
         </div>
+        {/* Toast Container */}
+        <ToastContainer
+          position="top-right"
+          autoClose={3000}
+          hideProgressBar={false}
+          newestOnTop={false}
+          closeOnClick
+          rtl={false}
+          pauseOnFocusLoss
+          draggable
+          pauseOnHover
+          theme="light"
+          className="mt-16"
+        />
       </div>
-      {/* Toast Container */}
-      <ToastContainer
-        position="top-right"
-        autoClose={3000}
-        hideProgressBar={false}
-        newestOnTop={false}
-        closeOnClick
-        rtl={false}
-        pauseOnFocusLoss
-        draggable
-        pauseOnHover
-        theme="light"
-        className="mt-16"
-      />
     </div>
   );
 }

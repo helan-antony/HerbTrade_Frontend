@@ -18,6 +18,11 @@ import {
   FaPlus, FaDownload, FaSync, FaHeart, FaCalendarAlt,
   FaBell, FaTachometerAlt, FaFileExport, FaBars, FaTimes, FaSignOutAlt
 } from 'react-icons/fa';
+import {
+  LineChart, Line, AreaChart, Area, BarChart, Bar,
+  PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid,
+  Tooltip, Legend, ResponsiveContainer
+} from 'recharts';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'react-toastify';
 
@@ -118,7 +123,7 @@ function EnhancedAdminDashboard() {
     if (/\s$/.test(value)) return "Name cannot end with a space";
     if (/\s{2,}/.test(value)) return "Only single spaces allowed between words";
     if (/[^a-zA-Z\s]/.test(value)) return "Only letters and spaces allowed";
-    
+
     // Check if each word starts with capital letter
     const words = value.split(' ');
     for (let word of words) {
@@ -143,7 +148,7 @@ function EnhancedAdminDashboard() {
   const handleEmployeeFieldChange = (field, value) => {
     let error = "";
     let processedValue = value;
-    
+
     switch (field) {
       case 'name':
         // Only allow letters and single spaces, then capitalize first letter of each word
@@ -171,7 +176,7 @@ function EnhancedAdminDashboard() {
         setEmployeeData(prev => ({ ...prev, [field]: value }));
         break;
     }
-    
+
     setEmployeeValidationErrors(prev => ({ ...prev, [field]: error }));
   };
 
@@ -179,7 +184,7 @@ function EnhancedAdminDashboard() {
   const handleEditEmployeeFieldChange = (field, value) => {
     let error = "";
     let processedValue = value;
-    
+
     switch (field) {
       case 'name':
         // Only allow letters and single spaces, then capitalize first letter of each word
@@ -203,7 +208,7 @@ function EnhancedAdminDashboard() {
         setEditEmployeeData(prev => ({ ...prev, [field]: value }));
         break;
     }
-    
+
     setEditEmployeeValidationErrors(prev => ({ ...prev, [field]: error }));
   };
 
@@ -211,11 +216,11 @@ function EnhancedAdminDashboard() {
   const validateEmployeeForm = () => {
     const nameError = validateEmployeeName(employeeData.name);
     const emailError = validateEmployeeEmail(employeeData.email);
-    
+
     const errors = {};
     if (nameError) errors.name = nameError;
     if (emailError) errors.email = emailError;
-    
+
     setEmployeeValidationErrors(errors);
     return Object.keys(errors).length === 0;
   };
@@ -224,11 +229,11 @@ function EnhancedAdminDashboard() {
   const validateEditEmployeeForm = () => {
     const nameError = validateEmployeeName(editEmployeeData.name);
     const emailError = validateEmployeeEmail(editEmployeeData.email);
-    
+
     const errors = {};
     if (nameError) errors.name = nameError;
     if (emailError) errors.email = emailError;
-    
+
     setEditEmployeeValidationErrors(errors);
     return Object.keys(errors).length === 0;
   };
@@ -246,7 +251,7 @@ function EnhancedAdminDashboard() {
     if (editEmployeeData.role === 'delivery') fetchAddress();
     // eslint-disable-next-line
   }, [editEmployeeData.lat, editEmployeeData.lng, editEmployeeData.role]);
-  
+
   const navigate = useNavigate();
 
   const handleLogout = () => {
@@ -263,7 +268,7 @@ function EnhancedAdminDashboard() {
     try {
       setLoading(true);
       const token = localStorage.getItem('token');
-      
+
       if (!token) {
         navigate('/login');
         return;
@@ -355,7 +360,7 @@ function EnhancedAdminDashboard() {
     } catch (error) {
       console.error('Error fetching dashboard data:', error);
       toast.error('Failed to load dashboard data');
-      
+
       // Demo data fallback
       setUsers([
         {
@@ -387,7 +392,7 @@ function EnhancedAdminDashboard() {
           }
         }
       ]);
-      
+
       setEmployees([
         {
           _id: '1',
@@ -408,7 +413,7 @@ function EnhancedAdminDashboard() {
           createdAt: new Date().toISOString()
         }
       ]);
-      
+
       setStats({
         totalUsers: 150,
         totalSellers: 25,
@@ -425,7 +430,7 @@ function EnhancedAdminDashboard() {
     try {
       setActionLoading(true);
       const token = localStorage.getItem('token');
-      
+
       const response = await fetch(`http://localhost:5000/api/admin/users/${userId}/toggle-status`, {
         method: 'PUT',
         headers: {
@@ -436,8 +441,8 @@ function EnhancedAdminDashboard() {
 
       if (response.ok) {
         const result = await response.json();
-        setUsers(prev => prev.map(user => 
-          user._id === userId 
+        setUsers(prev => prev.map(user =>
+          user._id === userId
             ? { ...user, isActive: !currentStatus }
             : user
         ));
@@ -448,8 +453,8 @@ function EnhancedAdminDashboard() {
     } catch (error) {
       console.error('Error toggling user status:', error);
       // Demo success
-      setUsers(prev => prev.map(user => 
-        user._id === userId 
+      setUsers(prev => prev.map(user =>
+        user._id === userId
           ? { ...user, isActive: !currentStatus }
           : user
       ));
@@ -463,7 +468,7 @@ function EnhancedAdminDashboard() {
     try {
       setActionLoading(true);
       const token = localStorage.getItem('token');
-      
+
       const response = await fetch(`http://localhost:5000/api/admin/users/${userId}/details`, {
         headers: { 'Authorization': `Bearer ${token}` }
       });
@@ -503,7 +508,7 @@ function EnhancedAdminDashboard() {
       toast.error('Please fix the validation errors');
       return;
     }
-    
+
     try {
       setActionLoading(true);
       const token = localStorage.getItem('token');
@@ -657,7 +662,7 @@ function EnhancedAdminDashboard() {
       toast.error('Please fix the validation errors');
       return;
     }
-    
+
     try {
       setActionLoading(true);
       const token = localStorage.getItem('token');
@@ -698,9 +703,9 @@ function EnhancedAdminDashboard() {
     setBookingDetailsDialog(true);
   };
 
-  const handleEditBooking = () => {};
+  const handleEditBooking = () => { };
 
-  const handleDeleteBooking = () => {};
+  const handleDeleteBooking = () => { };
 
   const confirmDeleteBooking = async () => {
     if (!bookingToDelete) return;
@@ -989,7 +994,7 @@ function EnhancedAdminDashboard() {
         ));
         setLeaveDetailsDialog(false);
         toast.success(result.message);
-        
+
         // Refresh leave stats
         const statsResponse = await fetch('http://localhost:5000/api/admin/leaves/stats', {
           headers: { 'Authorization': `Bearer ${token}` }
@@ -1373,60 +1378,57 @@ function EnhancedAdminDashboard() {
         </div>
 
 
+
+
         {/* Navigation Tabs */}
         <div className="bg-white/80 backdrop-blur-sm rounded-3xl shadow-xl border border-white/50 p-6 mb-8">
           <div className="flex flex-wrap gap-4">
             <button
               onClick={() => setTabValue(0)}
-              className={`px-6 py-3 rounded-2xl font-semibold transition-all duration-300 flex items-center space-x-2 ${
-                tabValue === 0
-                  ? 'bg-gradient-to-r from-emerald-600 to-teal-600 text-white shadow-lg'
-                  : 'bg-slate-100 hover:bg-slate-200 text-slate-700 hover:scale-105'
-              }`}
+              className={`px-6 py-3 rounded-2xl font-semibold transition-all duration-300 flex items-center space-x-2 ${tabValue === 0
+                ? 'bg-gradient-to-r from-emerald-600 to-teal-600 text-white shadow-lg'
+                : 'bg-slate-100 hover:bg-slate-200 text-slate-700 hover:scale-105'
+                }`}
             >
               <FaUsers className="w-4 h-4" />
               <span>User Management</span>
             </button>
             <button
               onClick={() => setTabValue(1)}
-              className={`px-6 py-3 rounded-2xl font-semibold transition-all duration-300 flex items-center space-x-2 ${
-                tabValue === 1
-                  ? 'bg-gradient-to-r from-emerald-600 to-teal-600 text-white shadow-lg'
-                  : 'bg-slate-100 hover:bg-slate-200 text-slate-700 hover:scale-105'
-              }`}
+              className={`px-6 py-3 rounded-2xl font-semibold transition-all duration-300 flex items-center space-x-2 ${tabValue === 1
+                ? 'bg-gradient-to-r from-emerald-600 to-teal-600 text-white shadow-lg'
+                : 'bg-slate-100 hover:bg-slate-200 text-slate-700 hover:scale-105'
+                }`}
             >
               <FaUserCheck className="w-4 h-4" />
               <span>Employee Management</span>
             </button>
             <button
               onClick={() => setTabValue(2)}
-              className={`px-6 py-3 rounded-2xl font-semibold transition-all duration-300 flex items-center space-x-2 ${
-                tabValue === 2
-                  ? 'bg-gradient-to-r from-emerald-600 to-teal-600 text-white shadow-lg'
-                  : 'bg-slate-100 hover:bg-slate-200 text-slate-700 hover:scale-105'
-              }`}
+              className={`px-6 py-3 rounded-2xl font-semibold transition-all duration-300 flex items-center space-x-2 ${tabValue === 2
+                ? 'bg-gradient-to-r from-emerald-600 to-teal-600 text-white shadow-lg'
+                : 'bg-slate-100 hover:bg-slate-200 text-slate-700 hover:scale-105'
+                }`}
             >
               <FaHospital className="w-4 h-4" />
               <span>Hospital Bookings</span>
             </button>
             <button
               onClick={() => setTabValue(3)}
-              className={`px-6 py-3 rounded-2xl font-semibold transition-all duration-300 flex items-center space-x-2 ${
-                tabValue === 3
-                  ? 'bg-gradient-to-r from-emerald-600 to-teal-600 text-white shadow-lg'
-                  : 'bg-slate-100 hover:bg-slate-200 text-slate-700 hover:scale-105'
-              }`}
+              className={`px-6 py-3 rounded-2xl font-semibold transition-all duration-300 flex items-center space-x-2 ${tabValue === 3
+                ? 'bg-gradient-to-r from-emerald-600 to-teal-600 text-white shadow-lg'
+                : 'bg-slate-100 hover:bg-slate-200 text-slate-700 hover:scale-105'
+                }`}
             >
               <FaCalendarAlt className="w-4 h-4" />
               <span>Leave Management</span>
             </button>
             <button
               onClick={() => setTabValue(4)}
-              className={`px-6 py-3 rounded-2xl font-semibold transition-all duration-300 flex items-center space-x-2 ${
-                tabValue === 4
-                  ? 'bg-gradient-to-r from-emerald-600 to-teal-600 text-white shadow-lg'
-                  : 'bg-slate-100 hover:bg-slate-200 text-slate-700 hover:scale-105'
-              }`}
+              className={`px-6 py-3 rounded-2xl font-semibold transition-all duration-300 flex items-center space-x-2 ${tabValue === 4
+                ? 'bg-gradient-to-r from-emerald-600 to-teal-600 text-white shadow-lg'
+                : 'bg-slate-100 hover:bg-slate-200 text-slate-700 hover:scale-105'
+                }`}
             >
               <FaChartLine className="w-4 h-4" />
               <span>Analytics</span>
@@ -1501,11 +1503,10 @@ function EnhancedAdminDashboard() {
                         </div>
                       </td>
                       <td className="py-4 px-6">
-                        <span className={`px-3 py-1 text-xs font-medium rounded-full ${
-                          user.isActive
-                            ? 'bg-green-100 text-green-800'
-                            : 'bg-red-100 text-red-800'
-                        }`}>
+                        <span className={`px-3 py-1 text-xs font-medium rounded-full ${user.isActive
+                          ? 'bg-green-100 text-green-800'
+                          : 'bg-red-100 text-red-800'
+                          }`}>
                           {user.isActive ? 'Active' : 'Disabled'}
                         </span>
                       </td>
@@ -1521,11 +1522,10 @@ function EnhancedAdminDashboard() {
                           <button
                             onClick={() => toggleUserStatus(user._id, user.isActive)}
                             disabled={actionLoading}
-                            className={`p-2 rounded-lg transition-colors duration-200 disabled:opacity-50 ${
-                              user.isActive
-                                ? 'bg-red-100 hover:bg-red-200 text-red-600'
-                                : 'bg-green-100 hover:bg-green-200 text-green-600'
-                            }`}
+                            className={`p-2 rounded-lg transition-colors duration-200 disabled:opacity-50 ${user.isActive
+                              ? 'bg-red-100 hover:bg-red-200 text-red-600'
+                              : 'bg-green-100 hover:bg-green-200 text-green-600'
+                              }`}
                           >
                             {user.isActive ? <FaUserTimes className="w-4 h-4" /> : <FaUserCheck className="w-4 h-4" />}
                           </button>
@@ -1605,11 +1605,10 @@ function EnhancedAdminDashboard() {
                         </p>
                       </td>
                       <td className="py-4 px-6">
-                        <span className={`px-3 py-1 text-xs font-medium rounded-full ${
-                          employee.isActive
-                            ? 'bg-green-100 text-green-800'
-                            : 'bg-red-100 text-red-800'
-                        }`}>
+                        <span className={`px-3 py-1 text-xs font-medium rounded-full ${employee.isActive
+                          ? 'bg-green-100 text-green-800'
+                          : 'bg-red-100 text-red-800'
+                          }`}>
                           {employee.isActive ? 'Active' : 'Disabled'}
                         </span>
                       </td>
@@ -1691,20 +1690,18 @@ function EnhancedAdminDashboard() {
                         <p className="font-semibold text-slate-900">₹{booking.paymentDetails.consultationFee}</p>
                       </td>
                       <td className="py-4 px-6">
-                        <span className={`px-3 py-1 text-xs font-medium rounded-full ${
-                          booking.bookingStatus === 'Confirmed' ? 'bg-green-100 text-green-800' :
+                        <span className={`px-3 py-1 text-xs font-medium rounded-full ${booking.bookingStatus === 'Confirmed' ? 'bg-green-100 text-green-800' :
                           booking.bookingStatus === 'Pending' ? 'bg-yellow-100 text-yellow-800' :
-                          'bg-red-100 text-red-800'
-                        }`}>
+                            'bg-red-100 text-red-800'
+                          }`}>
                           {booking.bookingStatus}
                         </span>
                       </td>
                       <td className="py-4 px-6">
-                        <span className={`px-3 py-1 text-xs font-medium rounded-full ${
-                          booking.paymentDetails.paymentStatus === 'Paid' ? 'bg-green-100 text-green-800' :
+                        <span className={`px-3 py-1 text-xs font-medium rounded-full ${booking.paymentDetails.paymentStatus === 'Paid' ? 'bg-green-100 text-green-800' :
                           booking.paymentDetails.paymentStatus === 'Pending' ? 'bg-yellow-100 text-yellow-800' :
-                          'bg-red-100 text-red-800'
-                        }`}>
+                            'bg-red-100 text-red-800'
+                          }`}>
                           {booking.paymentDetails.paymentStatus}
                         </span>
                       </td>
@@ -1866,7 +1863,7 @@ function EnhancedAdminDashboard() {
                   ))}
                 </tbody>
               </table>
-              
+
               {leaves.length === 0 && (
                 <div className="text-center py-12">
                   <FaCalendarAlt className="w-16 h-16 text-slate-300 mx-auto mb-4" />
@@ -1881,6 +1878,86 @@ function EnhancedAdminDashboard() {
         {tabValue === 4 && (
           <div className="space-y-6">
             <h2 className="text-2xl font-playfair font-bold text-slate-900">Platform Analytics</h2>
+
+            {/* Analytics Graphs */}
+            {stats.revenueOverTime && (
+              <div className="mb-8">
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                  {/* Revenue Chart */}
+                  <div className="bg-white/80 backdrop-blur-sm rounded-3xl shadow-lg border border-white/50 p-6">
+                    <h3 className="text-lg font-semibold text-slate-700 mb-4">Revenue Trend (Last 7 Days)</h3>
+                    <div className="h-64">
+                      <ResponsiveContainer width="100%" height="100%">
+                        <AreaChart data={stats.revenueOverTime}>
+                          <defs>
+                            <linearGradient id="colorRevenue" x1="0" y1="0" x2="0" y2="1">
+                              <stop offset="5%" stopColor="#10B981" stopOpacity={0.8} />
+                              <stop offset="95%" stopColor="#10B981" stopOpacity={0} />
+                            </linearGradient>
+                          </defs>
+                          <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
+                          <XAxis dataKey="date" stroke="#64748b" fontSize={12} tickLine={false} axisLine={false} />
+                          <YAxis stroke="#64748b" fontSize={12} tickLine={false} axisLine={false} tickFormatter={(value) => `₹${value}`} />
+                          <Tooltip
+                            contentStyle={{ backgroundColor: '#fff', borderRadius: '12px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }}
+                            itemStyle={{ color: '#10B981', fontWeight: 'bold' }}
+                            formatter={(value) => [`₹${value}`, 'Revenue']}
+                          />
+                          <Area type="monotone" dataKey="revenue" stroke="#10B981" strokeWidth={3} fillOpacity={1} fill="url(#colorRevenue)" />
+                        </AreaChart>
+                      </ResponsiveContainer>
+                    </div>
+                  </div>
+
+                  {/* Order Status & Volume Grid */}
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                    {/* Order Volume Chart */}
+                    <div className="bg-white/80 backdrop-blur-sm rounded-3xl shadow-lg border border-white/50 p-6">
+                      <h3 className="text-lg font-semibold text-slate-700 mb-4">Orders (Last 7 Days)</h3>
+                      <div className="h-64">
+                        <ResponsiveContainer width="100%" height="100%">
+                          <BarChart data={stats.ordersOverTime}>
+                            <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e2e8f0" />
+                            <XAxis dataKey="date" stroke="#64748b" fontSize={12} tickLine={false} axisLine={false} />
+                            <Tooltip
+                              cursor={{ fill: '#f1f5f9' }}
+                              contentStyle={{ backgroundColor: '#fff', borderRadius: '12px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }}
+                            />
+                            <Bar dataKey="orders" fill="#3B82F6" radius={[4, 4, 0, 0]} barSize={30} />
+                          </BarChart>
+                        </ResponsiveContainer>
+                      </div>
+                    </div>
+
+                    {/* Status Distribution */}
+                    <div className="bg-white/80 backdrop-blur-sm rounded-3xl shadow-lg border border-white/50 p-6 flex flex-col items-center justify-center">
+                      <h3 className="text-lg font-semibold text-slate-700 mb-4 w-full text-left">Order Status</h3>
+                      <div className="h-48 w-full">
+                        <ResponsiveContainer width="100%" height="100%">
+                          <PieChart>
+                            <Pie
+                              data={stats.orderStatusDist}
+                              cx="50%"
+                              cy="50%"
+                              innerRadius={60}
+                              outerRadius={80}
+                              paddingAngle={5}
+                              dataKey="value"
+                            >
+                              {stats.orderStatusDist?.map((entry, index) => (
+                                <Cell key={`cell-${index}`} fill={['#10B981', '#3B82F6', '#F59E0B', '#EF4444', '#8B5CF6'][index % 5]} />
+                              ))}
+                            </Pie>
+                            <Tooltip />
+                            <Legend verticalAlign="bottom" height={36} iconType="circle" />
+                          </PieChart>
+                        </ResponsiveContainer>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               {/* User Engagement Card */}
@@ -3021,9 +3098,9 @@ function EnhancedAdminDashboard() {
                       label={selectedBooking.bookingStatus}
                       sx={{
                         backgroundColor: selectedBooking.bookingStatus === 'Confirmed' ? '#dcfce7' :
-                                        selectedBooking.bookingStatus === 'Pending' ? '#fef3c7' : '#fecaca',
+                          selectedBooking.bookingStatus === 'Pending' ? '#fef3c7' : '#fecaca',
                         color: selectedBooking.bookingStatus === 'Confirmed' ? '#166534' :
-                               selectedBooking.bookingStatus === 'Pending' ? '#92400e' : '#dc2626',
+                          selectedBooking.bookingStatus === 'Pending' ? '#92400e' : '#dc2626',
                         fontWeight: 600,
                         fontSize: '0.875rem',
                         px: 2,
@@ -3082,9 +3159,9 @@ function EnhancedAdminDashboard() {
                       label={selectedBooking.paymentDetails.paymentStatus}
                       sx={{
                         backgroundColor: selectedBooking.paymentDetails.paymentStatus === 'Paid' ? '#dcfce7' :
-                                        selectedBooking.paymentDetails.paymentStatus === 'Pending' ? '#fef3c7' : '#fecaca',
+                          selectedBooking.paymentDetails.paymentStatus === 'Pending' ? '#fef3c7' : '#fecaca',
                         color: selectedBooking.paymentDetails.paymentStatus === 'Paid' ? '#166534' :
-                               selectedBooking.paymentDetails.paymentStatus === 'Pending' ? '#92400e' : '#dc2626',
+                          selectedBooking.paymentDetails.paymentStatus === 'Pending' ? '#92400e' : '#dc2626',
                         fontWeight: 600,
                         fontSize: '0.875rem',
                         px: 2,
@@ -3594,9 +3671,9 @@ function EnhancedAdminDashboard() {
           }
         }}
       >
-        <DialogTitle sx={{ 
-          background: 'linear-gradient(135deg, #10b981, #059669)', 
-          color: 'white', 
+        <DialogTitle sx={{
+          background: 'linear-gradient(135deg, #10b981, #059669)',
+          color: 'white',
           fontWeight: 700,
           fontSize: '1.5rem',
           textAlign: 'center',
@@ -3732,9 +3809,9 @@ function EnhancedAdminDashboard() {
                       variant="contained"
                       color="success"
                       startIcon={<FaUserCheck />}
-                      sx={{ 
-                        px: 4, 
-                        py: 1.5, 
+                      sx={{
+                        px: 4,
+                        py: 1.5,
                         borderRadius: '12px',
                         fontWeight: 600,
                         textTransform: 'none'
@@ -3748,9 +3825,9 @@ function EnhancedAdminDashboard() {
                       variant="contained"
                       color="error"
                       startIcon={<FaUserTimes />}
-                      sx={{ 
-                        px: 4, 
-                        py: 1.5, 
+                      sx={{
+                        px: 4,
+                        py: 1.5,
                         borderRadius: '12px',
                         fontWeight: 600,
                         textTransform: 'none'

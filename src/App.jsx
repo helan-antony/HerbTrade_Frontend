@@ -26,7 +26,7 @@ import { ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 import ForgotPassword from "./pages/ForgotPassword";
 import ResetPassword from "./pages/ResetPassword";
-import AdminDashboard from "./pages/AdminDashboard";
+
 import SellerDashboard from "./pages/SellerDashboard";
 import Logout from "./pages/Logout";
 import EmployeeDashboard from "./pages/EmployeeDashboard";
@@ -92,7 +92,7 @@ function App() {
             <Route path="/reset-password" element={<ResetPassword />} />
             <Route path="/admin-dashboard" element={<ProtectedRoute adminOnly={true}><EnhancedAdminDashboard /></ProtectedRoute>} />
             <Route path="/admin-orders" element={<ProtectedRoute adminOnly={true}><AdminOrders /></ProtectedRoute>} />
-            <Route path="/admin" element={<ProtectedRoute adminOnly={true}><AdminDashboard /></ProtectedRoute>} />
+            
             <Route path="/herbs" element={<ProtectedRoute><HerbCatalog /></ProtectedRoute>} />
             <Route path="/profile" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
             <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
