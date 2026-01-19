@@ -149,6 +149,23 @@ export const API_ENDPOINTS = {
     DELETE: (commentId) => `${API_BASE_URL}/api/comments/${commentId}`,
   },
   
+  NEWSLETTER: {
+    GET_ALL: `${API_BASE_URL}/api/newsletters`,
+    GET_BY_ID: (newsletterId) => `${API_BASE_URL}/api/newsletters/${newsletterId}`,
+    CREATE: `${API_BASE_URL}/api/newsletters`,
+    UPDATE: (newsletterId) => `${API_BASE_URL}/api/newsletters/${newsletterId}`,
+    DELETE: (newsletterId) => `${API_BASE_URL}/api/newsletters/${newsletterId}`,
+    SEND: (newsletterId) => `${API_BASE_URL}/api/newsletters/send/${newsletterId}`,
+  },
+  
+  WELLNESS_COACH: {
+    GET_ALL: `${API_BASE_URL}/api/wellness-coaches`,
+    PROFILE: `${API_BASE_URL}/api/wellness-coaches/profile`,
+    UPDATE_PROFILE: `${API_BASE_URL}/api/wellness-coaches/profile`,
+    UPDATE_CLIENT_STATUS: (clientId) => `${API_BASE_URL}/api/wellness-coaches/clients/${clientId}/status`,
+    GET_CURRENT_PROGRAM: `${API_BASE_URL}/api/wellness-coaches/programs/current`,
+    CREATE_PROGRAM: `${API_BASE_URL}/api/wellness-coaches/programs`,
+  },
   HEALTH: `${API_BASE_URL}/api/health`,
   TEST: `${API_BASE_URL}/api/test`,
 };

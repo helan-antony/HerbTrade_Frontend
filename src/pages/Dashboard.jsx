@@ -155,6 +155,121 @@ function Dashboard() {
               </Card>
             </Grid>
           )}
+          
+          {user.role === 'wellness_coach' && (
+            <>
+              <Grid item xs={12} md={3}>
+                <Card
+                  sx={{
+                    cursor: 'pointer',
+                    background: 'rgba(255, 255, 255, 0.8)',
+                    backdropFilter: 'blur(10px)',
+                    borderRadius: '24px',
+                    border: '1px solid rgba(255, 255, 255, 0.5)',
+                    boxShadow: '0 8px 32px rgba(0, 0, 0, 0.1)',
+                    '&:hover': {
+                      transform: 'translateY(-8px) scale(1.02)',
+                      transition: 'all 0.3s',
+                      boxShadow: '0 16px 48px rgba(0, 0, 0, 0.15)'
+                    }
+                  }}
+                  onClick={() => navigate('/yoga-videos')}
+                >
+                  <CardContent sx={{ p: 4 }}>
+                    <Box sx={{
+                      p: 2,
+                      background: 'linear-gradient(135deg, #2d5016, #3a4d2d)',
+                      borderRadius: '16px',
+                      display: 'inline-block',
+                      mb: 2
+                    }}>
+                      <FaUserMd size={32} color="white" />
+                    </Box>
+                    <Typography variant="h6" fontWeight={700} mt={2} sx={{ fontFamily: 'Playfair Display' }}>
+                      Yoga Videos
+                    </Typography>
+                    <Typography color="text.secondary">
+                      Watch yoga tutorials and practices.
+                    </Typography>
+                  </CardContent>
+                </Card>
+              </Grid>
+              
+              <Grid item xs={12} md={3}>
+                <Card
+                  sx={{
+                    cursor: 'pointer',
+                    background: 'rgba(255, 255, 255, 0.8)',
+                    backdropFilter: 'blur(10px)',
+                    borderRadius: '24px',
+                    border: '1px solid rgba(255, 255, 255, 0.5)',
+                    boxShadow: '0 8px 32px rgba(0, 0, 0, 0.1)',
+                    '&:hover': {
+                      transform: 'translateY(-8px) scale(1.02)',
+                      transition: 'all 0.3s',
+                      boxShadow: '0 16px 48px rgba(0, 0, 0, 0.15)'
+                    }
+                  }}
+                  onClick={() => navigate('/exercise-videos')}
+                >
+                  <CardContent sx={{ p: 4 }}>
+                    <Box sx={{
+                      p: 2,
+                      background: 'linear-gradient(135deg, #a67c52, #c8a075)',
+                      borderRadius: '16px',
+                      display: 'inline-block',
+                      mb: 2
+                    }}>
+                      <FaUserMd size={32} color="white" />
+                    </Box>
+                    <Typography variant="h6" fontWeight={700} mt={2} sx={{ fontFamily: 'Playfair Display' }}>
+                      Exercise Videos
+                    </Typography>
+                    <Typography color="text.secondary">
+                      Watch exercise tutorials (non-gym).
+                    </Typography>
+                  </CardContent>
+                </Card>
+              </Grid>
+              
+              <Grid item xs={12} md={3}>
+                <Card
+                  sx={{
+                    cursor: 'pointer',
+                    background: 'rgba(255, 255, 255, 0.8)',
+                    backdropFilter: 'blur(10px)',
+                    borderRadius: '24px',
+                    border: '1px solid rgba(255, 255, 255, 0.5)',
+                    boxShadow: '0 8px 32px rgba(0, 0, 0, 0.1)',
+                    '&:hover': {
+                      transform: 'translateY(-8px) scale(1.02)',
+                      transition: 'all 0.3s',
+                      boxShadow: '0 16px 48px rgba(0, 0, 0, 0.15)'
+                    }
+                  }}
+                  onClick={() => navigate('/health-tips')}
+                >
+                  <CardContent sx={{ p: 4 }}>
+                    <Box sx={{
+                      p: 2,
+                      background: 'linear-gradient(135deg, #4caf50, #66bb6a)',
+                      borderRadius: '16px',
+                      display: 'inline-block',
+                      mb: 2
+                    }}>
+                      <FaLeaf size={32} color="white" />
+                    </Box>
+                    <Typography variant="h6" fontWeight={700} mt={2} sx={{ fontFamily: 'Playfair Display' }}>
+                      Health Tips
+                    </Typography>
+                    <Typography color="text.secondary">
+                      Read health and wellness tips.
+                    </Typography>
+                  </CardContent>
+                </Card>
+              </Grid>
+            </>
+          )}
         </Grid>
         {user.role === 'admin' && (
           <Box sx={{ mt: 4 }}>

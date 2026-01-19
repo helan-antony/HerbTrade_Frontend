@@ -131,7 +131,7 @@ function Navbar() {
     window.addEventListener('wishlistUpdated', updateCounts);
 
     const origSetItem = localStorage.setItem;
-    localStorage.setItem = function(key, value) {
+    localStorage.setItem = function (key, value) {
       origSetItem.apply(this, arguments);
       if (key === 'user') {
         window.dispatchEvent(new Event('userChanged'));
@@ -146,7 +146,7 @@ function Navbar() {
     };
 
     const origRemoveItem = localStorage.removeItem;
-    localStorage.removeItem = function(key) {
+    localStorage.removeItem = function (key) {
       origRemoveItem.apply(this, arguments);
       if (key === 'user') {
         window.dispatchEvent(new Event('userChanged'));
@@ -192,18 +192,18 @@ function Navbar() {
     localStorage.removeItem('wishlistItems');
     localStorage.removeItem('herbtradeCart');
     localStorage.removeItem('herbtradeWishlist');
-    
+
     setUser(null);
     setCartCount(0);
     setWishlistCount(0);
     setIsMenuOpen(false);
-    
+
     window.dispatchEvent(new Event('userChanged'));
     window.dispatchEvent(new Event('cartUpdated'));
     window.dispatchEvent(new Event('wishlistUpdated'));
-    
+
     navigate('/login');
-    
+
     setTimeout(() => {
       window.location.reload();
     }, 100);
@@ -248,11 +248,10 @@ function Navbar() {
                     <div className="relative user-dropdown">
                       <button
                         onClick={toggleMenu}
-                        className={`flex items-center space-x-4 px-6 py-3 rounded-2xl backdrop-blur-sm transition-all duration-500 font-semibold shadow-lg hover:shadow-2xl interactive-hover border-2 ${
-                          isMenuOpen 
-                            ? 'bg-gradient-to-r from-emerald-200/90 to-teal-200/90 text-emerald-800 border-emerald-300/50 shadow-emerald-200/50' 
-                            : 'bg-gradient-to-r from-emerald-100/80 to-teal-100/80 hover:from-emerald-200/80 hover:to-teal-200/80 text-emerald-700 border-emerald-200/30 hover:border-emerald-300/50'
-                        }`}
+                        className={`flex items-center space-x-4 px-6 py-3 rounded-2xl backdrop-blur-sm transition-all duration-500 font-semibold shadow-lg hover:shadow-2xl interactive-hover border-2 ${isMenuOpen
+                          ? 'bg-gradient-to-r from-emerald-200/90 to-teal-200/90 text-emerald-800 border-emerald-300/50 shadow-emerald-200/50'
+                          : 'bg-gradient-to-r from-emerald-100/80 to-teal-100/80 hover:from-emerald-200/80 hover:to-teal-200/80 text-emerald-700 border-emerald-200/30 hover:border-emerald-300/50'
+                          }`}
                         style={{ zIndex: 1000 }}
                         type="button"
                         aria-expanded={isMenuOpen}
@@ -270,7 +269,7 @@ function Navbar() {
                       </button>
 
                       {isMenuOpen && (
-                        <div 
+                        <div
                           className="absolute right-0 mt-4 w-72 bg-white/95 backdrop-blur-xl rounded-3xl py-4 shadow-2xl border border-emerald-100/50 animate-fade-in-scale"
                           style={{ zIndex: 9999 }}
                           onClick={(e) => e.stopPropagation()}
@@ -290,7 +289,7 @@ function Navbar() {
                               </div>
                             </div>
                           </div>
-                          
+
                           <div className="py-2">
                             <Link
                               to="/admin-dashboard"
@@ -319,9 +318,119 @@ function Navbar() {
                               <Package className="w-5 h-5 text-emerald-600 mr-1 group-hover:scale-110 transition-transform duration-300" />
                               <span>Orders</span>
                             </button>
-                            
+
+                            <button
+                              onClick={(e) => {
+                                e.preventDefault();
+                                e.stopPropagation();
+                                closeMenu();
+                                navigate('/admin-newsletter');
+                              }}
+                              className="w-full px-6 py-4 text-left text-slate-700 hover:bg-emerald-50/80 hover:text-emerald-700 transition-all duration-300 flex items-center space-x-3 font-medium cursor-pointer group"
+                              type="button"
+                            >
+                              <BookOpen className="w-5 h-5 text-emerald-600 mr-1 group-hover:scale-110 transition-transform duration-300" />
+                              <span>Health Tips</span>
+                            </button>
+
                             <hr className="my-2 border-slate-200/50 mx-4" />
-                            
+
+                            <button
+                              onClick={(e) => {
+                                e.preventDefault();
+                                e.stopPropagation();
+                                closeMenu();
+                                handleLogout();
+                              }}
+                              className="w-full px-6 py-4 text-left text-red-600 hover:bg-red-50/80 transition-all duration-300 flex items-center space-x-3 font-medium cursor-pointer group"
+                              type="button"
+                            >
+                              <LogOut className="w-5 h-5 group-hover:scale-110 transition-transform duration-300" />
+                              <span>Logout</span>
+                            </button>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                ) : user.role === 'wellness_coach' ? (
+                  <div className="flex items-center space-x-4">
+                    <div className="relative user-dropdown">
+                      <button
+                        onClick={toggleMenu}
+                        className={`flex items-center space-x-4 px-6 py-3 rounded-2xl backdrop-blur-sm transition-all duration-500 font-semibold shadow-lg hover:shadow-2xl interactive-hover border-2 ${isMenuOpen
+                          ? 'bg-gradient-to-r from-purple-200/90 to-indigo-200/90 text-purple-800 border-purple-300/50 shadow-purple-200/50'
+                          : 'bg-gradient-to-r from-purple-100/80 to-indigo-100/80 hover:from-purple-200/80 hover:to-indigo-200/80 text-purple-700 border-purple-200/30 hover:border-purple-300/50'
+                          }`}
+                        style={{ zIndex: 1000 }}
+                        type="button"
+                        aria-expanded={isMenuOpen}
+                        aria-haspopup="true"
+                      >
+                        {user.profilePic ? (
+                          <img src={user.profilePic} alt={user.name || 'User'} className="w-10 h-10 rounded-full object-cover shadow-lg" />
+                        ) : (
+                          <div className="w-10 h-10 rounded-full bg-gradient-to-br from-purple-500 via-indigo-500 to-violet-500 flex items-center justify-center text-white font-bold text-sm shadow-lg glow-purple">
+                            {user.name?.charAt(0) || 'W'}
+                          </div>
+                        )}
+                        <span className="text-sm">Coach Panel</span>
+                        <ChevronDown className={`w-5 h-5 transition-transform duration-500 ${isMenuOpen ? 'rotate-180' : ''}`} />
+                      </button>
+
+                      {isMenuOpen && (
+                        <div
+                          className="absolute right-0 mt-4 w-72 bg-white/95 backdrop-blur-xl rounded-3xl py-4 shadow-2xl border border-purple-100/50 animate-fade-in-scale"
+                          style={{ zIndex: 9999 }}
+                          onClick={(e) => e.stopPropagation()}
+                        >
+                          <div className="px-6 py-4 border-b border-slate-200/50 bg-gradient-to-r from-purple-50/50 to-indigo-50/50 rounded-t-3xl">
+                            <div className="flex items-center space-x-3">
+                              {user.profilePic ? (
+                                <img src={user.profilePic} alt={user.name || 'User'} className="w-12 h-12 rounded-full object-cover shadow-lg" />
+                              ) : (
+                                <div className="w-12 h-12 rounded-full bg-gradient-to-br from-purple-500 via-indigo-500 to-violet-500 flex items-center justify-center text-white font-bold shadow-lg animate-glow-pulse">
+                                  {user.name?.charAt(0) || 'W'}
+                                </div>
+                              )}
+                              <div>
+                                <p className="text-sm font-semibold text-slate-900">{user.name}</p>
+                                <p className="text-xs text-slate-500 font-medium">Wellness Coach</p>
+                              </div>
+                            </div>
+                          </div>
+
+                          <div className="py-2">
+                            <button
+                              onClick={(e) => {
+                                e.preventDefault();
+                                e.stopPropagation();
+                                closeMenu();
+                                navigate('/wellness-coach-dashboard');
+                              }}
+                              className="w-full px-6 py-4 text-left text-slate-700 hover:bg-purple-50/80 hover:text-purple-700 transition-all duration-300 flex items-center space-x-3 font-medium cursor-pointer group"
+                              type="button"
+                            >
+                              <User className="w-5 h-5 text-purple-600 mr-1 group-hover:scale-110 transition-transform duration-300" />
+                              <span>Coach Dashboard</span>
+                            </button>
+
+                            <button
+                              onClick={(e) => {
+                                e.preventDefault();
+                                e.stopPropagation();
+                                closeMenu();
+                                navigate('/wellness-program');
+                              }}
+                              className="w-full px-6 py-4 text-left text-slate-700 hover:bg-green-50/80 hover:text-green-700 transition-all duration-300 flex items-center space-x-3 font-medium cursor-pointer group"
+                              type="button"
+                            >
+                              <BookOpen className="w-5 h-5 text-green-600 mr-1 group-hover:scale-110 transition-transform duration-300" />
+                              <span>Wellness Programs</span>
+                            </button>
+
+                            <hr className="my-2 border-slate-200/50 mx-4" />
+
                             <button
                               onClick={(e) => {
                                 e.preventDefault();
@@ -345,11 +454,120 @@ function Navbar() {
                     <div className="relative user-dropdown">
                       <button
                         onClick={toggleMenu}
-                        className={`flex items-center space-x-4 px-6 py-3 rounded-2xl backdrop-blur-sm transition-all duration-500 font-semibold shadow-lg hover:shadow-2xl interactive-hover border-2 ${
-                          isMenuOpen 
-                            ? 'bg-gradient-to-r from-orange-200/90 to-amber-200/90 text-orange-800 border-orange-300/50 shadow-orange-200/50' 
-                            : 'bg-gradient-to-r from-orange-100/80 to-amber-100/80 hover:from-orange-200/80 hover:to-amber-200/80 text-orange-700 border-orange-200/30 hover:border-orange-300/50'
-                        }`}
+                        className={`flex items-center space-x-4 px-6 py-3 rounded-2xl backdrop-blur-sm transition-all duration-500 font-semibold shadow-lg hover:shadow-2xl interactive-hover border-2 ${isMenuOpen
+                          ? 'bg-gradient-to-r from-emerald-200/90 to-teal-200/90 text-emerald-800 border-emerald-300/50 shadow-emerald-200/50'
+                          : 'bg-gradient-to-r from-emerald-100/80 to-teal-100/80 hover:from-emerald-200/80 hover:to-teal-200/80 text-emerald-700 border-emerald-200/30 hover:border-emerald-300/50'
+                          }`}
+                        style={{ zIndex: 1000 }}
+                        type="button"
+                        aria-expanded={isMenuOpen}
+                        aria-haspopup="true"
+                      >
+                        {user.profilePic ? (
+                          <img src={user.profilePic} alt={user.name || 'User'} className="w-10 h-10 rounded-full object-cover shadow-lg" />
+                        ) : (
+                          <div className="w-10 h-10 rounded-full bg-gradient-to-br from-emerald-500 via-teal-500 to-cyan-500 flex items-center justify-center text-white font-bold text-sm shadow-lg glow-emerald">
+                            {user.name?.charAt(0) || 'A'}
+                          </div>
+                        )}
+                        <span className="text-sm">Admin Panel</span>
+                        <ChevronDown className={`w-5 h-5 transition-transform duration-500 ${isMenuOpen ? 'rotate-180' : ''}`} />
+                      </button>
+
+                      {isMenuOpen && (
+                        <div
+                          className="absolute right-0 mt-4 w-72 bg-white/95 backdrop-blur-xl rounded-3xl py-4 shadow-2xl border border-emerald-100/50 animate-fade-in-scale"
+                          style={{ zIndex: 9999 }}
+                          onClick={(e) => e.stopPropagation()}
+                        >
+                          <div className="px-6 py-4 border-b border-slate-200/50 bg-gradient-to-r from-emerald-50/50 to-teal-50/50 rounded-t-3xl">
+                            <div className="flex items-center space-x-3">
+                              {user.profilePic ? (
+                                <img src={user.profilePic} alt={user.name || 'User'} className="w-12 h-12 rounded-full object-cover shadow-lg" />
+                              ) : (
+                                <div className="w-12 h-12 rounded-full bg-gradient-to-br from-emerald-500 via-teal-500 to-cyan-500 flex items-center justify-center text-white font-bold shadow-lg animate-glow-pulse">
+                                  {user.name?.charAt(0) || 'A'}
+                                </div>
+                              )}
+                              <div>
+                                <p className="text-sm font-semibold text-slate-900">{user.name}</p>
+                                <p className="text-xs text-slate-500 font-medium">Administrator</p>
+                              </div>
+                            </div>
+                          </div>
+
+                          <div className="py-2">
+                            <Link
+                              to="/admin-dashboard"
+                              onClick={(e) => {
+                                e.preventDefault();
+                                e.stopPropagation();
+                                closeMenu();
+                                navigate('/admin-dashboard');
+                              }}
+                              className="w-full px-6 py-4 text-left text-slate-700 hover:bg-emerald-50/80 hover:text-emerald-700 transition-all duration-300 flex items-center space-x-3 no-underline cursor-pointer group"
+                            >
+                              <Shield className="w-5 h-5 text-emerald-600 group-hover:scale-110 transition-transform duration-300" />
+                              <span className="font-medium">Admin Dashboard</span>
+                            </Link>
+
+                            <button
+                              onClick={(e) => {
+                                e.preventDefault();
+                                e.stopPropagation();
+                                closeMenu();
+                                navigate('/admin-orders');
+                              }}
+                              className="w-full px-6 py-4 text-left text-slate-700 hover:bg-emerald-50/80 hover:text-emerald-700 transition-all duration-300 flex items-center space-x-3 font-medium cursor-pointer group"
+                              type="button"
+                            >
+                              <Package className="w-5 h-5 text-emerald-600 mr-1 group-hover:scale-110 transition-transform duration-300" />
+                              <span>Orders</span>
+                            </button>
+
+                            <button
+                              onClick={(e) => {
+                                e.preventDefault();
+                                e.stopPropagation();
+                                closeMenu();
+                                navigate('/admin-newsletter');
+                              }}
+                              className="w-full px-6 py-4 text-left text-slate-700 hover:bg-emerald-50/80 hover:text-emerald-700 transition-all duration-300 flex items-center space-x-3 font-medium cursor-pointer group"
+                              type="button"
+                            >
+                              <BookOpen className="w-5 h-5 text-emerald-600 mr-1 group-hover:scale-110 transition-transform duration-300" />
+                              <span>Health Tips</span>
+                            </button>
+
+                            <hr className="my-2 border-slate-200/50 mx-4" />
+
+                            <button
+                              onClick={(e) => {
+                                e.preventDefault();
+                                e.stopPropagation();
+                                closeMenu();
+                                handleLogout();
+                              }}
+                              className="w-full px-6 py-4 text-left text-red-600 hover:bg-red-50/80 transition-all duration-300 flex items-center space-x-3 font-medium cursor-pointer group"
+                              type="button"
+                            >
+                              <LogOut className="w-5 h-5 group-hover:scale-110 transition-transform duration-300" />
+                              <span>Logout</span>
+                            </button>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                ) : ['seller', 'employee', 'manager', 'supervisor'].includes(user.role) ? (
+                  <div className="flex items-center space-x-4">
+                    <div className="relative user-dropdown">
+                      <button
+                        onClick={toggleMenu}
+                        className={`flex items-center space-x-4 px-6 py-3 rounded-2xl backdrop-blur-sm transition-all duration-500 font-semibold shadow-lg hover:shadow-2xl interactive-hover border-2 ${isMenuOpen
+                          ? 'bg-gradient-to-r from-orange-200/90 to-amber-200/90 text-orange-800 border-orange-300/50 shadow-orange-200/50'
+                          : 'bg-gradient-to-r from-orange-100/80 to-amber-100/80 hover:from-orange-200/80 hover:to-amber-200/80 text-orange-700 border-orange-200/30 hover:border-orange-300/50'
+                          }`}
                         style={{ zIndex: 1000 }}
                         type="button"
                         aria-expanded={isMenuOpen}
@@ -367,7 +585,7 @@ function Navbar() {
                       </button>
 
                       {isMenuOpen && (
-                        <div 
+                        <div
                           className="absolute right-0 mt-4 w-72 bg-white/95 backdrop-blur-xl rounded-3xl py-4 shadow-2xl border border-orange-100/50 animate-fade-in-scale"
                           style={{ zIndex: 9999 }}
                           onClick={(e) => e.stopPropagation()}
@@ -389,7 +607,7 @@ function Navbar() {
                               </div>
                             </div>
                           </div>
-                          
+
                           <div className="py-2">
                             <button
                               onClick={(e) => {
@@ -441,9 +659,9 @@ function Navbar() {
                                 <div className="text-xs text-slate-500">Update information & password</div>
                               </div>
                             </button>
-                            
+
                             <hr className="my-2 border-slate-200/50 mx-4" />
-                            
+
                             <button
                               onClick={(e) => {
                                 e.preventDefault();
@@ -470,11 +688,10 @@ function Navbar() {
                     <div className="relative user-dropdown">
                       <button
                         onClick={toggleMenu}
-                        className={`flex items-center space-x-4 px-6 py-3 rounded-2xl backdrop-blur-sm transition-all duration-500 font-semibold shadow-lg hover:shadow-2xl interactive-hover border-2 ${
-                          isMenuOpen 
-                            ? 'bg-gradient-to-r from-emerald-200/90 to-teal-200/90 text-emerald-800 border-emerald-300/50 shadow-emerald-200/50' 
-                            : 'bg-gradient-to-r from-emerald-100/80 to-teal-100/80 hover:from-emerald-200/80 hover:to-teal-200/80 text-emerald-700 border-emerald-200/30 hover:border-emerald-300/50'
-                        }`}
+                        className={`flex items-center space-x-4 px-6 py-3 rounded-2xl backdrop-blur-sm transition-all duration-500 font-semibold shadow-lg hover:shadow-2xl interactive-hover border-2 ${isMenuOpen
+                          ? 'bg-gradient-to-r from-emerald-200/90 to-teal-200/90 text-emerald-800 border-emerald-300/50 shadow-emerald-200/50'
+                          : 'bg-gradient-to-r from-emerald-100/80 to-teal-100/80 hover:from-emerald-200/80 hover:to-teal-200/80 text-emerald-700 border-emerald-200/30 hover:border-emerald-300/50'
+                          }`}
                         style={{ zIndex: 1000 }}
                         type="button"
                         aria-expanded={isMenuOpen}
@@ -492,7 +709,7 @@ function Navbar() {
                       </button>
 
                       {isMenuOpen && (
-                        <div 
+                        <div
                           className="absolute right-0 mt-4 w-72 bg-white/95 backdrop-blur-xl rounded-3xl py-4 shadow-2xl border border-emerald-100/50 animate-fade-in-scale"
                           style={{ zIndex: 9999 }}
                           onClick={(e) => e.stopPropagation()}
@@ -586,6 +803,14 @@ function Navbar() {
                       <span className="font-medium">Discuss</span>
                     </Link>
 
+                    <Link
+                      to="/newsletter"
+                      className="nav-link flex items-center space-x-3 px-4 py-3 group"
+                    >
+                      <BookOpen className="w-5 h-5 group-hover:text-emerald-600 transition-colors duration-500" />
+                      <span className="font-medium">Health Tips</span>
+                    </Link>
+
                     <div className="flex items-center space-x-3 ml-6">
                       <Link
                         to="/wishlist"
@@ -614,11 +839,10 @@ function Navbar() {
                       <div className="relative user-dropdown">
                         <button
                           onClick={toggleMenu}
-                          className={`flex items-center space-x-3 px-4 py-3 rounded-2xl backdrop-blur-sm transition-all duration-500 group interactive-hover shadow-sm hover:shadow-lg border-2 ${
-                            isMenuOpen 
-                              ? 'bg-emerald-100/90 border-emerald-300/50 shadow-emerald-200/50' 
-                              : 'bg-slate-100/80 hover:bg-emerald-100/80 border-slate-200/30 hover:border-emerald-300/50'
-                          }`}
+                          className={`flex items-center space-x-3 px-4 py-3 rounded-2xl backdrop-blur-sm transition-all duration-500 group interactive-hover shadow-sm hover:shadow-lg border-2 ${isMenuOpen
+                            ? 'bg-emerald-100/90 border-emerald-300/50 shadow-emerald-200/50'
+                            : 'bg-slate-100/80 hover:bg-emerald-100/80 border-slate-200/30 hover:border-emerald-300/50'
+                            }`}
                           style={{ zIndex: 1000 }}
                           type="button"
                           aria-expanded={isMenuOpen}
@@ -638,7 +862,7 @@ function Navbar() {
                         </button>
 
                         {isMenuOpen && (
-                          <div 
+                          <div
                             className="absolute right-0 mt-4 w-72 bg-white/95 backdrop-blur-xl rounded-3xl py-4 shadow-2xl border border-emerald-100/50 animate-fade-in-scale"
                             style={{ zIndex: 9999 }}
                             onClick={(e) => e.stopPropagation()}
@@ -655,8 +879,8 @@ function Navbar() {
                                 <div>
                                   <p className="text-sm font-semibold text-slate-900">{user.name}</p>
                                   <p className="text-xs text-slate-500 font-medium">
-                                    {['seller', 'employee', 'manager', 'supervisor', 'delivery'].includes(user.role) 
-                                      ? user.role.charAt(0).toUpperCase() + user.role.slice(1) 
+                                    {['seller', 'employee', 'manager', 'supervisor', 'delivery'].includes(user.role)
+                                      ? user.role.charAt(0).toUpperCase() + user.role.slice(1)
                                       : 'Premium Member'}
                                   </p>
                                 </div>
@@ -847,6 +1071,7 @@ function Navbar() {
                       <Link to="/hospital-discovery" onClick={closeMenu} className="flex items-center space-x-3 px-4 py-3 text-slate-700 font-semibold hover:bg-emerald-50 hover:text-emerald-700 rounded-xl transition-all duration-300"><MapPin className="w-5 h-5" /><span>Hospitals</span></Link>
                       <Link to="/blog" onClick={closeMenu} className="flex items-center space-x-3 px-4 py-3 text-slate-700 font-semibold hover:bg-emerald-50 hover:text-emerald-700 rounded-xl transition-all duration-300"><BookOpen className="w-5 h-5" /><span>Blog</span></Link>
                       <Link to="/discussion" onClick={closeMenu} className="flex items-center space-x-3 px-4 py-3 text-slate-700 font-semibold hover:bg-emerald-50 hover:text-emerald-700 rounded-xl transition-all duration-300"><MessageCircle className="w-5 h-5" /><span>Discuss</span></Link>
+                      <Link to="/newsletter" onClick={closeMenu} className="flex items-center space-x-3 px-4 py-3 text-slate-700 font-semibold hover:bg-emerald-50 hover:text-emerald-700 rounded-xl transition-all duration-300"><BookOpen className="w-5 h-5" /><span>Health Tips</span></Link>
                       <Link to="/wishlist" onClick={closeMenu} className="flex items-center justify-between px-4 py-3 text-slate-700 font-semibold hover:bg-emerald-50 hover:text-emerald-700 rounded-xl transition-all duration-300"><div className="flex items-center space-x-3"><Heart className="w-5 h-5" /><span>Wishlist</span></div>{wishlistCount > 0 && (<span className="bg-red-500 text-white text-xs rounded-full px-2 py-1 font-bold">{wishlistCount}</span>)}</Link>
                       <Link to="/cart" onClick={closeMenu} className="flex items-center justify-between px-4 py-3 text-slate-700 font-semibold hover:bg-emerald-50 hover:text-emerald-700 rounded-xl transition-all duration-300"><div className="flex items-center space-x-3"><ShoppingCart className="w-5 h-5" /><span>Cart</span></div>{cartCount > 0 && (<span className="bg-emerald-500 text-white text-xs rounded-full px-2 py-1 font-bold">{cartCount}</span>)}</Link>
                     </>
@@ -900,6 +1125,14 @@ function Navbar() {
                   >
                     <MessageCircle className="w-5 h-5" />
                     <span>Discuss</span>
+                  </Link>
+                  <Link
+                    to="/newsletter"
+                    onClick={closeMenu}
+                    className="flex items-center space-x-3 px-4 py-3 text-slate-700 font-semibold hover:bg-emerald-50 hover:text-emerald-700 rounded-xl transition-all duration-300"
+                  >
+                    <BookOpen className="w-5 h-5" />
+                    <span>Health Tips</span>
                   </Link>
                   <hr className="border-gray-200 my-4" />
                   <Link
