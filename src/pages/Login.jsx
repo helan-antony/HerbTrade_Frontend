@@ -49,7 +49,7 @@ function Login() {
   const handleFieldChange = (field, value) => {
     let error = "";
     let processedValue = value;
-    
+
     switch (field) {
       case 'email':
         // Convert to lowercase and remove spaces
@@ -62,17 +62,17 @@ function Login() {
         error = validatePassword(value);
         break;
     }
-    
+
     setValidationErrors(prev => ({ ...prev, [field]: error }));
   };
 
   const validate = () => {
     const emailError = validateEmail(email);
     const passwordError = validatePassword(password);
-    
+
     if (emailError) return emailError;
     if (passwordError) return passwordError;
-    
+
     return null;
   };
 
@@ -130,12 +130,12 @@ function Login() {
       }
     };
   }, []);
-  
+
   async function handleGoogleResponse(response) {
     try {
       setLoading(true);
       setError(''); // Clear any previous errors
-      
+
       if (!response || !response.credential) {
         throw new Error('No credential received from Google');
       }
@@ -143,22 +143,22 @@ function Login() {
       // Decode the JWT token from Google
       const base64Url = response.credential.split('.')[1];
       const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
-      const jsonPayload = decodeURIComponent(atob(base64).split('').map(function(c) {
+      const jsonPayload = decodeURIComponent(atob(base64).split('').map(function (c) {
         return '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2);
       }).join(''));
       const googleUser = JSON.parse(jsonPayload);
-      
-      console.log('Google user data:', { 
-        name: googleUser.name, 
-        email: googleUser.email, 
-        verified: googleUser.email_verified 
+
+      console.log('Google user data:', {
+        name: googleUser.name,
+        email: googleUser.email,
+        verified: googleUser.email_verified
       });
 
       // Validate required fields
       if (!googleUser.email || !googleUser.name) {
         throw new Error('Incomplete user data from Google');
       }
-      
+
       const res = await fetch(API_ENDPOINTS.AUTH.GOOGLE_AUTH, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -170,18 +170,20 @@ function Login() {
           emailVerified: googleUser.email_verified
         })
       });
-      
+
       const data = await res.json();
-      
+
       if (res.ok && data.token) {
         localStorage.setItem('token', data.token);
         localStorage.setItem('user', JSON.stringify(data.user));
-        
+
         console.log('Google login successful for:', data.user.email);
-        
+
         // Navigate based on user role
         if (data.user.role === 'admin') {
           navigate('/admin-dashboard');
+        } else if (data.user.role === 'wellness_coach') {
+          navigate('/wellness-coach-dashboard');
         } else if (['seller', 'employee', 'manager', 'supervisor'].includes(data.user.role)) {
           navigate('/seller-dashboard');
         } else if (data.user.role === 'delivery') {
@@ -207,20 +209,20 @@ function Login() {
       setError(validationError);
       return;
     }
-    
+
     setError("");
     setSuccess(false);
     setIsLoading(true);
-    
+
     try {
       const res = await fetch(API_ENDPOINTS.AUTH.LOGIN, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email, password })
       });
-      
+
       const data = await res.json();
-      
+
       if (res.ok && data.user && data.token) {
         // Store both user and token
         localStorage.setItem('user', JSON.stringify(data.user));
@@ -236,6 +238,8 @@ function Login() {
           setTimeout(() => {
             if (data.user.role === 'admin') {
               navigate('/admin-dashboard');
+            } else if (data.user.role === 'wellness_coach') {
+              navigate('/wellness-coach-dashboard');
             } else if (['seller', 'employee', 'manager', 'supervisor'].includes(data.user.role)) {
               navigate('/seller-dashboard');
             } else if (data.user.role === 'delivery') {
@@ -263,7 +267,7 @@ function Login() {
         className="absolute inset-0 bg-cover bg-center bg-no-repeat opacity-30"
         style={{ backgroundImage: 'url(/assets/bg.png)' }}
       />
-      
+
       {/* Enhanced Background Decorative Elements */}
       <div className="absolute top-20 left-10 w-80 h-80 bg-gradient-to-r from-emerald-400/30 to-teal-400/20 rounded-full blur-3xl animate-float" />
       <div className="absolute bottom-20 right-10 w-96 h-96 bg-gradient-to-l from-cyan-400/25 to-blue-400/15 rounded-full blur-3xl animate-float" style={{ animationDelay: '2s' }} />
@@ -306,7 +310,7 @@ function Login() {
         <div className="bg-white/95 backdrop-blur-2xl rounded-3xl shadow-2xl border border-white/50 p-10 animate-scale-in relative overflow-hidden">
           {/* Animated Background Glow */}
           <div className="absolute inset-0 bg-gradient-to-br from-emerald-500/5 via-transparent to-teal-500/5 opacity-0 hover:opacity-100 transition-opacity duration-700 rounded-3xl"></div>
-          
+
           {/* Header */}
           <div className="text-center mb-10 relative z-10">
             <div className="inline-flex items-center justify-center w-20 h-20 bg-gradient-to-r from-emerald-500 to-teal-500 rounded-3xl mb-6 shadow-2xl relative animate-glow-pulse">
@@ -319,7 +323,7 @@ function Login() {
             <p className="text-gray-600 text-lg font-medium">
               Sign in to continue your herbal journey
             </p>
-            
+
             {/* Decorative Elements */}
             <div className="absolute -top-2 -right-2 w-16 h-16 bg-gradient-to-br from-emerald-300/20 to-teal-300/15 rounded-full opacity-50 animate-pulse-slow"></div>
             <div className="absolute -bottom-2 -left-2 w-12 h-12 bg-gradient-to-tl from-cyan-300/15 to-blue-300/10 rounded-full opacity-40 animate-float"></div>
@@ -353,11 +357,10 @@ function Login() {
                   type="email"
                   value={email}
                   onChange={(e) => handleFieldChange('email', e.target.value)}
-                  className={`w-full pl-12 pr-4 py-5 bg-white/90 backdrop-blur-sm border-2 rounded-2xl focus:ring-4 transition-all duration-500 placeholder:text-gray-400 text-gray-700 shadow-sm hover:shadow-md focus:shadow-lg font-medium ${
-                    validationErrors.email 
-                      ? 'border-red-300 focus:ring-red-300/30 focus:border-red-500' 
-                      : 'border-gray-200/50 focus:ring-emerald-300/30 focus:border-emerald-500'
-                  }`}
+                  className={`w-full pl-12 pr-4 py-5 bg-white/90 backdrop-blur-sm border-2 rounded-2xl focus:ring-4 transition-all duration-500 placeholder:text-gray-400 text-gray-700 shadow-sm hover:shadow-md focus:shadow-lg font-medium ${validationErrors.email
+                    ? 'border-red-300 focus:ring-red-300/30 focus:border-red-500'
+                    : 'border-gray-200/50 focus:ring-emerald-300/30 focus:border-emerald-500'
+                    }`}
                   placeholder="Enter your email address"
                 />
               </div>
@@ -380,11 +383,10 @@ function Login() {
                   type={showPassword ? "text" : "password"}
                   value={password}
                   onChange={(e) => handleFieldChange('password', e.target.value)}
-                  className={`w-full pl-12 pr-12 py-5 bg-white/90 backdrop-blur-sm border-2 rounded-2xl focus:ring-4 transition-all duration-500 placeholder:text-gray-400 text-gray-700 shadow-sm hover:shadow-md focus:shadow-lg font-medium ${
-                    validationErrors.password 
-                      ? 'border-red-300 focus:ring-red-300/30 focus:border-red-500' 
-                      : 'border-gray-200/50 focus:ring-emerald-300/30 focus:border-emerald-500'
-                  }`}
+                  className={`w-full pl-12 pr-12 py-5 bg-white/90 backdrop-blur-sm border-2 rounded-2xl focus:ring-4 transition-all duration-500 placeholder:text-gray-400 text-gray-700 shadow-sm hover:shadow-md focus:shadow-lg font-medium ${validationErrors.password
+                    ? 'border-red-300 focus:ring-red-300/30 focus:border-red-500'
+                    : 'border-gray-200/50 focus:ring-emerald-300/30 focus:border-emerald-500'
+                    }`}
                   placeholder="Enter your password"
                 />
                 <button

@@ -36,7 +36,7 @@ export const GOOGLE_CLIENT_ID = '402168891475-ag50v1vdjblsjhd317v8mrn2v9q3dc02.a
 
 export const API_ENDPOINTS = {
   BASE: API_BASE_URL,
-  
+
   AUTH: {
     LOGIN: `${API_BASE_URL}/api/auth/login`,
     REGISTER: `${API_BASE_URL}/api/auth/register`,
@@ -46,7 +46,7 @@ export const API_ENDPOINTS = {
     GOOGLE_AUTH: `${API_BASE_URL}/api/auth/google-login`,
     CHECK_EMAIL: (email) => `${API_BASE_URL}/api/auth/check-email?email=${encodeURIComponent(email)}`,
   },
-  
+
   CART: {
     BASE: `${API_BASE_URL}/api/cart`,
     ADD: `${API_BASE_URL}/api/cart/add`,
@@ -54,21 +54,21 @@ export const API_ENDPOINTS = {
     REMOVE: (productId) => `${API_BASE_URL}/api/cart/remove/${productId}`,
     CLEAR: `${API_BASE_URL}/api/cart/clear`,
   },
-  
+
   WISHLIST: {
     BASE: `${API_BASE_URL}/api/wishlist`,
     ADD: `${API_BASE_URL}/api/wishlist/add`,
     REMOVE: (productId) => `${API_BASE_URL}/api/wishlist/remove/${productId}`,
     CLEAR: `${API_BASE_URL}/api/wishlist/clear`,
   },
-  
+
   PRODUCTS: {
     BASE: `${API_BASE_URL}/api/products`,
     BY_ID: (productId) => `${API_BASE_URL}/api/products/${productId}`,
     SEARCH: `${API_BASE_URL}/api/products/search`,
     CATEGORIES: `${API_BASE_URL}/api/products/categories`,
   },
-  
+
   HOSPITALS: {
     BASE: `${API_BASE_URL}/api/hospitals`,
     BY_ID: (hospitalId) => `${API_BASE_URL}/api/hospitals/${hospitalId}`,
@@ -76,7 +76,7 @@ export const API_ENDPOINTS = {
     BOOKINGS: `${API_BASE_URL}/api/hospital-bookings`,
     BOOK: `${API_BASE_URL}/api/hospital-bookings/book`,
   },
-  
+
   APPOINTMENTS: {
     BASE: `${API_BASE_URL}/api/appointments`,
     USER: `${API_BASE_URL}/api/appointments/user`,
@@ -84,19 +84,19 @@ export const API_ENDPOINTS = {
     UPDATE: (appointmentId) => `${API_BASE_URL}/api/appointments/${appointmentId}`,
     DELETE: (appointmentId) => `${API_BASE_URL}/api/appointments/${appointmentId}`,
   },
-  
+
   BLOG: {
     BASE: `${API_BASE_URL}/api/blog`,
     BY_ID: (blogId) => `${API_BASE_URL}/api/blog/${blogId}`,
     COMMENTS: (blogId) => `${API_BASE_URL}/api/blog/${blogId}/comments`,
   },
-  
+
   DISCUSSIONS: {
     BASE: `${API_BASE_URL}/api/discussions`,
     BY_ID: (discussionId) => `${API_BASE_URL}/api/discussions/${discussionId}`,
     REPLIES: (discussionId) => `${API_BASE_URL}/api/discussions/${discussionId}/replies`,
   },
-  
+
   ADMIN: {
     BASE: `${API_BASE_URL}/api/admin`,
     USERS: `${API_BASE_URL}/api/admin/users`,
@@ -113,7 +113,7 @@ export const API_ENDPOINTS = {
     HOSPITALS: `${API_BASE_URL}/api/admin/hospitals`,
     ANALYTICS: `${API_BASE_URL}/api/admin/analytics`,
   },
-  
+
   DELIVERY: {
     BASE: `${API_BASE_URL}/api/delivery`,
     ORDERS: `${API_BASE_URL}/api/delivery/orders`,
@@ -126,7 +126,7 @@ export const API_ENDPOINTS = {
     AVAILABILITY: `${API_BASE_URL}/api/delivery/availability`,
     LEAVES: `${API_BASE_URL}/api/seller/leaves`,
   },
-  
+
   ORDERS: {
     BASE: `${API_BASE_URL}/api/orders`,
     BY_ID: (orderId) => `${API_BASE_URL}/api/orders/${orderId}`,
@@ -135,12 +135,12 @@ export const API_ENDPOINTS = {
     MY_ORDERS: `${API_BASE_URL}/api/orders/my-orders`,
     CANCEL: (orderId) => `${API_BASE_URL}/api/orders/${orderId}/cancel`,
   },
-  
+
   GOOGLE_PLACES: {
     SEARCH: (place) => `${API_BASE_URL}/api/google-places/search-hospitals/${place}`,
     DETAILS: (placeId) => `${API_BASE_URL}/api/google-places/details/${placeId}`,
   },
-  
+
   COMMENTS: {
     BASE: `${API_BASE_URL}/api/comments`,
     BY_POST: (postId) => `${API_BASE_URL}/api/comments/post/${postId}`,
@@ -148,7 +148,7 @@ export const API_ENDPOINTS = {
     UPDATE: (commentId) => `${API_BASE_URL}/api/comments/${commentId}`,
     DELETE: (commentId) => `${API_BASE_URL}/api/comments/${commentId}`,
   },
-  
+
   NEWSLETTER: {
     GET_ALL: `${API_BASE_URL}/api/newsletters`,
     GET_BY_ID: (newsletterId) => `${API_BASE_URL}/api/newsletters/${newsletterId}`,
@@ -157,14 +157,19 @@ export const API_ENDPOINTS = {
     DELETE: (newsletterId) => `${API_BASE_URL}/api/newsletters/${newsletterId}`,
     SEND: (newsletterId) => `${API_BASE_URL}/api/newsletters/send/${newsletterId}`,
   },
-  
+
   WELLNESS_COACH: {
     GET_ALL: `${API_BASE_URL}/api/wellness-coaches`,
     PROFILE: `${API_BASE_URL}/api/wellness-coaches/profile`,
+    CREATE_PROFILE: `${API_BASE_URL}/api/wellness-coaches/profile`,
     UPDATE_PROFILE: `${API_BASE_URL}/api/wellness-coaches/profile`,
     UPDATE_CLIENT_STATUS: (clientId) => `${API_BASE_URL}/api/wellness-coaches/clients/${clientId}/status`,
     GET_CURRENT_PROGRAM: `${API_BASE_URL}/api/wellness-coaches/programs/current`,
+    GET_AVAILABLE_PROGRAMS: `${API_BASE_URL}/api/wellness-coaches/programs/available`,
+    GET_ALL_PROGRAMS: `${API_BASE_URL}/api/wellness-coaches/programs`,
     CREATE_PROGRAM: `${API_BASE_URL}/api/wellness-coaches/programs`,
+    TOGGLE_TASK: (programId, taskId) => `${API_BASE_URL}/api/wellness-coaches/programs/${programId}/tasks/${taskId}/toggle`,
+    USERS: `${API_BASE_URL}/api/wellness-coaches/users`,
   },
   HEALTH: `${API_BASE_URL}/api/health`,
   TEST: `${API_BASE_URL}/api/test`,
@@ -185,14 +190,14 @@ export const apiCall = async (url, options = {}) => {
   };
 
   const response = await fetch(url, { ...defaultOptions, ...options });
-  
+
   if (response.status === 401) {
     localStorage.removeItem('token');
     localStorage.removeItem('user');
     window.location.href = '/login';
     throw new Error('Authentication failed');
   }
-  
+
   return response;
 };
 

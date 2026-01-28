@@ -1,21 +1,27 @@
-import { Box, Typography, Grid, Card, CardContent, Button, Avatar, Chip, Divider, Alert } from "@mui/material";
-import { FaShoppingCart, FaSeedling, FaHospital, FaUserShield, FaChartBar, FaCalendarAlt, FaUserMd, FaPlus, FaHeart } from "react-icons/fa";
+import { Box, Typography, Grid, Card, CardContent, Button, Avatar, Chip, Divider, Alert, LinearProgress, CircularProgress } from "@mui/material";
+import { FaShoppingCart, FaSeedling, FaHospital, FaUserShield, FaChartBar, FaCalendarAlt, FaUserMd, FaPlus, FaHeart, FaLeaf } from "react-icons/fa";
 import { useNavigate } from "react-router-dom";
 import { useEffect, useState } from "react";
 import axios from "axios";
 import { addSampleDataToStorage, clearSampleData } from "../utils/sampleData";
+import { API_ENDPOINTS } from "../config/api";
 
 function Dashboard() {
   const [user, setUser] = useState({});
   const [appointments, setAppointments] = useState([]);
+  const [programs, setPrograms] = useState([]);
   const [loading, setLoading] = useState(true);
   const [appointmentsLoading, setAppointmentsLoading] = useState(true);
+  const [programsLoading, setProgramsLoading] = useState(true);
   const navigate = useNavigate();
   
   useEffect(() => {
     const u = JSON.parse(localStorage.getItem('user'));
     setUser(u || {});
     fetchAppointments();
+    if (u?.role === 'user') {
+      fetchAssignedPrograms();
+    }
     
     // Listen for appointment booking events
     const handleAppointmentBooked = () => {
@@ -44,6 +50,39 @@ function Dashboard() {
       setAppointmentsLoading(false);
     }
   };
+
+  // Add state for unassigned programs
+  const [unassignedPrograms, setUnassignedPrograms] = useState([]);
+
+  const fetchAssignedPrograms = async () => {
+    try {
+      const token = localStorage.getItem('token');
+      if (!token) return;
+      
+      // Fetch all available wellness programs for the current user
+      const response = await axios.get(API_ENDPOINTS.WELLNESS_COACH.GET_AVAILABLE_PROGRAMS, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      
+      // Set both assigned and unassigned programs
+      setPrograms(response.data.assignedPrograms || []);
+      setUnassignedPrograms(response.data.unassignedPrograms || []);
+    } catch (error) {
+      console.error('Error fetching available programs:', error);
+      // Handle 404 specifically (no programs found) by setting empty arrays
+      if (error.response?.status === 404) {
+        setPrograms([]);
+        setUnassignedPrograms([]);
+      } else {
+        // Don't set an error message here as it might interfere with the dashboard
+        setPrograms([]);
+        setUnassignedPrograms([]);
+      }
+    } finally {
+      setProgramsLoading(false);
+    }
+  };
+
   return (
     <Box sx={{ minHeight: '100vh', width: '100vw', bgcolor: '#e8f5e9', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'flex-start', m: 0, p: 0, overflow: 'hidden' }}>
       <Box sx={{ width: '100%', maxWidth: 1200, p: 4 }}>
@@ -117,6 +156,225 @@ function Dashboard() {
               </Grid>
             </>
           )}
+          
+          {/* Wellness Programs Section for Users */}
+          {user.role === 'user' && (
+            <Grid item xs={12}>
+              <Box sx={{ mb: 4 }}>
+                <Typography variant="h5" fontWeight={700} color="#3a4d2d" mb={3}>
+                  <FaUserMd style={{ marginRight: 8 }} />
+                  My Wellness Programs
+                </Typography>
+                <Grid container spacing={3}>
+                  {programsLoading ? (
+                    <Grid item xs={12}>
+                      <Box sx={{ display: 'flex', justifyContent: 'center', p: 4 }}>
+                        <CircularProgress />
+                      </Box>
+                    </Grid>
+                  ) : programs.length > 0 ? (
+                    programs.map((program) => (
+                      <Grid item xs={12} md={6} lg={4} key={program.id || 'default-key'}>
+                        <Card
+                          sx={
+                            {
+                              cursor: 'pointer',
+                              background: 'rgba(255, 255, 255, 0.8)',
+                              backdropFilter: 'blur(10px)',
+                              borderRadius: '24px',
+                              border: '1px solid rgba(255, 255, 255, 0.5)',
+                              boxShadow: '0 8px 32px rgba(0, 0, 0, 0.1)',
+                              transition: 'all 0.3s ease',
+                              '&:hover': {
+                                transform: 'translateY(-8px)',
+                                boxShadow: '0 16px 48px rgba(0, 0, 0, 0.15)',
+                                background: 'rgba(255, 255, 255, 0.95)',
+                              },
+                            }
+                          }
+                          onClick={() => navigate('/wellness-program')}
+                        >
+                          <CardContent sx={{ p: 3 }}>
+                            <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 2 }}>
+                              <Box>
+                                <Typography variant="h6" fontWeight={700} color="#2d5016" mb={1}>
+                                  {program.name}
+                                </Typography>
+                                <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+                                  {program.description?.substring(0, 100)}...
+                                </Typography>
+                              </Box>
+                              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                                <Box sx={{ width: 40, height: 40, borderRadius: '50%', bgcolor: '#e8f5e9', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                                  <FaLeaf color="#4caf50" />
+                                </Box>
+                              </Box>
+                            </Box>
+                            <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mt: 2 }}>
+                              <Box>
+                                <Typography variant="body2" color="text.secondary">
+                                  Progress
+                                </Typography>
+                                <LinearProgress 
+                                  variant="determinate" 
+                                  value={program.progress?.overall || 0} 
+                                  sx={{ 
+                                    height: 8, 
+                                    borderRadius: 4, 
+                                    bgcolor: 'rgba(76, 175, 80, 0.2)',
+                                    '& .MuiLinearProgress-bar': {
+                                      bgcolor: '#4caf50',
+                                      borderRadius: 4,
+                                    }
+                                  }} 
+                                />
+                                <Typography variant="caption" color="#4caf50" fontWeight={600}>
+                                  {program.progress?.overall || 0}%
+                                </Typography>
+                              </Box>
+                              <Button 
+                                variant="contained" 
+                                size="small"
+                                sx={{ 
+                                  bgcolor: '#4caf50',
+                                  '&:hover': { bgcolor: '#43a047' },
+                                  borderRadius: '20px',
+                                  px: 2,
+                                  py: 1,
+                                  textTransform: 'none',
+                                  fontWeight: 600,
+                                }}
+                              >
+                                Continue
+                              </Button>
+                            </Box>
+                          </CardContent>
+                        </Card>
+                      </Grid>
+                    ))
+                  ) : (
+                    <Grid item xs={12}>
+                      <Box sx={{ textAlign: 'center', py: 6 }}>
+                        <Box sx={{ display: 'flex', justifyContent: 'center', mb: 3 }}>
+                          <Box sx={{ width: 64, height: 64, borderRadius: '50%', bgcolor: '#f1f8e9', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                            <FaLeaf color="#4caf50" size={32} />
+                          </Box>
+                        </Box>
+                        <Typography variant="h6" color="#2d5016" mb={2}>
+                          No Active Wellness Programs
+                        </Typography>
+                        <Typography variant="body1" color="text.secondary" mb={3}>
+                          {unassignedPrograms.length > 0 
+                            ? 'You have unassigned programs available. Contact your coach to get started!'
+                            : 'Your wellness coach hasn\'t assigned any programs yet. Please check back later.'
+                          }
+                        </Typography>
+                        {unassignedPrograms.length > 0 && (
+                          <Button 
+                            variant="contained" 
+                            onClick={() => navigate('/wellness-coaches')}
+                            sx={{ 
+                              bgcolor: '#4caf50',
+                              '&:hover': { bgcolor: '#43a047' },
+                              borderRadius: '24px',
+                              px: 4,
+                              py: 1.5,
+                              textTransform: 'none',
+                              fontWeight: 600,
+                            }}
+                          >
+                            Contact Your Coach
+                          </Button>
+                        )}
+                      </Box>
+                    </Grid>
+                  )}
+                </Grid>
+              </Box>
+            </Grid>
+          )}
+          
+          {/* Unassigned Wellness Programs Section for Users */}
+          {user.role === 'user' && unassignedPrograms && unassignedPrograms.length > 0 && (
+            <Grid item xs={12}>
+              <Box sx={{ mb: 4 }}>
+                <Typography variant="h5" fontWeight={700} color="#3a4d2d" mb={3}>
+                  <FaUserMd style={{ marginRight: 8 }} />
+                  Available Wellness Programs
+                </Typography>
+                <Grid container spacing={3}>
+                  {unassignedPrograms.map((program) => (
+                    <Grid item xs={12} md={6} lg={4} key={program._id || 'unassigned-default-key'}>
+                      <Card
+                        sx={{
+                          background: 'rgba(255, 255, 255, 0.8)',
+                          backdropFilter: 'blur(10px)',
+                          borderRadius: '24px',
+                          border: '1px solid rgba(255, 255, 255, 0.5)',
+                          boxShadow: '0 8px 32px rgba(0, 0, 0, 0.1)',
+                          transition: 'all 0.3s ease',
+                          '&:hover': {
+                            transform: 'translateY(-8px)',
+                            boxShadow: '0 16px 48px rgba(0, 0, 0, 0.15)',
+                            background: 'rgba(255, 255, 255, 0.95)',
+                          },
+                        }}
+                        onClick={() => navigate('/wellness-coaches')}
+                      >
+                        <CardContent sx={{ p: 3 }}>
+                          <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 2 }}>
+                            <Box>
+                              <Typography variant="h6" fontWeight={700} color="#2d5016" mb={1}>
+                                {program.name || program.title}
+                              </Typography>
+                              <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+                                {program.description?.substring(0, 100)}...
+                              </Typography>
+                            </Box>
+                            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                              <Box sx={{ width: 40, height: 40, borderRadius: '50%', bgcolor: '#e8f5e9', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                                <FaLeaf color="#4caf50" />
+                              </Box>
+                            </Box>
+                          </Box>
+                          <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mt: 2 }}>
+                            <Box>
+                              <Typography variant="body2" color="text.secondary">
+                                Status: {program.status || 'Published'}
+                              </Typography>
+                              <Typography variant="caption" color="#f57c00" fontWeight={600}>
+                                Unassigned
+                              </Typography>
+                            </Box>
+                            <Button 
+                              variant="contained" 
+                              size="small"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                navigate('/wellness-coaches');
+                              }}
+                              sx={{ 
+                                bgcolor: '#f57c00',
+                                '&:hover': { bgcolor: '#ef6c00' },
+                                borderRadius: '20px',
+                                px: 2,
+                                py: 1,
+                                textTransform: 'none',
+                                fontWeight: 600,
+                              }}
+                            >
+                              Contact Coach
+                            </Button>
+                          </Box>
+                        </CardContent>
+                      </Card>
+                    </Grid>
+                  ))}
+                </Grid>
+              </Box>
+            </Grid>
+          )}
+          
           {user.role === 'admin' && (
             <Grid item xs={12} md={3}>
               <Card

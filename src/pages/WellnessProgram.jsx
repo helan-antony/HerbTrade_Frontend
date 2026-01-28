@@ -59,6 +59,13 @@ const WellnessProgram = () => {
         headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
       });
       
+      // Verify that the program belongs to the current user
+      const currentUser = JSON.parse(localStorage.getItem('user'));
+      if (response.data.clientId && response.data.clientId !== currentUser.id) {
+        setError('You do not have access to this program');
+        return;
+      }
+      
       setProgram(response.data);
       
       // Calculate progress
@@ -73,7 +80,11 @@ const WellnessProgram = () => {
         weeklyMilestones: response.data.progress?.weeklyMilestones || Math.round((completedMilestones / totalMilestones) * 100)
       });
     } catch (err) {
-      setError('Failed to fetch wellness program');
+      if (err.response?.status === 404) {
+        setError('No active wellness program found. Contact your coach to get started.');
+      } else {
+        setError('Failed to fetch wellness program');
+      }
       console.error('Error fetching wellness program:', err);
     } finally {
       setLoading(false);

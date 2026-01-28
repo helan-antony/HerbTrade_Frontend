@@ -169,7 +169,7 @@ const Newsletter = () => {
         ) : (
           <Grid container spacing={4}>
             {newsletters.map((newsletter) => (
-              <Grid item xs={12} md={6} lg={4} key={newsletter._id}>
+              <Grid size={{ xs: 12, md: 6, lg: 4 }} key={newsletter._id}>
                 <Card
                   elevation={0}
                   sx={{
