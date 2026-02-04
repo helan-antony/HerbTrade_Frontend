@@ -87,6 +87,11 @@ function Login() {
     script.onload = () => {
       if (window.google && window.google.accounts) {
         try {
+          // Check if Google Client ID is properly configured
+          if (!GOOGLE_CLIENT_ID || GOOGLE_CLIENT_ID === '402168891475-ag50v1vdjblsjhd317v8mrn2v9q3dc02.apps.googleusercontent.com') {
+            console.warn('Using default Google Client ID - please configure for production');
+          }
+          
           window.google.accounts.id.initialize({
             client_id: GOOGLE_CLIENT_ID,
             callback: handleGoogleResponse,

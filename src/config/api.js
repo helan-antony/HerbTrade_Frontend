@@ -4,9 +4,9 @@
 // Base API URL - Update this when deploying to production
 const API_BASE_URL = typeof window !== 'undefined' && window.env ? window.env.VITE_API_URL : (typeof process !== 'undefined' ? process.env.VITE_API_URL : undefined) || 'http://localhost:5000';
 
-// Google OAuth Client ID
-// Replace this with your new OAuth client ID from Google Cloud Console
-export const GOOGLE_CLIENT_ID = '402168891475-ag50v1vdjblsjhd317v8mrn2v9q3dc02.apps.googleusercontent.com';
+// Google OAuth Client ID - Read from environment variables
+// In production, this will be replaced by Vercel environment variables
+export const GOOGLE_CLIENT_ID = process.env.VITE_GOOGLE_CLIENT_ID || '402168891475-ag50v1vdjblsjhd317v8mrn2v9q3dc02.apps.googleusercontent.com';
 
 // IMPORTANT: If you're getting "Access blocked: authorization error", follow these steps:
 // 
@@ -18,6 +18,8 @@ export const GOOGLE_CLIENT_ID = '402168891475-ag50v1vdjblsjhd317v8mrn2v9q3dc02.a
 //    - http://localhost:5174
 //    - http://127.0.0.1:5173
 //    - http://127.0.0.1:3000
+//    - https://herb-trade-frontend.vercel.app (for production)
+//    - https://www.herb-trade-frontend.vercel.app (for production)
 // 
 // 4. Go to "OAuth consent screen" in the left sidebar:
 //    - If your app is in "Testing" mode, add your email to "Test users"
