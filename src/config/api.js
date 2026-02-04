@@ -2,7 +2,7 @@
 // This file centralizes all API endpoint configurations
 
 // Base API URL - Update this when deploying to production
-const API_BASE_URL = process.env.VITE_API_URL || 'http://localhost:5000';
+const API_BASE_URL = typeof window !== 'undefined' && window.env ? window.env.VITE_API_URL : (typeof process !== 'undefined' ? process.env.VITE_API_URL : undefined) || 'http://localhost:5000';
 
 // Google OAuth Client ID
 // Replace this with your new OAuth client ID from Google Cloud Console
@@ -170,6 +170,15 @@ export const API_ENDPOINTS = {
     CREATE_PROGRAM: `${API_BASE_URL}/api/wellness-coaches/programs`,
     TOGGLE_TASK: (programId, taskId) => `${API_BASE_URL}/api/wellness-coaches/programs/${programId}/tasks/${taskId}/toggle`,
     USERS: `${API_BASE_URL}/api/wellness-coaches/users`,
+    // Post-enrollment features
+    ADD_POST_ENROLLMENT_DATA: (newsletterId) => `${API_BASE_URL}/api/wellness-coaches/newsletters/${newsletterId}/post-enrollment`,
+    GET_POST_ENROLLMENT_DATA: (newsletterId) => `${API_BASE_URL}/api/wellness-coaches/newsletters/${newsletterId}/post-enrollment`,
+    ENROLL_IN_NEWSLETTER: (newsletterId) => `${API_BASE_URL}/api/wellness-coaches/newsletters/${newsletterId}/enroll`,
+    GET_MY_ENROLLMENTS: `${API_BASE_URL}/api/wellness-coaches/my-enrollments`,
+    GET_ENROLLED_NEWSLETTER: (newsletterId) => `${API_BASE_URL}/api/wellness-coaches/enrolled-newsletters/${newsletterId}`,
+    // Progress tracking
+    SAVE_PROGRESS: (newsletterId) => `${API_BASE_URL}/api/wellness-coaches/newsletters/${newsletterId}/save-progress`,
+    GET_PROGRESS: (newsletterId) => `${API_BASE_URL}/api/wellness-coaches/newsletters/${newsletterId}/progress`,
   },
   HEALTH: `${API_BASE_URL}/api/health`,
   TEST: `${API_BASE_URL}/api/test`,

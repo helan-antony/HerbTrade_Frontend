@@ -35,8 +35,9 @@ import MyOrders from "./pages/MyOrders";
 import DeliveryDashboard from "./pages/DeliveryDashboard";
 import AdminOrders from "./pages/AdminOrders";
 import AdminNewsletter from "./pages/AdminNewsletter";
-import WellnessCoachDashboard from "./pages/WellnessCoachDashboard";
-import WellnessProgram from "./pages/WellnessProgram";
+import WellnessCoachDashboard from './pages/WellnessCoachDashboard';
+import WellnessProgram from './pages/WellnessProgram';
+import CoachPostEnrollment from './pages/CoachPostEnrollment';
 import EnrollmentVideos from "./pages/EnrollmentVideos";
 
 const theme = createTheme({
@@ -126,6 +127,7 @@ function App() {
             <Route path="/newsletter/enroll/:id" element={<ProtectedRoute><EnrollmentVideos /></ProtectedRoute>} />
             <Route path="/wellness-coach-dashboard" element={<ProtectedRoute allowedRoles={['wellness_coach', 'admin']}><WellnessCoachDashboard /></ProtectedRoute>} />
             <Route path="/wellness-program" element={<ProtectedRoute><WellnessProgram /></ProtectedRoute>} />
+            <Route path="/coach-post-enrollment" element={<ProtectedRoute allowedRoles={['wellness_coach', 'admin']}><CoachPostEnrollment /></ProtectedRoute>} />
             <Route path="*" element={<Navigate to="/" />} />
           </Routes>
         </main>

@@ -58,8 +58,8 @@ function EnhancedWishlist() {
         headers: getAuthHeaders()
       });
 
-      // Fetch wellness programs
-      const wellnessResponse = await axios.get('http://localhost:5000/api/wellness-programs', {
+      // Fetch newsletter programs
+      const newsletterResponse = await axios.get('http://localhost:5000/api/newsletters', {
         headers: getAuthHeaders()
       });
 
@@ -83,30 +83,32 @@ function EnhancedWishlist() {
         });
       });
 
-      // Process wellness programs
-      const wellnessPrograms = wellnessResponse.data.data || wellnessResponse.data || [];
-      if (Array.isArray(wellnessPrograms)) {
-        wellnessPrograms.forEach(program => {
+      // Process newsletter programs
+      const newsletterPrograms = (newsletterResponse.data.newsletters || newsletterResponse.data || []).filter(program => 
+        program.programType === 'wellness_program'
+      );
+      if (Array.isArray(newsletterPrograms)) {
+        newsletterPrograms.forEach(program => {
           if (program && program._id) {
             combinedItems.push({
               _id: program._id,
-              name: program.title || 'Untitled Program',
-              description: program.description || 'No description available',
-              price: 0,  // Wellness programs are typically free
-              category: program.category || 'wellness',
-              image: program.image || '',
-              duration: program.duration || 0,
-              difficulty: program.difficulty || 'beginner',
-              targetAudience: program.targetAudience || [],
-              creator: program.creator || null,
-              dailyTasks: program.dailyTasks || [],
-              weeklyMilestones: program.weeklyMilestones || [],
-              prerequisites: program.prerequisites || [],
-              benefits: program.benefits || [],
-              status: program.status || 'published',
-              enrolledUsers: program.enrolledUsers || [],
-              createdAt: program.createdAt || null,
-              updatedAt: program.updatedAt || null,
+              name: program.programName || program.title || 'Untitled Program',
+              description: program.programDescription || program.content || 'No description available',
+              price: 0,  // Newsletter programs are typically free
+              category: program.programCategory || program.category || 'wellness',
+              image: '',
+              duration: program.programDuration || 0,
+              difficulty: program.programDifficulty || 'beginner',
+              targetAudience: program.programTargetAudience || [],
+              creator: program.programCoachId || null,
+              dailyTasks: program.programDailyTasks || [],
+              weeklyMilestones: program.programWeeklyMilestones || [],
+              prerequisites: program.programPrerequisites || [],
+              benefits: program.programBenefits || [],
+              status: program.programStatus || 'published',
+              enrolledUsers: [],
+              createdAt: program.publishedDate || null,
+              updatedAt: program.publishedDate || null,
               __v: program.__v || 0,
               isWellnessProgram: true
             });

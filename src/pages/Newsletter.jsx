@@ -61,6 +61,8 @@ const Newsletter = () => {
           { _id: '2', title: 'Managing Stress Naturally', content: 'Discover herbs like Ashwagandha and Brahmi that help calm the mind and reduce cortisol...', category: 'wellness_tips', publishedDate: new Date(), author: 'Wellness Team' },
           { _id: '3', title: 'Ayurvedic Diet for Immunity', content: 'Boost your ojas (vitality) with these golden milk recipes and immune-boosting spices...', category: 'specific_condition', publishedDate: new Date(), author: 'Nutritionist Priya' },
           { _id: '4', title: 'Yoga for Better Sleep', content: 'Simple evening asanas to ground your energy and prepare for deep, restorative sleep...', category: 'wellness_tips', publishedDate: new Date(), author: 'Yogi Ram' },
+          // Test newsletter with real database content
+          { _id: '698065b50497b7403bbcc04b', title: 'Advanced Wellness Program', content: 'Comprehensive wellness program covering Ayurvedic principles, nutrition, and lifestyle practices. Enroll to access exclusive video content and track your progress.', category: 'wellness_tips', publishedDate: new Date(), author: 'Test Wellness Coach' },
         ]);
       }
     } catch (err) {
@@ -79,8 +81,8 @@ const Newsletter = () => {
   ];
 
   const handleEnroll = (id, title) => {
-    const slug = title.toLowerCase().replace(/ /g, '-');
-    navigate(`/newsletter/enroll/${slug}`);
+    // Navigate to enrollment page with the newsletter ID
+    navigate(`/newsletter/enroll/${id}`);
   };
 
   return (

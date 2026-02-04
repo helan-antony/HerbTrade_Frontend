@@ -1,4 +1,4 @@
-import { Box, Typography, Container, Grid, Card, CardContent, Chip, CircularProgress } from '@mui/material';
+import { Box, Typography, Container, Grid, Card, CardContent, Chip, CircularProgress, FormControl, InputLabel, Select, MenuItem } from '@mui/material';
 import { FaLeaf, FaAppleAlt, FaWalking, FaUserMd, FaCalendarAlt, FaTasks, FaClock } from 'react-icons/fa';
 import { useEffect, useState } from 'react';
 import axios from 'axios';
@@ -40,22 +40,23 @@ function HealthTips() {
     }
   ]);
   
-  const [wellnessPrograms, setWellnessPrograms] = useState([]);
+  const [newsletterPrograms, setNewsletterPrograms] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [filterCategory, setFilterCategory] = useState('all');
 
   useEffect(() => {
-    fetchWellnessPrograms();
+    fetchNewsletterPrograms();
   }, []);
 
-  const fetchWellnessPrograms = async () => {
+  const fetchNewsletterPrograms = async () => {
     try {
       setLoading(true);
       setError('');
       
       const token = localStorage.getItem('token');
       if (!token) {
-        setError('Please log in to view wellness programs');
+        setError('Please log in to view newsletter programs');
         return;
       }
 
@@ -69,37 +70,89 @@ function HealthTips() {
         ...(response.data.unassignedPrograms || [])
       ];
       
-      setWellnessPrograms(allPrograms);
+      setNewsletterPrograms(allPrograms);
     } catch (err) {
-      console.error('Error fetching wellness programs:', err);
-      setError('Failed to load wellness programs');
+      console.error('Error fetching newsletter programs:', err);
+      setError('Failed to load newsletter programs');
     } finally {
       setLoading(false);
     }
   };
 
-  // Combine health tips and wellness programs
-  const allItems = [
+  // Combine health tips and newsletter programs
+  const allPrograms = [
     ...healthTips,
-    ...wellnessPrograms.map(program => ({
+    ...newsletterPrograms.map(program => ({
       id: program._id,
-      title: program.name || program.title,
-      content: program.description,
-      category: program.category || 'Wellness Program',
+      title: program.programName || program.title,
+      content: program.programDescription || program.content,
+      category: program.programCategory || program.category || 'Newsletter Program',
       icon: <FaUserMd size={24} color="#ff9800" />,
       type: 'program',
-      duration: program.duration,
-      difficulty: program.difficulty,
-      startDate: program.startDate,
-      endDate: program.endDate
+      duration: program.programDuration,
+      difficulty: program.programDifficulty,
+      startDate: program.programStartDate,
+      endDate: program.programEndDate,
+      // Additional newsletter program data
+      targetAudience: program.programTargetAudience || [],
+      prerequisites: program.programPrerequisites || [],
+      benefits: program.programBenefits || [],
+      goals: program.programGoals || [],
+      dailyTasks: program.programDailyTasks || [],
+      weeklyMilestones: program.programWeeklyMilestones || [],
+      status: program.programStatus || 'published',
+      createdAt: program.publishedDate,
+      updatedAt: program.publishedDate
     }))
   ];
+  
+  // Filter programs by category
+  const filteredItems = filterCategory === 'all' 
+    ? allPrograms 
+    : allPrograms.filter(item => 
+        item.category.toLowerCase().includes(filterCategory.toLowerCase()) ||
+        (item.type === 'program' && item.category === filterCategory)
+      );
 
   return (
     <Container sx={{ py: 4 }}>
       <Typography variant="h4" fontWeight={700} color="#2d5016" mb={4}>
-        Health Tips & Wellness Programs
+        Health Tips & All Wellness Programs
       </Typography>
+      
+      <Typography variant="body1" color="text.secondary" mb={3}>
+        Browse all available newsletter programs and health tips to enhance your wellbeing journey.
+        {newsletterPrograms.length > 0 && (
+          <span style={{ fontWeight: 600, color: '#2d5016' }}>
+            {' '}Showing {newsletterPrograms.length} newsletter programs from our collection.
+          </span>
+        )}
+      </Typography>
+      
+      {/* Category Filter */}
+      <Box sx={{ mb: 3, display: 'flex', justifyContent: 'flex-end' }}>
+        <FormControl sx={{ minWidth: 200 }} size="small">
+          <InputLabel>Filter by Category</InputLabel>
+          <Select
+            value={filterCategory}
+            label="Filter by Category"
+            onChange={(e) => setFilterCategory(e.target.value)}
+          >
+            <MenuItem value="all">All Categories</MenuItem>
+            <MenuItem value="Nutrition">Nutrition</MenuItem>
+            <MenuItem value="Activity">Activity</MenuItem>
+            <MenuItem value="Mindfulness">Mindfulness</MenuItem>
+            <MenuItem value="Rest">Rest</MenuItem>
+            <MenuItem value="stress-management">Stress Management</MenuItem>
+            <MenuItem value="sleep-hygiene">Sleep Hygiene</MenuItem>
+            <MenuItem value="weight-loss">Weight Loss</MenuItem>
+            <MenuItem value="fitness">Fitness</MenuItem>
+            <MenuItem value="mindfulness">Mindfulness</MenuItem>
+            <MenuItem value="detox">Detox</MenuItem>
+            <MenuItem value="general-wellness">General Wellness</MenuItem>
+          </Select>
+        </FormControl>
+      </Box>
       
       {error && (
         <Typography color="error" mb={2}>
@@ -107,14 +160,14 @@ function HealthTips() {
         </Typography>
       )}
       
-      {loading && wellnessPrograms.length > 0 && (
+      {loading && (
         <Box display="flex" justifyContent="center" mb={4}>
           <CircularProgress />
         </Box>
       )}
       
       <Grid container spacing={3}>
-        {allItems.map((item) => (
+        {filteredItems.map((item) => (
           <Grid item xs={12} sm={6} md={6} key={item.id}>
             <Card 
               sx={{ 
@@ -142,6 +195,61 @@ function HealthTips() {
                 </Typography>
                 
                 {item.type === 'program' && (
+                  <Box sx={{ mb: 2 }}>
+                    {item.goals && item.goals.length > 0 && (
+                      <Box sx={{ mb: 1 }}>
+                        <Typography variant="subtitle2" fontWeight={600} color="#2d5016">
+                          Goals:
+                        </Typography>
+                        <Typography variant="body2" color="text.secondary">
+                          {item.goals.join(', ')}
+                        </Typography>
+                      </Box>
+                    )}
+                    
+                    {item.benefits && item.benefits.length > 0 && (
+                      <Box sx={{ mb: 1 }}>
+                        <Typography variant="subtitle2" fontWeight={600} color="#2d5016">
+                          Benefits:
+                        </Typography>
+                        <Typography variant="body2" color="text.secondary">
+                          {item.benefits.slice(0, 3).join(', ')}{item.benefits.length > 3 ? '...' : ''}
+                        </Typography>
+                      </Box>
+                    )}
+                    
+                    {item.prerequisites && item.prerequisites.length > 0 && (
+                      <Box sx={{ mb: 1 }}>
+                        <Typography variant="subtitle2" fontWeight={600} color="#2d5016">
+                          Prerequisites:
+                        </Typography>
+                        <Typography variant="body2" color="text.secondary">
+                          {item.prerequisites.slice(0, 2).join(', ')}{item.prerequisites.length > 2 ? '...' : ''}
+                        </Typography>
+                      </Box>
+                    )}
+                    
+                    {item.dailyTasks && item.dailyTasks.length > 0 && (
+                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
+                        <FaTasks size={16} color="#666" />
+                        <Typography variant="body2" color="text.secondary">
+                          {item.dailyTasks.length} daily tasks
+                        </Typography>
+                      </Box>
+                    )}
+                    
+                    {item.weeklyMilestones && item.weeklyMilestones.length > 0 && (
+                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                        <FaCalendarAlt size={16} color="#666" />
+                        <Typography variant="body2" color="text.secondary">
+                          {item.weeklyMilestones.length} weekly milestones
+                        </Typography>
+                      </Box>
+                    )}
+                  </Box>
+                )}
+                
+                {item.type === 'program' && (
                   <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1, mb: 2 }}>
                     {item.duration && (
                       <Chip 
@@ -167,6 +275,30 @@ function HealthTips() {
                         }} 
                       />
                     )}
+                    {item.status && (
+                      <Chip 
+                        icon={<FaCalendarAlt />}
+                        label={item.status}
+                        size="small"
+                        sx={{ 
+                          backgroundColor: '#e3f2fd',
+                          color: '#1976d2',
+                          fontWeight: 600
+                        }} 
+                      />
+                    )}
+                    {item.targetAudience && item.targetAudience.length > 0 && (
+                      <Chip 
+                        icon={<FaUserMd />}
+                        label={`Target: ${item.targetAudience.join(', ')}`}
+                        size="small"
+                        sx={{ 
+                          backgroundColor: '#f3e5f5',
+                          color: '#7b1fa2',
+                          fontWeight: 600
+                        }} 
+                      />
+                    )}
                   </Box>
                 )}
                 
@@ -185,13 +317,18 @@ function HealthTips() {
         ))}
       </Grid>
       
-      {!loading && allItems.length === 0 && (
+      {!loading && filteredItems.length === 0 && (
         <Box textAlign="center" py={8}>
           <FaLeaf size={64} color="#ccc" style={{ marginBottom: '1rem' }} />
-          <Typography variant="h6" color="text.secondary">
-            No health tips or wellness programs available yet
+          <Typography variant="h6" color="text.secondary" mb={1}>
+            No health content available
           </Typography>
-
+          <Typography variant="body1" color="text.secondary">
+            {filterCategory === 'all' 
+              ? 'There are currently no health tips or wellness programs in the system.'
+              : `No content found for category: ${filterCategory}`
+            }
+          </Typography>
         </Box>
       )}
     </Container>

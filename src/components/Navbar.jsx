@@ -20,7 +20,7 @@ import {
   Shield,
   MessageCircle
 } from 'lucide-react';
-import { API_ENDPOINTS, apiCall } from '../config/api';
+import { API_ENDPOINTS } from '../config/api';
 
 function Navbar() {
   const [user, setUser] = useState(null);
@@ -131,7 +131,7 @@ function Navbar() {
     window.addEventListener('wishlistUpdated', updateCounts);
 
     const origSetItem = localStorage.setItem;
-    localStorage.setItem = function (key, value) {
+    localStorage.setItem = function (key, _value) {
       origSetItem.apply(this, arguments);
       if (key === 'user') {
         window.dispatchEvent(new Event('userChanged'));

@@ -1,34 +1,32 @@
 import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import {
   Container,
   Typography,
   Box,
   Card,
   CardContent,
-  CardHeader,
   Grid,
   TextField,
   Button,
   Chip,
-  FormControl,
-  InputLabel,
-  Select,
-  MenuItem,
   Dialog,
   DialogTitle,
   DialogContent,
   DialogActions,
-  IconButton,
   Alert,
   CircularProgress,
   Tabs,
   Tab,
-  Avatar,
   Paper,
-  Divider,
   Fade,
   useTheme,
-  LinearProgress
+  MenuItem,
+  Select,
+  InputLabel,
+  FormControl,
+  Switch,
+  FormControlLabel
 } from '@mui/material';
 import {
   FaUserMd,
@@ -40,20 +38,12 @@ import {
   FaCertificate,
   FaCalendarAlt,
   FaRupeeSign,
-  FaVideo,
-  FaPhone,
-  FaComments,
-  FaChalkboardTeacher,
-  FaClipboardList,
-  FaYoutube,
-  FaRunning,
-  FaAppleAlt,
-  FaSpa,
   FaLeaf,
-  FaExclamationTriangle,
-  FaBullseye,
-  FaTasks,
-  FaCheckCircle
+  FaNewspaper,
+  FaTags,
+  FaToggleOn,
+  FaToggleOff,
+  FaLightbulb
 } from 'react-icons/fa';
 import { Close as CloseIcon } from '@mui/icons-material';
 import axios from 'axios';
@@ -61,15 +51,16 @@ import { API_ENDPOINTS } from '../config/api';
 
 const WellnessCoachDashboard = () => {
   const theme = useTheme();
+  const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState(0);
   const [coach, setCoach] = useState(null);
   const [clients, setClients] = useState([]);
-  const [programs, setPrograms] = useState([]);
-  const [assignedPrograms, setAssignedPrograms] = useState([]);
-  const [unassignedPrograms, setUnassignedPrograms] = useState([]);
+  const [newsletters, setNewsletters] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
+  
+  // Profile form state
   const [profileForm, setProfileForm] = useState({
     qualifications: [],
     specializations: [],
@@ -80,6 +71,8 @@ const WellnessCoachDashboard = () => {
     bio: '',
     languages: []
   });
+  
+  // Availability state
   const [availability, setAvailability] = useState({
     monday: { start: '', end: '' },
     tuesday: { start: '', end: '' },
@@ -89,117 +82,166 @@ const WellnessCoachDashboard = () => {
     saturday: { start: '', end: '' },
     sunday: { start: '', end: '' }
   });
+  
   const [editMode, setEditMode] = useState(false);
-  const [newCertification, setNewCertification] = useState({
-    name: '',
-    issuingBody: '',
-    date: '',
-    validUntil: ''
-  });
-  const [certificationDialogOpen, setCertificationDialogOpen] = useState(false);
-  const [newProgram, setNewProgram] = useState({
-    name: '',
+  
+  // Newsletter creation state
+  const [newNewsletter, setNewNewsletter] = useState({
     title: '',
-    description: '',
-    category: '',
-    duration: '',
-    difficulty: '',
-    targetAudience: [],
-    prerequisites: [],
-    benefits: [],
-    status: 'published',
-    startDate: '',
-    endDate: '',
-    goals: '',
-    assignedUserId: '',
-    dailyTasks: [],
-    weeklyMilestones: [{ week: 1, goal: '', description: '' }],
-    newTargetAudience: '',
-    newPrerequisite: '',
-    newBenefit: ''
+    content: '',
+    category: 'general',
+    tags: '',
+    author: '',
+    isActive: true
   });
-  const [programDialogOpen, setProgramDialogOpen] = useState(false);
+  const [newsletterDialogOpen, setNewsletterDialogOpen] = useState(false);
+  
+  // Client management state
+  const [clientDialogOpen, setClientDialogOpen] = useState(false);
+  const [availableUsers, setAvailableUsers] = useState([]);
+  const [selectedUser, setSelectedUser] = useState('');
 
-
-  // Helper functions for Program Form
-  const handleTaskChange = (index, field, value) => {
-    const updatedTasks = [...newProgram.dailyTasks];
-    updatedTasks[index][field] = value;
-    setNewProgram({ ...newProgram, dailyTasks: updatedTasks });
+  // Newsletter creation functions
+  const handleNewsletterDialogOpen = () => {
+    setNewsletterDialogOpen(true);
   };
 
-  const handleAddTask = () => {
-    setNewProgram(prev => ({
-      ...prev,
-      dailyTasks: [...prev.dailyTasks, { title: '', description: '', category: 'exercise', youtubeVideoUrl: '', id: `task_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`, date: new Date() }]
-    }));
+  const handleCreateNewsletter = async () => {
+    try {
+      setError('');
+      setSuccess('');
+
+      // Validate required fields
+      if (!newNewsletter.title) return setError('Newsletter title is required');
+      if (!newNewsletter.content) return setError('Newsletter content is required');
+
+      const newsletterData = {
+        title: newNewsletter.title,
+        content: newNewsletter.content,
+        category: newNewsletter.category,
+        author: newNewsletter.author || 'Wellness Coach',
+        tags: newNewsletter.tags.split(',').map(tag => tag.trim()).filter(tag => tag),
+        isActive: newNewsletter.isActive,
+        programType: 'newsletter'
+      };
+
+      console.log('Creating newsletter with data:', newsletterData);
+      console.log('API endpoint:', API_ENDPOINTS.NEWSLETTER.CREATE);
+      console.log('Token:', localStorage.getItem('token'));
+
+      const response = await axios.post(API_ENDPOINTS.NEWSLETTER.CREATE, newsletterData, {
+        headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
+      });
+
+      console.log('Newsletter creation response:', response.data);
+
+      setSuccess('Newsletter created successfully');
+      setNewsletterDialogOpen(false);
+      
+      // Reset form
+      setNewNewsletter({
+        title: '',
+        content: '',
+        category: 'general',
+        tags: '',
+        author: '',
+        isActive: true
+      });
+
+      // Refresh newsletters list
+      fetchNewsletters();
+    } catch (err) {
+      console.error('Error creating newsletter:', err);
+      console.error('Error response:', err.response?.data);
+      setError('Failed to create newsletter: ' + (err.response?.data?.message || err.message));
+    }
   };
 
-  const handleRemoveTask = (index) => {
-    setNewProgram(prev => ({
-      ...prev,
-      dailyTasks: prev.dailyTasks.filter((_, i) => i !== index)
-    }));
+  // Client management functions
+  const handleOpenClientDialog = async () => {
+    try {
+      const response = await axios.get(API_ENDPOINTS.WELLNESS_COACH.USERS, {
+        headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
+      });
+      setAvailableUsers(response.data);
+      setClientDialogOpen(true);
+    } catch (err) {
+      console.error('Error fetching users:', err);
+      setError('Failed to fetch available users');
+    }
   };
 
-  const handleMilestoneChange = (index, field, value) => {
-    const updatedMilestones = [...newProgram.weeklyMilestones];
-    updatedMilestones[index][field] = value;
-    setNewProgram({ ...newProgram, weeklyMilestones: updatedMilestones });
+  const handleAddClient = async () => {
+    if (!selectedUser) {
+      setError('Please select a user to add as client');
+      return;
+    }
+
+    try {
+      setError('');
+      setSuccess('');
+      
+      // In a real implementation, this would call an API to assign the user as a client
+      // For now, we'll just simulate the addition
+      const selectedUserData = availableUsers.find(user => user._id === selectedUser);
+      if (selectedUserData) {
+        const newClient = {
+          userId: selectedUserData,
+          status: 'active',
+          joinedDate: new Date()
+        };
+        
+        setClients([...clients, newClient]);
+        setSuccess('Client added successfully');
+        setClientDialogOpen(false);
+        setSelectedUser('');
+      }
+    } catch (err) {
+      setError('Failed to add client');
+      console.error('Error adding client:', err);
+    }
   };
 
-  const handleAddMilestone = () => {
-    setNewProgram(prev => ({
-      ...prev,
-      weeklyMilestones: [...prev.weeklyMilestones, { week: prev.weeklyMilestones.length + 1, goal: '', description: '', achieved: false }]
-    }));
+  const handleRemoveClient = (clientId) => {
+    setClients(clients.filter(client => client.userId._id !== clientId));
+    setSuccess('Client removed successfully');
   };
 
-  const handleRemoveMilestone = (index) => {
-    setNewProgram(prev => ({
-      ...prev,
-      weeklyMilestones: prev.weeklyMilestones.filter((_, i) => i !== index)
-    }));
+  const handleUpdateClientStatusLocal = (clientId, newStatus) => {
+    setClients(clients.map(client => 
+      client.userId._id === clientId 
+        ? { ...client, status: newStatus }
+        : client
+    ));
+    setSuccess(`Client status updated to ${newStatus}`);
   };
 
-  const handleProgramDialogOpen = () => {
-    setProgramDialogOpen(true);
+  const handleViewClientDetails = (clientId) => {
+    const client = clients.find(c => c.userId._id === clientId);
+    if (client) {
+      alert(`Client Details:\nName: ${client.userId.name}\nEmail: ${client.userId.email}\nStatus: ${client.status}`);
+    }
   };
 
-  // Add function to handle program assignment
-  const handleAssignProgram = (programId) => {
-    // For now, show an alert with instructions
-    // In a real implementation, this would open a dialog to select a client
-    alert('In a real implementation, this would open a dialog to assign the program to a client. For now, please edit the program and set the assigned user.');
-  };
-
-  // Make sure this function is defined before any other functions that might use it
-  useEffect(() => {
-    fetchCoachProfile();
-    fetchPrograms();
-  }, []);
-
-  // Check authentication before making API calls
-  const isAuthenticated = () => {
-    const token = localStorage.getItem('token');
-    const user = localStorage.getItem('user');
-    return token && user;
-  };
-
+  // Fetch functions
   const fetchCoachProfile = async () => {
     try {
       setLoading(true);
       setError('');
+      console.log('Fetching coach profile...');
+      const token = localStorage.getItem('token');
+      console.log('Token being sent:', token);
+      
       const response = await axios.get(API_ENDPOINTS.WELLNESS_COACH.PROFILE, {
         headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
       });
       
-      // Handle the response data properly - check if it's wrapped in a coach property
+      console.log('Profile response:', response.data);
+      
       const coachData = response.data.coach || response.data;
       setCoach(coachData);
       setClients(coachData.clients || []);
 
-      // Set form data
       setProfileForm({
         qualifications: coachData.qualifications || [],
         specializations: coachData.specializations || [],
@@ -213,219 +255,53 @@ const WellnessCoachDashboard = () => {
 
       setAvailability(coachData.availability || availability);
     } catch (err) {
+      console.error('Error fetching coach profile:', err);
+      console.error('Error response:', err.response?.data);
+      console.error('Error status:', err.response?.status);
+      
       if (err.response && err.response.status === 404) {
-        // If no coach profile exists, allow creating one
+        console.log('Coach profile not found, enabling edit mode');
         setEditMode(true);
         setError('');
       } else {
-        setError('Failed to fetch coach profile');
-        console.error('Error fetching coach profile:', err);
+        setError('Failed to fetch coach profile: ' + (err.response?.data?.message || err.message));
       }
     } finally {
       setLoading(false);
     }
   };
 
-  const fetchPrograms = async () => {
+  const fetchNewsletters = async () => {
     try {
-      // Use the endpoint for getting ALL programs for the coach
-      const response = await axios.get(`${API_ENDPOINTS.WELLNESS_COACH.GET_ALL_PROGRAMS}`, {
+      const response = await axios.get(`${API_ENDPOINTS.NEWSLETTER.GET_ALL}`, {
         headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
       });
       
-      // Separate assigned and unassigned programs
-      const allPrograms = response.data.programs || [];
-      const assignedPrograms = allPrograms.filter(program => program.clientId);
-      const unassignedPrograms = allPrograms.filter(program => !program.clientId);
-      
-      setPrograms(allPrograms);
-      setAssignedPrograms(assignedPrograms);
-      setUnassignedPrograms(unassignedPrograms);
+      // Filter newsletters created by this coach
+      const coachNewsletters = response.data.newsletters || [];
+      setNewsletters(coachNewsletters);
     } catch (err) {
-      console.error('Error fetching programs:', err);
-      // Don't set global error here to avoid blocking other UI, just log it
+      console.error('Error fetching newsletters:', err);
     }
   };
 
-  const handleInputChange = (field, value) => {
-    setProfileForm(prev => ({
-      ...prev,
-      [field]: value
-    }));
-  };
-
-  const handleAvailabilityChange = (day, field, value) => {
-    setAvailability(prev => ({
-      ...prev,
-      [day]: {
-        ...prev[day],
-        [field]: value
-      }
-    }));
-  };
-
-  const handleAddItem = (field, value) => {
-    if (value && !profileForm[field].includes(value)) {
-      setProfileForm(prev => ({
-        ...prev,
-        [field]: [...prev[field], value]
-      }));
+  useEffect(() => {
+    console.log('WellnessCoachDashboard mounted');
+    console.log('Token:', localStorage.getItem('token'));
+    console.log('User:', localStorage.getItem('user'));
+    
+    const user = JSON.parse(localStorage.getItem('user') || 'null');
+    console.log('User role:', user?.role);
+    
+    if (!user || user.role !== 'wellness_coach') {
+      console.error('User is not a wellness coach');
+      setError('Access denied. Wellness coach role required.');
+      return;
     }
-  };
-
-  const handleRemoveItem = (field, value) => {
-    setProfileForm(prev => ({
-      ...prev,
-      [field]: prev[field].filter(item => item !== value)
-    }));
-  };
-
-  const handleAddCertification = () => {
-    if (newCertification.name && newCertification.issuingBody) {
-      setProfileForm(prev => ({
-        ...prev,
-        certifications: [...prev.certifications, { ...newCertification }]
-      }));
-      setNewCertification({
-        name: '',
-        issuingBody: '',
-        date: '',
-        validUntil: ''
-      });
-      setCertificationDialogOpen(false);
-    }
-  };
-
-  const handleRemoveCertification = (index) => {
-    setProfileForm(prev => ({
-      ...prev,
-      certifications: prev.certifications.filter((_, i) => i !== index)
-    }));
-  };
-
-  const handleSaveProfile = async () => {
-    try {
-      setError('');
-      setSuccess('');
-      
-      const profileData = {
-        ...profileForm,
-        availability
-      };
-
-      let response;
-      if (!coach) {
-        // Create new coach profile
-        response = await axios.post(API_ENDPOINTS.WELLNESS_COACH.CREATE_PROFILE, profileData, {
-          headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
-        });
-        
-        setSuccess('Profile created successfully');
-      } else {
-        // Update existing coach profile
-        response = await axios.put(API_ENDPOINTS.WELLNESS_COACH.UPDATE_PROFILE, profileData, {
-          headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
-        });
-        
-        setSuccess('Profile updated successfully');
-      }
-      
-      setCoach(response.data.coach || response.data);
-      setEditMode(false);
-    } catch (err) {
-      setError('Failed to save profile: ' + (err.response?.data?.message || err.message));
-      console.error('Error saving profile:', err);
-    }
-  };
-
-  const handleUpdateClientStatus = async (clientId, status) => {
-    try {
-      setError('');
-      setSuccess('');
-
-      await axios.put(
-        API_ENDPOINTS.WELLNESS_COACH.UPDATE_CLIENT_STATUS(clientId),
-        { status },
-        { headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` } }
-      );
-
-      setSuccess('Client status updated successfully');
-      fetchCoachProfile();
-    } catch (err) {
-      setError('Failed to update client status');
-      console.error('Error updating client status:', err);
-    }
-  };
-
-  const handleCreateProgram = async () => {
-    try {
-      setError('');
-      setSuccess('');
-
-      // Basic validation
-      if (!newProgram.name) return setError('Program name is required');
-      if (!newProgram.startDate || !newProgram.endDate) return setError('Start and end dates are required');
-      if (!coach || (!coach._id && !coach.id)) return setError('Coach profile is required to create programs');
-
-      const validTasks = newProgram.dailyTasks.filter(t => t.title && t.description && t.category);
-      if (validTasks.length === 0) return setError('At least one daily task with title, description, and category is required');
-
-      // Validate weekly milestones
-      const validMilestones = newProgram.weeklyMilestones.filter(m => m.goal && m.description && m.week !== undefined);
-      if (validMilestones.length === 0) return setError('At least one weekly milestone with goal, description, and week is required');
-
-      const programData = {
-        ...newProgram,
-        name: newProgram.name || newProgram.title,
-        goals: newProgram.goals.split(',').map(goal => goal.trim()).filter(goal => goal),
-        clientId: newProgram.assignedUserId || undefined,
-        assignedUserId: newProgram.assignedUserId || undefined,
-        // Add coach ID to associate the program with the coach who created it
-        coachId: coach._id || coach.id || undefined,
-        dailyTasks: validTasks.map(task => ({
-          ...task,
-          id: task.id || `task_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
-          date: task.date || new Date()
-        })),
-        weeklyMilestones: newProgram.weeklyMilestones.map((milestone, index) => ({
-          ...milestone,
-          week: milestone.week || index + 1
-        }))
-      };
-
-      await axios.post(API_ENDPOINTS.WELLNESS_COACH.CREATE_PROGRAM, programData, {
-        headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
-      });
-
-      setSuccess('Wellness program created successfully');
-      setProgramDialogOpen(false);
-      setNewProgram({
-        name: '',
-        title: '',
-        description: '',
-        category: '',
-        duration: '',
-        difficulty: '',
-        targetAudience: [],
-        prerequisites: [],
-        benefits: [],
-        status: 'published',
-        startDate: '',
-        endDate: '',
-        goals: '',
-        assignedUserId: '',
-        dailyTasks: [],
-        weeklyMilestones: [{ week: 1, goal: '', description: '' }],
-        newTargetAudience: '',
-        newPrerequisite: '',
-        newBenefit: ''
-      });
-      fetchPrograms();
-    } catch (err) {
-      setError('Failed to create wellness program');
-      console.error('Error creating program:', err);
-    }
-  };
+    
+    fetchCoachProfile();
+    fetchNewsletters();
+  }, []);
 
   if (loading) {
     return (
@@ -483,7 +359,7 @@ const WellnessCoachDashboard = () => {
             Wellness Dashboard
           </Typography>
           <Typography variant="subtitle1" sx={{ color: '#558b2f', fontWeight: 500 }}>
-            Manage your practice, clients, and programs efficiently
+            Manage your practice and create wellness newsletters
           </Typography>
         </Box>
 
@@ -505,218 +381,65 @@ const WellnessCoachDashboard = () => {
             value={activeTab}
             onChange={(e, newValue) => setActiveTab(newValue)}
             sx={{
+              '& .MuiTab-root': {
+                minWidth: 120,
+                fontWeight: 600,
+                color: '#558b2f',
+                '&.Mui-selected': {
+                  color: '#2E7D32'
+                }
+              },
               '& .MuiTabs-indicator': {
                 bgcolor: '#2E7D32',
-                height: 3,
-                borderRadius: '3px'
-              },
-              '& .MuiTab-root': {
-                textTransform: 'none',
-                fontWeight: 600,
-                color: '#555',
-                fontSize: '1rem',
-                minHeight: '48px',
-                borderRadius: '50px',
-                px: 4,
-                '&.Mui-selected': {
-                  color: '#2E7D32',
-                  bgcolor: '#E8F5E9'
-                }
+                height: 3
               }
             }}
           >
-            <Tab label="Profile" icon={<FaUserMd />} iconPosition="start" />
-            <Tab label="Clients" icon={<FaUsers />} iconPosition="start" />
-            <Tab label="Programs" icon={<FaClipboardList />} iconPosition="start" />
-            <Tab label="Schedule" icon={<FaCalendarAlt />} iconPosition="start" />
+            <Tab label="Overview" />
+            <Tab label="Clients" />
+            <Tab label="Newsletters" />
+            <Tab label="Availability" />
           </Tabs>
         </Paper>
 
-        <Fade in={true} timeout={500}>
+        <Fade in={true}>
           <Box>
             {activeTab === 0 && (
               <Grid container spacing={4}>
                 <Grid size={{ xs: 12, md: 8 }}>
                   <Card sx={glassCardSx}>
-                    <Box sx={{
-                      p: 3,
-                      bgcolor: 'rgba(46, 125, 50, 0.05)',
-                      display: 'flex',
-                      justifyContent: 'space-between',
-                      alignItems: 'center',
-                      borderBottom: '1px solid rgba(0,0,0,0.05)'
-                    }}>
+                    <Box sx={{ p: 3, borderBottom: '1px solid rgba(0,0,0,0.05)', bgcolor: '#fbfdf9' }}>
                       <Typography variant="h5" sx={{ color: '#2E7D32', fontWeight: 700, fontFamily: 'Playfair Display, serif' }}>
-                        {editMode ? "Edit Profile" : "Professional Profile"}
+                        Profile Overview
                       </Typography>
-                      <IconButton
-                        onClick={() => setEditMode(!editMode)}
-                        sx={{
-                          bgcolor: editMode ? '#2E7D32' : 'white',
-                          color: editMode ? 'white' : '#2E7D32',
-                          boxShadow: '0 4px 12px rgba(0,0,0,0.1)',
-                          '&:hover': {
-                            bgcolor: editMode ? '#1b5e20' : '#f1f8e9',
-                          }
-                        }}
-                      >
-                        {editMode ? <FaCheck /> : <FaEdit />}
-                      </IconButton>
                     </Box>
                     <CardContent sx={{ p: 4 }}>
-                      {editMode ? (
-                        <Grid container spacing={3}>
-                          <Grid size={{ xs: 12 }}>
-                            <Typography variant="subtitle2" sx={{ color: '#666', mb: 1 }}>Professional Bio</Typography>
-                            <TextField
-                              fullWidth
-                              label="Tell clients about your expertise..."
-                              value={profileForm.bio}
-                              onChange={(e) => handleInputChange('bio', e.target.value)}
-                              multiline
-                              rows={4}
-                              sx={textFieldSx}
-                            />
-                          </Grid>
-                          <Grid size={{ xs: 12, sm: 6 }}>
-                            <TextField
-                              fullWidth
-                              label="Years of Experience"
-                              type="number"
-                              value={profileForm.experience}
-                              onChange={(e) => handleInputChange('experience', e.target.value)}
-                              sx={textFieldSx}
-                            />
-                          </Grid>
-                          <Grid size={{ xs: 12, sm: 6 }}>
-                            <TextField
-                              fullWidth
-                              label="Consultation Fee (₹)"
-                              type="number"
-                              value={profileForm.consultationFee}
-                              onChange={(e) => handleInputChange('consultationFee', e.target.value)}
-                              InputProps={{ startAdornment: <Typography sx={{ mr: 1, color: '#666' }}>₹</Typography> }}
-                              sx={textFieldSx}
-                            />
-                          </Grid>
-
-                          {['qualifications', 'specializations', 'languages', 'consultationMethods'].map((field) => (
-                            <Grid size={{ xs: 12 }} key={field}>
-                              <Typography variant="subtitle1" gutterBottom sx={{ textTransform: 'capitalize', fontWeight: 600 }}>
-                                {field.replace(/([A-Z])/g, ' $1').trim()}
-                              </Typography>
-                              <Paper elevation={0} sx={{ p: 2, bgcolor: '#f9fbe7', borderRadius: '12px' }}>
-                                <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1, mb: 2 }}>
-                                  {profileForm[field].map((item, index) => (
-                                    <Chip
-                                      key={index}
-                                      label={item}
-                                      onDelete={() => handleRemoveItem(field, item)}
-                                      sx={{ bgcolor: 'white', borderColor: '#2E7D32', color: '#2E7D32' }}
-                                      variant="outlined"
-                                    />
-                                  ))}
-                                </Box>
-                                <TextField
-                                  fullWidth
-                                  size="small"
-                                  placeholder={`Add ${field} and press Enter`}
-                                  onKeyPress={(e) => {
-                                    if (e.key === 'Enter') {
-                                      e.preventDefault();
-                                      handleAddItem(field, e.target.value);
-                                      e.target.value = '';
-                                    }
-                                  }}
-                                  sx={textFieldSx}
-                                />
-                              </Paper>
-                            </Grid>
-                          ))}
-
-
-                          <Grid size={{ xs: 12 }}>
-                            <Box sx={{ display: 'flex', justifyContent: 'flex-end', gap: 2, mt: 2 }}>
-                              <Button
-                                variant="outlined"
-                                onClick={() => setEditMode(false)}
-                                sx={{ borderRadius: '8px', color: '#666', borderColor: '#999' }}
-                              >
-                                Cancel
-                              </Button>
-                              <Button
-                                variant="contained"
-                                onClick={handleSaveProfile}
-                                startIcon={<FaCheck />}
-                                sx={{
-                                  bgcolor: '#2E7D32',
-                                  '&:hover': { bgcolor: '#1b5e20' },
-                                  borderRadius: '8px',
-                                  px: 4
-                                }}
-                              >
-                                Save Profile
-                              </Button>
-                            </Box>
-                          </Grid>
+                      <Grid container spacing={3}>
+                        <Grid size={{ xs: 12, sm: 6 }}>
+                          <Typography variant="subtitle2" color="text.secondary" sx={{ mb: 1 }}>Name</Typography>
+                          <Typography variant="body1" sx={{ fontWeight: 600, color: '#333' }}>
+                            {coach?.userId?.name || 'Not set'}
+                          </Typography>
                         </Grid>
-                      ) : (
-                        <Box>
-                          <Grid container spacing={3}>
-                            <Grid size={{ xs: 12 }} display="flex" alignItems="center" gap={3}>
-                              <Avatar sx={{ width: 80, height: 80, bgcolor: '#2E7D32', fontSize: '2rem' }}>
-                                {coach?.userId?.name?.charAt(0) || <FaUserMd />}
-                              </Avatar>
-                              <Box>
-                                <Typography variant="h5" sx={{ fontWeight: 700, color: '#1a330a' }}>
-                                  {coach?.userId?.name || 'New Coach'}
-                                </Typography>
-                                <Typography variant="body1" color="text.secondary">
-                                  Wellness Expert
-                                </Typography>
-                              </Box>
-                            </Grid>
-
-                            <Grid size={{ xs: 12 }}>
-                              <Paper elevation={0} sx={{ p: 2, bgcolor: '#f1f8e9', borderRadius: '12px', borderLeft: '4px solid #2E7D32' }}>
-                                <Typography variant="body1" sx={{ color: '#334d2b', fontStyle: 'italic' }}>
-                                  "{profileForm.bio || 'No bio added yet. Click edit to add your professional summary.'}"
-                                </Typography>
-                              </Paper>
-                            </Grid>
-
-
-                            <Grid size={{ xs: 6, md: 3 }}>
-                              <Box sx={{ p: 2, bgcolor: 'white', borderRadius: '12px', textAlign: 'center', boxShadow: '0 2px 8px rgba(0,0,0,0.05)' }}>
-                                <Typography variant="h4" sx={{ color: '#2E7D32', fontWeight: 700 }}>{profileForm.experience || 0}</Typography>
-                                <Typography variant="caption" sx={{ color: '#666', textTransform: 'uppercase', letterSpacing: '1px' }}>Years Exp</Typography>
-                              </Box>
-                            </Grid>
-                            <Grid size={{ xs: 6, md: 3 }}>
-                              <Box sx={{ p: 2, bgcolor: 'white', borderRadius: '12px', textAlign: 'center', boxShadow: '0 2px 8px rgba(0,0,0,0.05)' }}>
-                                <Typography variant="h4" sx={{ color: '#2E7D32', fontWeight: 700 }}>₹{profileForm.consultationFee || 0}</Typography>
-                                <Typography variant="caption" sx={{ color: '#666', textTransform: 'uppercase', letterSpacing: '1px' }}>Per Session</Typography>
-                              </Box>
-                            </Grid>
-
-                            <Grid size={{ xs: 12 }}>
-                              <Divider sx={{ my: 2 }} />
-                              <Typography variant="h6" gutterBottom sx={{ color: '#2E7D32', fontWeight: 600 }}>Expertise</Typography>
-                              <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1 }}>
-                                {profileForm.specializations.map((spec, i) => (
-                                  <Chip key={i} label={spec} sx={{ bgcolor: '#e8f5e9', color: '#2E7D32', fontWeight: 500 }} />
-                                ))}
-                                {profileForm.qualifications.map((qual, i) => (
-                                  <Chip key={i} label={qual} variant="outlined" sx={{ borderColor: '#2E7D32', color: '#2E7D32' }} />
-                                ))}
-                                {profileForm.specializations.length === 0 && profileForm.qualifications.length === 0 && (
-                                  <Typography color="text.secondary">No expertise listed.</Typography>
-                                )}
-                              </Box>
-                            </Grid>
-                          </Grid>
-                        </Box>
-                      )}
+                        <Grid size={{ xs: 12, sm: 6 }}>
+                          <Typography variant="subtitle2" color="text.secondary" sx={{ mb: 1 }}>Email</Typography>
+                          <Typography variant="body1" sx={{ fontWeight: 600, color: '#333' }}>
+                            {coach?.userId?.email || 'Not set'}
+                          </Typography>
+                        </Grid>
+                        <Grid size={{ xs: 12, sm: 6 }}>
+                          <Typography variant="subtitle2" color="text.secondary" sx={{ mb: 1 }}>Specialization</Typography>
+                          <Typography variant="body1" sx={{ fontWeight: 600, color: '#333' }}>
+                            {coach?.specializations?.join(', ') || 'Not specified'}
+                          </Typography>
+                        </Grid>
+                        <Grid size={{ xs: 12, sm: 6 }}>
+                          <Typography variant="subtitle2" color="text.secondary" sx={{ mb: 1 }}>Experience</Typography>
+                          <Typography variant="body1" sx={{ fontWeight: 600, color: '#333' }}>
+                            {coach?.experience || 'Not specified'}
+                          </Typography>
+                        </Grid>
+                      </Grid>
                     </CardContent>
                   </Card>
                 </Grid>
@@ -724,16 +447,15 @@ const WellnessCoachDashboard = () => {
                 <Grid size={{ xs: 12, md: 4 }}>
                   <Card sx={glassCardSx}>
                     <Box sx={{ p: 3, borderBottom: '1px solid rgba(0,0,0,0.05)', bgcolor: '#fbfdf9' }}>
-                      <Typography variant="h6" sx={{ color: '#2E7D32', fontWeight: 700 }}>Performance Highlights</Typography>
+                      <Typography variant="h6" sx={{ color: '#2E7D32', fontWeight: 700 }}>Performance</Typography>
                     </Box>
                     <CardContent sx={{ p: 0 }}>
                       <Box sx={{ p: 3, borderBottom: '1px solid #f0f0f0' }}>
                         <Box display="flex" alignItems="center" mb={1}>
-                          <FaStar color="#FFD700" size={24} style={{ filter: 'drop-shadow(0 2px 4px rgba(0,0,0,0.1))' }} />
+                          <FaStar color="#FFD700" size={24} />
                           <Typography variant="h4" sx={{ ml: 2, fontWeight: 700, color: '#333' }}>{coach?.rating || 0}</Typography>
                           <Typography variant="body2" color="text.secondary" sx={{ ml: 1, mt: 1 }}>/ 5.0 Rating</Typography>
                         </Box>
-                        <LinearProgress variant="determinate" value={(coach?.rating || 0) * 20} sx={{ height: 6, borderRadius: 3, bgcolor: '#f1f8e9', '& .MuiLinearProgress-bar': { bgcolor: '#FFD700' } }} />
                       </Box>
 
                       <Box sx={{ p: 3, display: 'flex', alignItems: 'center', gap: 3 }}>
@@ -768,6 +490,7 @@ const WellnessCoachDashboard = () => {
                   <Button
                     variant="contained"
                     startIcon={<FaPlus />}
+                    onClick={handleOpenClientDialog}
                     sx={{ bgcolor: '#2E7D32', '&:hover': { bgcolor: '#1b5e20' }, borderRadius: '8px' }}
                   >
                     New Client
@@ -781,65 +504,65 @@ const WellnessCoachDashboard = () => {
                         Your client list is empty
                       </Typography>
                       <Typography variant="body2" color="text.secondary">
-                        Start by assigning a new client to your practice
+                        Start by adding a new client to your practice
                       </Typography>
                     </Box>
                   ) : (
                     <Grid container spacing={3}>
-                      {clients.map((client, index) => {
-                        // Find active program for this client
-                        const clientProgram = programs.find(p => p.clientId?._id === client.userId?._id || p.clientId === client.userId?._id);
-
-                        return (
-                          <Grid size={{ xs: 12, sm: 6, md: 4 }} key={index}>
-                            <Card elevation={0} sx={{ border: '1px solid #e0e0e0', borderRadius: '12px', transition: 'all 0.3s', '&:hover': { borderColor: '#2E7D32', transform: 'translateY(-4px)', boxShadow: '0 8px 24px rgba(0,0,0,0.05)' } }}>
-                              <CardContent>
-                                <Box display="flex" alignItems="center" gap={2} mb={2}>
-                                  <Avatar sx={{ bgcolor: '#2E7D32' }}>{client.userId?.name?.[0]}</Avatar>
-                                  <Box>
-                                    <Typography variant="subtitle1" fontWeight={600} noWrap>{client.userId?.name || 'Client'}</Typography>
-                                    <Chip
-                                      label={client.status}
-                                      size="small"
-                                      sx={{
-                                        height: 24,
-                                        bgcolor: client.status === 'active' ? '#e8f5e9' : '#fafafa',
-                                        color: client.status === 'active' ? '#2E7D32' : '#666'
-                                      }}
-                                    />
-                                  </Box>
+                      {clients.map((client, index) => (
+                        <Grid size={{ xs: 12, sm: 6, md: 4 }} key={index}>
+                          <Card elevation={0} sx={{ border: '1px solid #e0e0e0', borderRadius: '12px', transition: 'all 0.3s', '&:hover': { borderColor: '#2E7D32', transform: 'translateY(-4px)', boxShadow: '0 8px 24px rgba(0,0,0,0.05)' } }}>
+                            <CardContent>
+                              <Box display="flex" alignItems="center" gap={2} mb={2}>
+                                <Box sx={{ width: 40, height: 40, borderRadius: '50%', bgcolor: '#2E7D32', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white', fontWeight: 600 }}>
+                                  {client.userId?.name?.[0]}
                                 </Box>
-                                <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-                                  {client.userId?.email}
-                                </Typography>
-
-                                {clientProgram && (
-                                  <Box sx={{ mb: 2, p: 1.5, bgcolor: '#f9fbe7', borderRadius: '8px' }}>
-                                    <Typography variant="caption" sx={{ color: '#558b2f', fontWeight: 600 }}>Current Program Progress</Typography>
-                                    <Box display="flex" alignItems="center" gap={1} mt={0.5}>
-                                      <LinearProgress
-                                        variant="determinate"
-                                        value={clientProgram.progress?.overall || 0}
-                                        sx={{ flex: 1, height: 6, borderRadius: 3, bgcolor: '#e0e0e0' }}
-                                      />
-                                      <Typography variant="caption" fontWeight="bold">{clientProgram.progress?.overall || 0}%</Typography>
-                                    </Box>
-                                  </Box>
-                                )}
-
+                                <Box>
+                                  <Typography variant="subtitle1" fontWeight={600} noWrap>{client.userId?.name || 'Client'}</Typography>
+                                  <Chip
+                                    label={client.status}
+                                    size="small"
+                                    sx={{
+                                      height: 24,
+                                      bgcolor: client.status === 'active' ? '#e8f5e9' : '#fafafa',
+                                      color: client.status === 'active' ? '#2E7D32' : '#666'
+                                    }}
+                                  />
+                                </Box>
+                              </Box>
+                              <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+                                {client.userId?.email}
+                              </Typography>
+                              <Box sx={{ display: 'flex', gap: 1, mt: 1 }}>
                                 <Button
-                                  fullWidth
+                                  size="small"
                                   variant="outlined"
-                                  onClick={() => console.log('View client', client.userId._id)}
-                                  sx={{ borderRadius: '8px', color: '#2E7D32', borderColor: '#2E7D32' }}
+                                  onClick={() => handleViewClientDetails(client.userId._id)}
+                                  sx={{ borderRadius: '8px', color: '#2E7D32', borderColor: '#2E7D32', flex: 1 }}
                                 >
-                                  View Details
+                                  View
                                 </Button>
-                              </CardContent>
-                            </Card>
-                          </Grid>
-                        );
-                      })}
+                                <Button
+                                  size="small"
+                                  variant="outlined"
+                                  onClick={() => handleUpdateClientStatusLocal(client.userId._id, client.status === 'active' ? 'inactive' : 'active')}
+                                  sx={{ borderRadius: '8px', color: '#ff9800', borderColor: '#ff9800', flex: 1 }}
+                                >
+                                  {client.status === 'active' ? 'Deactivate' : 'Activate'}
+                                </Button>
+                                <Button
+                                  size="small"
+                                  variant="outlined"
+                                  onClick={() => handleRemoveClient(client.userId._id)}
+                                  sx={{ borderRadius: '8px', color: '#f44336', borderColor: '#f44336', flex: 1 }}
+                                >
+                                  Remove
+                                </Button>
+                              </Box>
+                            </CardContent>
+                          </Card>
+                        </Grid>
+                      ))}
                     </Grid>
                   )}
                 </CardContent>
@@ -849,43 +572,76 @@ const WellnessCoachDashboard = () => {
             {activeTab === 2 && (
               <Card sx={glassCardSx}>
                 <Box sx={{ p: 3, display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid rgba(0,0,0,0.05)' }}>
-                  <Typography variant="h5" sx={{ color: '#2E7D32', fontWeight: 700, fontFamily: 'Playfair Display, serif' }}>Wellness Programs</Typography>
-                  <Button
-                    variant="contained"
-                    startIcon={<FaPlus />}
-                    onClick={handleProgramDialogOpen}
-                    sx={{ bgcolor: '#2E7D32', '&:hover': { bgcolor: '#1b5e20' }, borderRadius: '8px' }}
-                  >
-                    Create Program
-                  </Button>
+                  <Typography variant="h5" sx={{ color: '#2E7D32', fontWeight: 700, fontFamily: 'Playfair Display, serif' }}>Your Newsletters</Typography>
+                  <Box sx={{ display: 'flex', gap: 2 }}>
+                    <Button
+                      variant="outlined"
+                      startIcon={<FaLightbulb />}
+                      onClick={() => navigate('/coach-post-enrollment')}
+                      sx={{ 
+                        borderColor: '#2E7D32', 
+                        color: '#2E7D32', 
+                        '&:hover': { bgcolor: '#e8f5e9', borderColor: '#1b5e20' }, 
+                        borderRadius: '8px' 
+                      }}
+                    >
+                      Post-Enrollment Content
+                    </Button>
+                    <Button
+                      variant="contained"
+                      startIcon={<FaPlus />}
+                      onClick={handleNewsletterDialogOpen}
+                      sx={{ bgcolor: '#2E7D32', '&:hover': { bgcolor: '#1b5e20' }, borderRadius: '8px' }}
+                    >
+                      Create Newsletter
+                    </Button>
+                  </Box>
                 </Box>
                 <CardContent sx={{ p: 4 }}>
-                  {programs.length === 0 ? (
+                  {newsletters.length === 0 ? (
                     <Box textAlign="center" py={8} sx={{ opacity: 0.7 }}>
-                      <FaClipboardList size={48} color="#a5d6a7" />
+                      <FaNewspaper size={48} color="#a5d6a7" />
                       <Typography variant="h6" color="text.secondary" sx={{ mt: 2 }}>
-                        No programs active
+                        No newsletters created yet
                       </Typography>
                       <Typography variant="body2" color="text.secondary">
-                        Create customized wellness plans for your clients
+                        Create your first wellness newsletter to share with clients
                       </Typography>
                     </Box>
                   ) : (
                     <Grid container spacing={3}>
-                      {unassignedPrograms.map((program, index) => (
+                      {newsletters.map((newsletter, index) => (
                         <Grid size={{ xs: 12, md: 6 }} key={index}>
                           <Card elevation={0} sx={{ border: '1px solid #e0e0e0', borderRadius: '12px', '&:hover': { borderColor: '#2E7D32' } }}>
                             <CardContent>
-                              <Typography variant="h6" gutterBottom sx={{ color: '#1a330a' }}>{program.name}</Typography>
-                              <Typography variant="body2" color="text.secondary" paragraph>{program.description}</Typography>
+                              <Box display="flex" justifyContent="space-between" alignItems="flex-start" mb={2}>
+                                <Typography variant="h6" gutterBottom sx={{ color: '#1a330a' }}>{newsletter.title}</Typography>
+                                <Chip 
+                                  label={newsletter.isActive ? 'Published' : 'Draft'} 
+                                  size="small" 
+                                  sx={{ 
+                                    bgcolor: newsletter.isActive ? '#e8f5e9' : '#fafafa',
+                                    color: newsletter.isActive ? '#2E7D32' : '#666'
+                                  }} 
+                                />
+                              </Box>
+                              <Typography variant="body2" color="text.secondary" paragraph>
+                                {newsletter.content?.substring(0, 100) || 'No content'}...
+                              </Typography>
                               <Box display="flex" gap={1} mb={2}>
-                                {program.goals?.slice(0, 3).map((goal, i) => (
-                                  <Chip key={i} label={goal} size="small" sx={{ bgcolor: '#f1f8e9', color: '#33691e' }} />
+                                {newsletter.category && (
+                                  <Chip label={newsletter.category.replace('_', ' ')} size="small" sx={{ bgcolor: '#f1f8e9', color: '#33691e' }} />
+                                )}
+                                {newsletter.tags && newsletter.tags.map((tag, i) => (
+                                  <Chip key={i} label={tag} size="small" sx={{ bgcolor: '#e3f2fd', color: '#1976d2' }} />
                                 ))}
                               </Box>
-                              <Box display="flex" alignItems="center" color="text.secondary" fontSize="0.875rem">
-                                <FaCalendarAlt style={{ marginRight: 8 }} />
-                                {new Date(program.startDate).toLocaleDateString()} - {new Date(program.endDate).toLocaleDateString()}
+                              <Box display="flex" alignItems="center" justifyContent="space-between" color="text.secondary" fontSize="0.875rem">
+                                <Box display="flex" alignItems="center">
+                                  <FaCalendarAlt style={{ marginRight: 8 }} />
+                                  {newsletter.publishedDate ? new Date(newsletter.publishedDate).toLocaleDateString() : 'Not published'}
+                                </Box>
+                                <Typography variant="caption">{newsletter.author || 'Unknown Author'}</Typography>
                               </Box>
                             </CardContent>
                           </Card>
@@ -908,32 +664,11 @@ const WellnessCoachDashboard = () => {
                       <Grid size={{ xs: 12, sm: 6, md: 3 }} key={day}>
                         <Paper elevation={0} sx={{ p: 2, bgcolor: '#f9fbe7', borderRadius: '12px' }}>
                           <Typography variant="subtitle2" sx={{ textTransform: 'capitalize', mb: 1, fontWeight: 600, color: '#33691e' }}>{day}</Typography>
-                          {editMode ? (
-                            <Box>
-                              <TextField
-                                type="time"
-                                size="small"
-                                fullWidth
-                                value={availability[day].start}
-                                onChange={(e) => handleAvailabilityChange(day, 'start', e.target.value)}
-                                sx={{ mb: 1, bgcolor: 'white' }}
-                              />
-                              <TextField
-                                type="time"
-                                size="small"
-                                fullWidth
-                                value={availability[day].end}
-                                onChange={(e) => handleAvailabilityChange(day, 'end', e.target.value)}
-                                sx={{ bgcolor: 'white' }}
-                              />
-                            </Box>
-                          ) : (
-                            <Typography variant="body2" color="text.secondary">
-                              {availability[day].start && availability[day].end
-                                ? `${availability[day].start} - ${availability[day].end}`
-                                : 'Unavailable'}
-                            </Typography>
-                          )}
+                          <Typography variant="body2" color="text.secondary">
+                            {availability[day].start && availability[day].end
+                              ? `${availability[day].start} - ${availability[day].end}`
+                              : 'Unavailable'}
+                          </Typography>
                         </Paper>
                       </Grid>
                     ))}
@@ -942,545 +677,210 @@ const WellnessCoachDashboard = () => {
               </Card>
             )}
           </Box>
-        </Fade >
-      </Container >
+        </Fade>
 
-      {/* Dialogs */}
-      <Dialog
-        open={programDialogOpen}
-        onClose={() => setProgramDialogOpen(false)}
-        maxWidth="md"
-        fullWidth
-        PaperProps={{
-          sx: {
-            borderRadius: '24px',
-            bgcolor: '#fbfdf9',
-            backgroundImage: 'radial-gradient(at 0% 0%, rgba(46, 125, 50, 0.05) 0, transparent 50%), radial-gradient(at 50% 0%, rgba(139, 195, 74, 0.05) 0, transparent 50%)',
-          }
-        }}
-      >
-        <DialogTitle sx={{
-          p: 3,
-          display: 'flex',
-          alignItems: 'center',
-          gap: 2,
-          color: '#1a330a',
-          fontFamily: 'Playfair Display, serif',
-          fontWeight: 800,
-          borderBottom: '1px solid rgba(0,0,0,0.05)'
-        }}>
-          <Box sx={{ p: 1, bgcolor: '#e8f5e9', borderRadius: '12px', display: 'flex' }}>
-            <FaClipboardList color="#2E7D32" size={24} />
-          </Box>
-          Create Wellness Program
-        </DialogTitle>
-        <DialogContent sx={{ p: 4 }}>
-          <Grid container spacing={4} sx={{ mt: 1 }}>
+        {/* Newsletter Dialog */}
+        <Dialog
+          open={newsletterDialogOpen}
+          onClose={() => setNewsletterDialogOpen(false)}
+          maxWidth="md"
+          fullWidth
+          PaperProps={{
+            sx: {
+              borderRadius: '24px',
+              bgcolor: '#fbfdf9',
+              backgroundImage: 'radial-gradient(at 0% 0%, rgba(46, 125, 50, 0.05) 0, transparent 50%), radial-gradient(at 50% 0%, rgba(139, 195, 74, 0.05) 0, transparent 50%)',
+            }
+          }}
+        >
+          <DialogTitle sx={{
+            p: 3,
+            display: 'flex',
+            alignItems: 'center',
+            gap: 2,
+            color: '#1a330a',
+            fontFamily: 'Playfair Display, serif',
+            fontWeight: 800,
+            borderBottom: '1px solid rgba(0,0,0,0.05)'
+          }}>
+            <Box sx={{ p: 1, bgcolor: '#e8f5e9', borderRadius: '12px', display: 'flex' }}>
+              <FaNewspaper color="#2E7D32" size={24} />
+            </Box>
+            Create Newsletter
+          </DialogTitle>
+          <DialogContent sx={{ p: 4 }}>
+            <Grid container spacing={4} sx={{ mt: 1 }}>
+              <Grid size={{ xs: 12 }}>
+                <TextField
+                  fullWidth
+                  label="Newsletter Title"
+                  placeholder="Enter a catchy title for your newsletter"
+                  value={newNewsletter.title}
+                  onChange={(e) => setNewNewsletter({ ...newNewsletter, title: e.target.value })}
+                  sx={textFieldSx}
+                />
+              </Grid>
+              
+              <Grid size={{ xs: 12 }}>
+                <TextField
+                  fullWidth
+                  label="Content"
+                  multiline
+                  rows={6}
+                  placeholder="Write your newsletter content here..."
+                  value={newNewsletter.content}
+                  onChange={(e) => setNewNewsletter({ ...newNewsletter, content: e.target.value })}
+                  sx={textFieldSx}
+                />
+              </Grid>
+              
+              <Grid size={{ xs: 6 }}>
+                <FormControl fullWidth sx={textFieldSx}>
+                  <InputLabel>Category</InputLabel>
+                  <Select
+                    value={newNewsletter.category}
+                    onChange={(e) => setNewNewsletter({ ...newNewsletter, category: e.target.value })}
+                    label="Category"
+                  >
+                    <MenuItem value="general">General</MenuItem>
+                    <MenuItem value="seasonal">Seasonal</MenuItem>
+                    <MenuItem value="specific_condition">Specific Condition</MenuItem>
+                    <MenuItem value="wellness_tips">Wellness Tips</MenuItem>
+                  </Select>
+                </FormControl>
+              </Grid>
+              
+              <Grid size={{ xs: 6 }}>
+                <TextField
+                  fullWidth
+                  label="Author"
+                  placeholder="Your name or title"
+                  value={newNewsletter.author}
+                  onChange={(e) => setNewNewsletter({ ...newNewsletter, author: e.target.value })}
+                  sx={textFieldSx}
+                />
+              </Grid>
+              
+              <Grid size={{ xs: 12 }}>
+                <TextField
+                  fullWidth
+                  label="Tags (comma separated)"
+                  placeholder="health, wellness, tips, seasonal"
+                  value={newNewsletter.tags}
+                  onChange={(e) => setNewNewsletter({ ...newNewsletter, tags: e.target.value })}
+                  sx={textFieldSx}
+                />
+              </Grid>
+              
+              <Grid size={{ xs: 12 }}>
+                <FormControlLabel
+                  control={
+                    <Switch
+                      checked={newNewsletter.isActive}
+                      onChange={(e) => setNewNewsletter({ ...newNewsletter, isActive: e.target.checked })}
+                      color="success"
+                    />
+                  }
+                  label="Publish Immediately"
+                  sx={{ color: '#558b2f', fontWeight: 500 }}
+                />
+              </Grid>
+            </Grid>
+          </DialogContent>
+          <DialogActions sx={{ p: 4, borderTop: '1px solid rgba(0,0,0,0.05)', gap: 2 }}>
+            <Button
+              onClick={() => setNewsletterDialogOpen(false)}
+              sx={{ px: 4, borderRadius: '12px', color: '#666' }}
+            >
+              Cancel
+            </Button>
+            <Button
+              variant="contained"
+              onClick={handleCreateNewsletter}
+              sx={{
+                px: 6,
+                borderRadius: '12px',
+                bgcolor: '#2E7D32',
+                fontWeight: 700,
+                boxShadow: '0 4px 12px rgba(46, 125, 50, 0.2)',
+                '&:hover': { bgcolor: '#1b5e20', boxShadow: '0 6px 16px rgba(46, 125, 50, 0.3)' }
+              }}
+            >
+              Publish Newsletter
+            </Button>
+          </DialogActions>
+        </Dialog>
 
-            <Grid size={{ xs: 12 }}>
-              <TextField
-                fullWidth
-                label="Program Name"
-                placeholder="e.g., 30-Day Holistic Rejuvenation"
-                value={newProgram.name}
-                onChange={(e) => setNewProgram({ ...newProgram, name: e.target.value })}
-                sx={textFieldSx}
-              />
-            </Grid>
-            <Grid size={{ xs: 12 }}>
-              <TextField
-                fullWidth
-                label="Program Title"
-                placeholder="e.g., Sleep Hygiene & Relaxation"
-                value={newProgram.title}
-                onChange={(e) => setNewProgram({ ...newProgram, title: e.target.value })}
-                sx={textFieldSx}
-              />
-            </Grid>
-            <Grid size={{ xs: 12 }}>
-              <TextField
-                fullWidth
-                label="Program Description"
-                multiline
-                rows={3}
-                placeholder="Describe the focus and expected outcomes of this wellness journey..."
-                value={newProgram.description}
-                onChange={(e) => setNewProgram({ ...newProgram, description: e.target.value })}
-                sx={textFieldSx}
-              />
-            </Grid>
-            <Grid size={{ xs: 6 }}>
-              <TextField
-                fullWidth
-                select
-                label="Category"
-                value={newProgram.category}
-                onChange={(e) => setNewProgram({ ...newProgram, category: e.target.value })}
-                sx={textFieldSx}
+        {/* Client Dialog */}
+        <Dialog
+          open={clientDialogOpen}
+          onClose={() => setClientDialogOpen(false)}
+          maxWidth="sm"
+          fullWidth
+          PaperProps={{
+            sx: {
+              borderRadius: '24px',
+              bgcolor: '#fbfdf9',
+              backgroundImage: 'radial-gradient(at 0% 0%, rgba(46, 125, 50, 0.05) 0, transparent 50%), radial-gradient(at 50% 0%, rgba(139, 195, 74, 0.05) 0, transparent 50%)',
+            }
+          }}
+        >
+          <DialogTitle sx={{
+            p: 3,
+            display: 'flex',
+            alignItems: 'center',
+            gap: 2,
+            color: '#1a330a',
+            fontFamily: 'Playfair Display, serif',
+            fontWeight: 800,
+            borderBottom: '1px solid rgba(0,0,0,0.05)'
+          }}>
+            <Box sx={{ p: 1, bgcolor: '#e8f5e9', borderRadius: '12px', display: 'flex' }}>
+              <FaUsers color="#2E7D32" size={24} />
+            </Box>
+            Add New Client
+          </DialogTitle>
+          <DialogContent sx={{ p: 4 }}>
+            <FormControl fullWidth sx={textFieldSx}>
+              <InputLabel>Select User</InputLabel>
+              <Select
+                value={selectedUser}
+                onChange={(e) => setSelectedUser(e.target.value)}
+                label="Select User"
               >
-                <MenuItem value="stress-management">Stress Management</MenuItem>
-                <MenuItem value="sleep-hygiene">Sleep Hygiene</MenuItem>
-                <MenuItem value="weight-loss">Weight Loss</MenuItem>
-                <MenuItem value="fitness">Fitness</MenuItem>
-                <MenuItem value="nutrition">Nutrition</MenuItem>
-                <MenuItem value="mindfulness">Mindfulness</MenuItem>
-                <MenuItem value="detox">Detox</MenuItem>
-                <MenuItem value="general-wellness">General Wellness</MenuItem>
-              </TextField>
-            </Grid>
-            <Grid size={{ xs: 6 }}>
-              <TextField
-                fullWidth
-                label="Duration (Days)"
-                type="number"
-                value={newProgram.duration}
-                onChange={(e) => setNewProgram({ ...newProgram, duration: parseInt(e.target.value) || '' })}
-                sx={textFieldSx}
-              />
-            </Grid>
-            <Grid size={{ xs: 6 }}>
-              <TextField
-                fullWidth
-                select
-                label="Difficulty Level"
-                value={newProgram.difficulty}
-                onChange={(e) => setNewProgram({ ...newProgram, difficulty: e.target.value })}
-                sx={textFieldSx}
-              >
-                <MenuItem value="beginner">Beginner</MenuItem>
-                <MenuItem value="intermediate">Intermediate</MenuItem>
-                <MenuItem value="advanced">Advanced</MenuItem>
-              </TextField>
-            </Grid>
-            <Grid size={{ xs: 6 }}>
-              <TextField
-                fullWidth
-                select
-                label="Status"
-                value={newProgram.status}
-                onChange={(e) => setNewProgram({ ...newProgram, status: e.target.value })}
-                sx={textFieldSx}
-              >
-                <MenuItem value="draft">Draft</MenuItem>
-                <MenuItem value="published">Published</MenuItem>
-                <MenuItem value="archived">Archived</MenuItem>
-              </TextField>
-            </Grid>
-            <Grid size={{ xs: 12 }}>
-              <TextField
-                fullWidth
-                label="Start Date"
-                type="date"
-                InputLabelProps={{ shrink: true }}
-                value={newProgram.startDate}
-                onChange={(e) => setNewProgram({ ...newProgram, startDate: e.target.value })}
-                sx={textFieldSx}
-              />
-            </Grid>
-            <Grid size={{ xs: 12 }}>
-              <TextField
-                fullWidth
-                label="End Date"
-                type="date"
-                InputLabelProps={{ shrink: true }}
-                value={newProgram.endDate}
-                onChange={(e) => setNewProgram({ ...newProgram, endDate: e.target.value })}
-                sx={textFieldSx}
-              />
-            </Grid>
-            <Grid size={{ xs: 12 }}>
-              <TextField
-                fullWidth
-                label="Primary Goals"
-                placeholder="Weight loss, Stress management, Improved sleep (comma separated)"
-                value={newProgram.goals}
-                onChange={(e) => setNewProgram({ ...newProgram, goals: e.target.value })}
-                sx={textFieldSx}
-              />
-            </Grid>
-            
-            {/* Target Audience Section */}
-            <Grid size={{ xs: 12 }}>
-              <Box sx={{ mb: 2, display: 'flex', alignItems: 'center', gap: 1.5 }}>
-                <Box sx={{ p: 0.75, bgcolor: '#e3f2fd', borderRadius: '8px', color: '#1976d2' }}>
-                  <FaUsers size={20} />
-                </Box>
-                <Typography variant="h6" sx={{ color: '#1a330a', fontWeight: 700 }}>Target Audience</Typography>
-              </Box>
-              <Box sx={{ display: 'flex', gap: 2, mb: 2 }}>
-                <TextField
-                  fullWidth
-                  label="Add Target Audience"
-                  placeholder="e.g., Adults over 40, Athletes, Beginners"
-                  value={newProgram.newTargetAudience}
-                  onChange={(e) => setNewProgram({ ...newProgram, newTargetAudience: e.target.value })}
-                  sx={textFieldSx}
-                />
-                <Button
-                  variant="contained"
-                  onClick={() => {
-                    if (newProgram.newTargetAudience.trim()) {
-                      setNewProgram({
-                        ...newProgram,
-                        targetAudience: [...newProgram.targetAudience, newProgram.newTargetAudience.trim()],
-                        newTargetAudience: ''
-                      });
-                    }
-                  }}
-                  sx={{
-                    mt: 'auto',
-                    alignSelf: 'flex-end',
-                    bgcolor: '#1976d2',
-                    '&:hover': { bgcolor: '#1565c0' },
-                    height: '56px'
-                  }}
-                >
-                  Add
-                </Button>
-              </Box>
-              <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1, mt: 1 }}>
-                {newProgram.targetAudience.map((audience, index) => (
-                  <Chip
-                    key={index}
-                    label={audience}
-                    onDelete={() => {
-                      setNewProgram({
-                        ...newProgram,
-                        targetAudience: newProgram.targetAudience.filter((_, i) => i !== index)
-                      });
-                    }}
-                    sx={{ bgcolor: '#e3f2fd', color: '#1976d2', borderRadius: '8px' }}
-                  />
-                ))}
-              </Box>
-            </Grid>
-            
-            {/* Prerequisites Section */}
-            <Grid size={{ xs: 12 }}>
-              <Box sx={{ mb: 2, display: 'flex', alignItems: 'center', gap: 1.5 }}>
-                <Box sx={{ p: 0.75, bgcolor: '#fff3e0', borderRadius: '8px', color: '#f57c00' }}>
-                  <FaExclamationTriangle size={20} />
-                </Box>
-                <Typography variant="h6" sx={{ color: '#1a330a', fontWeight: 700 }}>Prerequisites</Typography>
-              </Box>
-              <Box sx={{ display: 'flex', gap: 2, mb: 2 }}>
-                <TextField
-                  fullWidth
-                  label="Add Prerequisite"
-                  placeholder="e.g., Basic fitness level, Doctor's clearance"
-                  value={newProgram.newPrerequisite}
-                  onChange={(e) => setNewProgram({ ...newProgram, newPrerequisite: e.target.value })}
-                  sx={textFieldSx}
-                />
-                <Button
-                  variant="contained"
-                  onClick={() => {
-                    if (newProgram.newPrerequisite.trim()) {
-                      setNewProgram({
-                        ...newProgram,
-                        prerequisites: [...newProgram.prerequisites, newProgram.newPrerequisite.trim()],
-                        newPrerequisite: ''
-                      });
-                    }
-                  }}
-                  sx={{
-                    mt: 'auto',
-                    alignSelf: 'flex-end',
-                    bgcolor: '#f57c00',
-                    '&:hover': { bgcolor: '#ef6c00' },
-                    height: '56px'
-                  }}
-                >
-                  Add
-                </Button>
-              </Box>
-              <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1, mt: 1 }}>
-                {newProgram.prerequisites.map((prereq, index) => (
-                  <Chip
-                    key={index}
-                    label={prereq}
-                    onDelete={() => {
-                      setNewProgram({
-                        ...newProgram,
-                        prerequisites: newProgram.prerequisites.filter((_, i) => i !== index)
-                      });
-                    }}
-                    sx={{ bgcolor: '#fff3e0', color: '#f57c00', borderRadius: '8px' }}
-                  />
-                ))}
-              </Box>
-            </Grid>
-            
-            {/* Benefits Section */}
-            <Grid size={{ xs: 12 }}>
-              <Box sx={{ mb: 2, display: 'flex', alignItems: 'center', gap: 1.5 }}>
-                <Box sx={{ p: 0.75, bgcolor: '#e8f5e9', borderRadius: '8px', color: '#388e3c' }}>
-                  <FaCheckCircle size={20} />
-                </Box>
-                <Typography variant="h6" sx={{ color: '#1a330a', fontWeight: 700 }}>Benefits</Typography>
-              </Box>
-              <Box sx={{ display: 'flex', gap: 2, mb: 2 }}>
-                <TextField
-                  fullWidth
-                  label="Add Benefit"
-                  placeholder="e.g., Improved sleep, Reduced stress"
-                  value={newProgram.newBenefit}
-                  onChange={(e) => setNewProgram({ ...newProgram, newBenefit: e.target.value })}
-                  sx={textFieldSx}
-                />
-                <Button
-                  variant="contained"
-                  onClick={() => {
-                    if (newProgram.newBenefit.trim()) {
-                      setNewProgram({
-                        ...newProgram,
-                        benefits: [...newProgram.benefits, newProgram.newBenefit.trim()],
-                        newBenefit: ''
-                      });
-                    }
-                  }}
-                  sx={{
-                    mt: 'auto',
-                    alignSelf: 'flex-end',
-                    bgcolor: '#388e3c',
-                    '&:hover': { bgcolor: '#2e7d32' },
-                    height: '56px'
-                  }}
-                >
-                  Add
-                </Button>
-              </Box>
-              <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1, mt: 1 }}>
-                {newProgram.benefits.map((benefit, index) => (
-                  <Chip
-                    key={index}
-                    label={benefit}
-                    onDelete={() => {
-                      setNewProgram({
-                        ...newProgram,
-                        benefits: newProgram.benefits.filter((_, i) => i !== index)
-                      });
-                    }}
-                    sx={{ bgcolor: '#e8f5e9', color: '#388e3c', borderRadius: '8px' }}
-                  />
-                ))}
-              </Box>
-            </Grid>
-            <Grid size={{ xs: 12 }}>
-              <TextField
-                fullWidth
-                select
-                label="Assign to Client"
-                value={newProgram.assignedUserId}
-                onChange={(e) => setNewProgram({ ...newProgram, assignedUserId: e.target.value })}
-                sx={textFieldSx}
-                helperText="Select a client to assign this program to"
-              >
-                <MenuItem value="">Select a client (optional)</MenuItem>
-                {clients.map((client) => (
-                  <MenuItem key={client._id || client.id} value={client._id || client.id}>
-                    {client.userId?.name || client.name || 'Unnamed Client'}
+                {availableUsers.map((user) => (
+                  <MenuItem key={user._id} value={user._id}>
+                    {user.name} ({user.email})
                   </MenuItem>
                 ))}
-              </TextField>
-            </Grid>
-
-            <Grid size={{ xs: 12 }}>
-              <Box sx={{ mb: 2, display: 'flex', alignItems: 'center', gap: 1.5 }}>
-                <Box sx={{ p: 0.75, bgcolor: '#f1f8e9', borderRadius: '8px', color: '#2E7D32' }}>
-                  <FaLeaf size={20} />
-                </Box>
-                <Typography variant="h6" sx={{ color: '#1a330a', fontWeight: 700 }}>Daily Tasks</Typography>
-              </Box>
-
-              {newProgram.dailyTasks.map((task, index) => (
-                <Paper
-                  key={index}
-                  elevation={0}
-                  sx={{
-                    p: 3,
-                    bgcolor: 'rgba(255,255,255,0.5)',
-                    mb: 3,
-                    borderRadius: '16px',
-                    border: '1px solid rgba(46, 125, 50, 0.1)',
-                    position: 'relative',
-                    transition: 'all 0.3s',
-                    '&:hover': { border: '1px solid rgba(46, 125, 50, 0.3)', boxShadow: '0 4px 12px rgba(0,0,0,0.03)' }
-                  }}
-                >
-                  <IconButton
-                    size="small"
-                    onClick={() => handleRemoveTask(index)}
-                    sx={{ position: 'absolute', top: 12, right: 12, color: '#d32f2f', '&:hover': { bgcolor: '#ffebee' } }}
-                  >
-                    <CloseIcon fontSize="small" />
-                  </IconButton>
-
-                  <Grid container spacing={2}>
-                    <Grid size={{ xs: 12, sm: 8 }}>
-                      <TextField
-                        fullWidth
-                        size="small"
-                        label="Task Title"
-                        value={task.title}
-                        onChange={(e) => handleTaskChange(index, 'title', e.target.value)}
-                        sx={textFieldSx}
-                      />
-                    </Grid>
-                    <Grid size={{ xs: 12, sm: 4 }}>
-                      <TextField
-                        fullWidth
-                        size="small"
-                        label="Category"
-                        select
-                        value={task.category}
-                        onChange={(e) => handleTaskChange(index, 'category', e.target.value)}
-                        sx={textFieldSx}
-                      >
-                        <MenuItem value="exercise">Exercise</MenuItem>
-                        <MenuItem value="diet">Diet</MenuItem>
-                        <MenuItem value="lifestyle">Lifestyle</MenuItem>
-                        <MenuItem value="meditation">Meditation</MenuItem>
-                        <MenuItem value="herbs">Herbs</MenuItem>
-                      </TextField>
-                    </Grid>
-                    <Grid size={{ xs: 12 }}>
-                      <TextField
-                        fullWidth
-                        size="small"
-                        label="Description"
-                        placeholder="What should the client do?"
-                        value={task.description}
-                        onChange={(e) => handleTaskChange(index, 'description', e.target.value)}
-                        sx={textFieldSx}
-                      />
-                    </Grid>
-                    <Grid size={{ xs: 12 }}>
-                      <TextField
-                        fullWidth
-                        size="small"
-                        label="YouTube Video URL"
-                        placeholder="Provide a video guide (Optional)"
-                        value={task.youtubeVideoUrl}
-                        onChange={(e) => handleTaskChange(index, 'youtubeVideoUrl', e.target.value)}
-                        sx={textFieldSx}
-                      />
-                    </Grid>
-                  </Grid>
-                </Paper>
-              ))}
-              <Button
-                startIcon={<FaPlus />}
-                onClick={handleAddTask}
-                variant="outlined"
-                sx={{
-                  borderRadius: '12px',
-                  borderColor: '#2E7D32',
-                  color: '#2E7D32',
-                  '&:hover': { bgcolor: '#f1f8e9', borderColor: '#1b5e20' }
-                }}
-              >
-                Add Daily Task
-              </Button>
-            </Grid>
-
-            <Grid size={{ xs: 12 }}>
-              <Box sx={{ mb: 2, mt: 2, display: 'flex', alignItems: 'center', gap: 1.5 }}>
-                <Box sx={{ p: 0.75, bgcolor: '#fff3e0', borderRadius: '8px', color: '#f57c00' }}>
-                  <FaStar size={20} />
-                </Box>
-                <Typography variant="h6" sx={{ color: '#1a330a', fontWeight: 700 }}>Weekly Milestones</Typography>
-              </Box>
-
-              {newProgram.weeklyMilestones.map((milestone, index) => (
-                <Paper
-                  key={index}
-                  elevation={0}
-                  sx={{
-                    p: 3,
-                    bgcolor: 'rgba(255,255,255,0.5)',
-                    mb: 3,
-                    borderRadius: '16px',
-                    border: '1px solid rgba(245, 124, 0, 0.1)',
-                    position: 'relative',
-                    transition: 'all 0.3s',
-                    '&:hover': { border: '1px solid rgba(245, 124, 0, 0.3)', boxShadow: '0 4px 12px rgba(0,0,0,0.03)' }
-                  }}
-                >
-                  <IconButton
-                    size="small"
-                    onClick={() => handleRemoveMilestone(index)}
-                    sx={{ position: 'absolute', top: 12, right: 12, color: '#d32f2f', '&:hover': { bgcolor: '#ffebee' } }}
-                  >
-                    <CloseIcon fontSize="small" />
-                  </IconButton>
-
-                  <Typography variant="subtitle2" sx={{ color: '#f57c00', mb: 2, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '1px' }}>
-                    Week {index + 1}
-                  </Typography>
-
-                  <Grid container spacing={2}>
-                    <Grid size={{ xs: 12 }}>
-                      <TextField
-                        fullWidth
-                        size="small"
-                        label="Weekly Goal"
-                        placeholder="Describe the main focus for this week"
-                        value={milestone.goal}
-                        onChange={(e) => handleMilestoneChange(index, 'goal', e.target.value)}
-                        sx={textFieldSx}
-                      />
-                    </Grid>
-                    <Grid size={{ xs: 12 }}>
-                      <TextField
-                        fullWidth
-                        size="small"
-                        label="Requirements/Milestone description"
-                        value={milestone.description}
-                        onChange={(e) => handleMilestoneChange(index, 'description', e.target.value)}
-                        sx={textFieldSx}
-                      />
-                    </Grid>
-                  </Grid>
-                </Paper>
-              ))}
-              <Button
-                startIcon={<FaPlus />}
-                onClick={handleAddMilestone}
-                variant="outlined"
-                color="warning"
-                sx={{ borderRadius: '12px' }}
-              >
-                Add Next Week
-              </Button>
-            </Grid>
-          </Grid>
-        </DialogContent>
-        <DialogActions sx={{ p: 4, borderTop: '1px solid rgba(0,0,0,0.05)', gap: 2 }}>
-          <Button
-            onClick={() => setProgramDialogOpen(false)}
-            sx={{ px: 4, borderRadius: '12px', color: '#666' }}
-          >
-            Cancel
-          </Button>
-          <Button
-            variant="contained"
-            onClick={handleCreateProgram}
-            sx={{
-              px: 6,
-              borderRadius: '12px',
-              bgcolor: '#2E7D32',
-              fontWeight: 700,
-              boxShadow: '0 4px 12px rgba(46, 125, 50, 0.2)',
-              '&:hover': { bgcolor: '#1b5e20', boxShadow: '0 6px 166px rgba(46, 125, 50, 0.3)' }
-            }}
-          >
-            Launch Program
-          </Button>
-        </DialogActions>
-      </Dialog>
-
-    </Box >
+              </Select>
+            </FormControl>
+          </DialogContent>
+          <DialogActions sx={{ p: 4, borderTop: '1px solid rgba(0,0,0,0.05)', gap: 2 }}>
+            <Button
+              onClick={() => setClientDialogOpen(false)}
+              sx={{ px: 4, borderRadius: '12px', color: '#666' }}
+            >
+              Cancel
+            </Button>
+            <Button
+              variant="contained"
+              onClick={handleAddClient}
+              sx={{
+                px: 6,
+                borderRadius: '12px',
+                bgcolor: '#2E7D32',
+                fontWeight: 700,
+                boxShadow: '0 4px 12px rgba(46, 125, 50, 0.2)',
+                '&:hover': { bgcolor: '#1b5e20', boxShadow: '0 6px 16px rgba(46, 125, 50, 0.3)' }
+              }}
+            >
+              Add Client
+            </Button>
+          </DialogActions>
+        </Dialog>
+      </Container>
+    </Box>
   );
 };
 
