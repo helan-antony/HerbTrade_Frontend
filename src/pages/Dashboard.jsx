@@ -5,6 +5,7 @@ import { useEffect, useState } from "react";
 import axios from "axios";
 import { addSampleDataToStorage, clearSampleData } from "../utils/sampleData";
 import { API_ENDPOINTS } from "../config/api";
+import MLDashboard from "../components/MLDashboard";
 
 function Dashboard() {
   const [user, setUser] = useState({});
@@ -155,6 +156,13 @@ function Dashboard() {
                 </Card>
               </Grid>
             </>
+          )}
+          
+          {/* AI-Powered Insights Section for Users */}
+          {user.role === 'user' && (
+            <Grid item xs={12}>
+              <MLDashboard user={user} />
+            </Grid>
           )}
           
           {/* Wellness Programs Section for Users */}

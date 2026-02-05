@@ -182,6 +182,12 @@ export const API_ENDPOINTS = {
     SAVE_PROGRESS: (newsletterId) => `${API_BASE_URL}/api/wellness-coaches/newsletters/${newsletterId}/save-progress`,
     GET_PROGRESS: (newsletterId) => `${API_BASE_URL}/api/wellness-coaches/newsletters/${newsletterId}/progress`,
   },
+  
+  ML: {
+    RECOMMENDATIONS: `${API_BASE_URL}/api/ml/recommendations`,
+    FORECAST: `${API_BASE_URL}/api/ml/forecast`,
+    QUALITY_CHECK: `${API_BASE_URL}/api/ml/quality-check`
+  },
   HEALTH: `${API_BASE_URL}/api/health`,
   TEST: `${API_BASE_URL}/api/test`,
 };
