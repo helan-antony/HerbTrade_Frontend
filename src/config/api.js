@@ -188,6 +188,13 @@ export const API_ENDPOINTS = {
     FORECAST: `${API_BASE_URL}/api/ml/forecast`,
     QUALITY_CHECK: `${API_BASE_URL}/api/ml/quality-check`
   },
+  
+  ML_SERVICE: {
+    BASE: 'http://localhost:5001',
+    RECOMMENDATIONS: 'http://localhost:5001/api/ml/recommendations',
+    FORECAST: 'http://localhost:5001/api/ml/forecast',
+    QUALITY_CHECK: 'http://localhost:5001/api/ml/quality-check'
+  },
   HEALTH: `${API_BASE_URL}/api/health`,
   TEST: `${API_BASE_URL}/api/test`,
 };

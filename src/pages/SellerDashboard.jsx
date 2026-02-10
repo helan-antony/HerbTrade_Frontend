@@ -51,6 +51,7 @@ const SellerDashboard = () => {
   const [sortBy, setSortBy] = useState('name');
   const [sortOrder, setSortOrder] = useState('asc');
   const [snackbar, setSnackbar] = useState({ open: false, message: '', severity: 'success' });
+    const [isAddingProduct, setIsAddingProduct] = useState(false);
   
   // Leave management states
   const [leaves, setLeaves] = useState([]);
@@ -416,11 +417,18 @@ const SellerDashboard = () => {
   };
 
   const handleAddProduct = async () => {
+    // Prevent duplicate submissions
+    if (isAddingProduct) {
+      return;
+    }
+    
     // Validate form
     if (!validateProductForm()) {
       showSnackbar('Please fix the validation errors', 'error');
       return;
     }
+    
+    setIsAddingProduct(true);
 
     try {
       const token = localStorage.getItem('token');
@@ -458,15 +466,24 @@ const SellerDashboard = () => {
     } catch (error) {
       console.error('Error adding product:', error);
       showSnackbar('Failed to add product', 'error');
+    } finally {
+      setIsAddingProduct(false);
     }
   };
 
   const handleEditProduct = async () => {
+    // Prevent duplicate submissions
+    if (isAddingProduct) {
+      return;
+    }
+    
     // Validate form
     if (!validateProductForm()) {
       showSnackbar('Please fix the validation errors', 'error');
       return;
     }
+    
+    setIsAddingProduct(true);
 
     try {
       const token = localStorage.getItem('token');
@@ -505,6 +522,8 @@ const SellerDashboard = () => {
     } catch (error) {
       console.error('Error updating product:', error);
       showSnackbar('Failed to update product', 'error');
+    } finally {
+      setIsAddingProduct(false);
     }
   };
 
@@ -2464,9 +2483,10 @@ const SellerDashboard = () => {
               </button>
               <button
                 onClick={editingProduct ? handleEditProduct : handleAddProduct}
-                className="px-6 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg transition-colors"
+                disabled={isAddingProduct}
+                className={`px-6 py-2 rounded-lg transition-colors ${editingProduct ? 'bg-blue-600 hover:bg-blue-700' : isAddingProduct ? 'bg-gray-400 cursor-not-allowed' : 'bg-emerald-600 hover:bg-emerald-700'} text-white`}
               >
-                {editingProduct ? 'Update Product' : 'Add Product'}
+                {isAddingProduct ? 'Adding...' : (editingProduct ? 'Update Product' : 'Add Product')}
               </button>
             </div>
           </div>

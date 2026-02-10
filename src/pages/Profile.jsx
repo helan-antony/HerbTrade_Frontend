@@ -543,33 +543,33 @@ function Profile() {
             ) : (
               <div className="space-y-4 max-h-96 overflow-y-auto">
                 {cartItems.map((item, index) => (
-                  <div key={item.productId._id} className="bg-gradient-to-r from-slate-50 to-slate-100/50 rounded-2xl p-6 hover:shadow-lg transition-all duration-300 border border-slate-200/50" style={{ animationDelay: `${index * 0.1}s` }}>
+                  <div key={item.productId?._id || index} className="bg-gradient-to-r from-slate-50 to-slate-100/50 rounded-2xl p-6 hover:shadow-lg transition-all duration-300 border border-slate-200/50" style={{ animationDelay: `${index * 0.1}s` }}>
                     <div className="flex items-center gap-6">
                       <img
-                        src={item.productId.image || '/placeholder.jpg'}
-                        alt={item.productId.name}
+                        src={item.productId?.image || '/placeholder.jpg'}
+                        alt={item.productId?.name || 'Product'}
                         className="w-20 h-20 object-cover rounded-xl shadow-lg"
                       />
                       <div className="flex-1 min-w-0">
-                        <h3 className="font-semibold text-slate-900 text-lg truncate mb-1">{item.productId.name}</h3>
+                        <h3 className="font-semibold text-slate-900 text-lg truncate mb-1">{item.productId?.name || 'Product'}</h3>
                         <p className="text-emerald-600 font-semibold text-lg">₹{item.price} × {item.quantity}</p>
                       </div>
                       <div className="flex items-center gap-3">
                         <button
-                          onClick={() => updateCartQuantity(item.productId._id, item.quantity - 1)}
+                          onClick={() => updateCartQuantity(item.productId?._id, item.quantity - 1)}
                           className="w-10 h-10 bg-white rounded-xl shadow-md flex items-center justify-center hover:bg-slate-50 hover:shadow-lg transition-all duration-200"
                         >
                           <FaMinus className="text-sm text-slate-600" />
                         </button>
                         <span className="w-10 text-center font-bold text-slate-900 text-lg">{item.quantity}</span>
                         <button
-                          onClick={() => updateCartQuantity(item.productId._id, item.quantity + 1)}
+                          onClick={() => updateCartQuantity(item.productId?._id, item.quantity + 1)}
                           className="w-10 h-10 bg-white rounded-xl shadow-md flex items-center justify-center hover:bg-slate-50 hover:shadow-lg transition-all duration-200"
                         >
                           <FaPlus className="text-sm text-slate-600" />
                         </button>
                         <button
-                          onClick={() => removeFromCart(item.productId._id)}
+                          onClick={() => removeFromCart(item.productId?._id)}
                           className="w-10 h-10 bg-red-50 rounded-xl shadow-md flex items-center justify-center hover:bg-red-100 hover:shadow-lg transition-all duration-200 ml-2"
                         >
                           <FaTrash className="text-sm text-red-500" />
@@ -609,16 +609,16 @@ function Profile() {
             ) : (
               <div className="space-y-4 max-h-96 overflow-y-auto">
                 {wishlistItems.map((item, index) => (
-                  <div key={item.productId._id} className="bg-gradient-to-r from-slate-50 to-slate-100/50 rounded-2xl p-6 hover:shadow-lg transition-all duration-300 border border-slate-200/50" style={{ animationDelay: `${index * 0.1}s` }}>
+                  <div key={item.productId?._id || index} className="bg-gradient-to-r from-slate-50 to-slate-100/50 rounded-2xl p-6 hover:shadow-lg transition-all duration-300 border border-slate-200/50" style={{ animationDelay: `${index * 0.1}s` }}>
                     <div className="flex items-center gap-6">
                       <img
-                        src={item.productId.image || '/placeholder.jpg'}
-                        alt={item.productId.name}
+                        src={item.productId?.image || '/placeholder.jpg'}
+                        alt={item.productId?.name || 'Product'}
                         className="w-20 h-20 object-cover rounded-xl shadow-lg"
                       />
                       <div className="flex-1 min-w-0">
-                        <h3 className="font-semibold text-slate-900 text-lg truncate mb-1">{item.productId.name}</h3>
-                        <p className="text-emerald-600 font-semibold text-lg">₹{item.productId.price}</p>
+                        <h3 className="font-semibold text-slate-900 text-lg truncate mb-1">{item.productId?.name || 'Product'}</h3>
+                        <p className="text-emerald-600 font-semibold text-lg">₹{item.productId?.price || 0}</p>
                       </div>
                       <div className="flex items-center gap-3">
                         <button

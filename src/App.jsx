@@ -39,6 +39,7 @@ import WellnessCoachDashboard from './pages/WellnessCoachDashboard';
 import WellnessProgram from './pages/WellnessProgram';
 import CoachPostEnrollment from './pages/CoachPostEnrollment';
 import EnrollmentVideos from "./pages/EnrollmentVideos";
+import UserHerbsDashboard from "./pages/UserHerbsDashboard";
 
 const theme = createTheme({
   palette: {

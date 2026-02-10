@@ -14,6 +14,7 @@ import API_ENDPOINTS, { apiCall } from "../config/api";
 import { toast, ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 import { getAuthHeaders, logout } from '../utils/auth';
+import MLHerbInsights from '../components/MLHerbInsights';
 
 function HerbCatalog() {
   const [search, setSearch] = useState("");
@@ -399,6 +400,9 @@ function HerbCatalog() {
             </div>
           </div>
         </div>
+
+        {/* AI-Powered Herb Insights */}
+        <MLHerbInsights user={JSON.parse(localStorage.getItem('user') || 'null')} />
 
         {/* Products Grid */}
         {loading ? (
