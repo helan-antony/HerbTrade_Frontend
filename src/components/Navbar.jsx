@@ -18,7 +18,8 @@ import {
   Sparkles,
   Calendar,
   Shield,
-  MessageCircle
+  MessageCircle,
+  Brain
 } from 'lucide-react';
 import { API_ENDPOINTS } from '../config/api';
 
@@ -804,6 +805,14 @@ function Navbar() {
                     </Link>
 
                     <Link
+                      to="/user-herbs-dashboard"
+                      className="nav-link flex items-center space-x-3 px-4 py-3 group"
+                    >
+                      <Brain className="w-5 h-5 group-hover:text-emerald-600 transition-colors duration-500" />
+                      <span className="font-medium text-emerald-600">Health AI</span>
+                    </Link>
+
+                    <Link
                       to="/newsletter"
                       className="nav-link flex items-center space-x-3 px-4 py-3 group"
                     >
@@ -1020,6 +1029,14 @@ function Navbar() {
                   <span>Discuss</span>
                 </Link>
 
+                <Link
+                  to="/user-herbs-dashboard"
+                  className="nav-link flex items-center space-x-2 group"
+                >
+                  <Brain className="w-4 h-4 text-emerald-600 transition-colors duration-300" />
+                  <span className="font-semibold text-emerald-600">AI Insights</span>
+                </Link>
+
                 <div className="flex items-center space-x-2 ml-4">
                   <Link
                     to="/login"
@@ -1072,6 +1089,7 @@ function Navbar() {
                       <Link to="/wellness-coaches" onClick={closeMenu} className="flex items-center space-x-3 px-4 py-3 text-slate-700 font-semibold hover:bg-emerald-50 hover:text-emerald-700 rounded-xl transition-all duration-300"><Leaf className="w-5 h-5" /><span>Wellness Programs</span></Link>
                       <Link to="/blog" onClick={closeMenu} className="flex items-center space-x-3 px-4 py-3 text-slate-700 font-semibold hover:bg-emerald-50 hover:text-emerald-700 rounded-xl transition-all duration-300"><BookOpen className="w-5 h-5" /><span>Blog</span></Link>
                       <Link to="/discussion" onClick={closeMenu} className="flex items-center space-x-3 px-4 py-3 text-slate-700 font-semibold hover:bg-emerald-50 hover:text-emerald-700 rounded-xl transition-all duration-300"><MessageCircle className="w-5 h-5" /><span>Discuss</span></Link>
+                      <Link to="/user-herbs-dashboard" onClick={closeMenu} className="flex items-center space-x-3 px-4 py-3 text-emerald-700 font-bold hover:bg-emerald-100 rounded-xl transition-all duration-300"><Brain className="w-5 h-5" /><span>Health AI</span></Link>
                       <Link to="/newsletter" onClick={closeMenu} className="flex items-center space-x-3 px-4 py-3 text-slate-700 font-semibold hover:bg-emerald-50 hover:text-emerald-700 rounded-xl transition-all duration-300"><BookOpen className="w-5 h-5" /><span>Health Tips</span></Link>
                       <Link to="/wishlist" onClick={closeMenu} className="flex items-center justify-between px-4 py-3 text-slate-700 font-semibold hover:bg-emerald-50 hover:text-emerald-700 rounded-xl transition-all duration-300"><div className="flex items-center space-x-3"><Heart className="w-5 h-5" /><span>Wishlist</span></div>{wishlistCount > 0 && (<span className="bg-red-500 text-white text-xs rounded-full px-2 py-1 font-bold">{wishlistCount}</span>)}</Link>
                       <Link to="/cart" onClick={closeMenu} className="flex items-center justify-between px-4 py-3 text-slate-700 font-semibold hover:bg-emerald-50 hover:text-emerald-700 rounded-xl transition-all duration-300"><div className="flex items-center space-x-3"><ShoppingCart className="w-5 h-5" /><span>Cart</span></div>{cartCount > 0 && (<span className="bg-emerald-500 text-white text-xs rounded-full px-2 py-1 font-bold">{cartCount}</span>)}</Link>
@@ -1126,6 +1144,14 @@ function Navbar() {
                   >
                     <MessageCircle className="w-5 h-5" />
                     <span>Discuss</span>
+                  </Link>
+                  <Link
+                    to="/user-herbs-dashboard"
+                    onClick={closeMenu}
+                    className="flex items-center space-x-3 px-4 py-3 text-emerald-700 font-bold hover:bg-emerald-100 rounded-xl transition-all duration-300"
+                  >
+                    <Brain className="w-5 h-5" />
+                    <span>Health AI</span>
                   </Link>
                   <Link
                     to="/newsletter"

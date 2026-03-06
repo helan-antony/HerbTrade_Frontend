@@ -182,18 +182,23 @@ export const API_ENDPOINTS = {
     SAVE_PROGRESS: (newsletterId) => `${API_BASE_URL}/api/wellness-coaches/newsletters/${newsletterId}/save-progress`,
     GET_PROGRESS: (newsletterId) => `${API_BASE_URL}/api/wellness-coaches/newsletters/${newsletterId}/progress`,
   },
-  
+
   ML: {
     RECOMMENDATIONS: `${API_BASE_URL}/api/ml/recommendations`,
     FORECAST: `${API_BASE_URL}/api/ml/forecast`,
     QUALITY_CHECK: `${API_BASE_URL}/api/ml/quality-check`
   },
-  
+
   ML_SERVICE: {
     BASE: 'http://localhost:5001',
     RECOMMENDATIONS: 'http://localhost:5001/api/ml/recommendations',
     FORECAST: 'http://localhost:5001/api/ml/forecast',
-    QUALITY_CHECK: 'http://localhost:5001/api/ml/quality-check'
+    QUALITY_CHECK: 'http://localhost:5001/api/ml/quality-check',
+    HERB_AUTHENTICATE: 'http://localhost:5001/api/ml/herb-authenticate',
+    HEALTH_RECOMMENDATIONS: 'http://localhost:5001/api/ml/health-recommendations',
+    DEMAND_FORECAST: 'http://localhost:5001/api/ml/demand-forecast',
+    QUALITY_ASSESSMENT: 'http://localhost:5001/api/ml/quality-assessment',
+    SYSTEM_STATUS: 'http://localhost:5001/api/ml/system-status'
   },
   HEALTH: `${API_BASE_URL}/api/health`,
   TEST: `${API_BASE_URL}/api/test`,

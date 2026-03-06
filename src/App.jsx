@@ -129,6 +129,7 @@ function App() {
             <Route path="/wellness-coach-dashboard" element={<ProtectedRoute allowedRoles={['wellness_coach', 'admin']}><WellnessCoachDashboard /></ProtectedRoute>} />
             <Route path="/wellness-program" element={<ProtectedRoute><WellnessProgram /></ProtectedRoute>} />
             <Route path="/coach-post-enrollment" element={<ProtectedRoute allowedRoles={['wellness_coach', 'admin']}><CoachPostEnrollment /></ProtectedRoute>} />
+            <Route path="/user-herbs-dashboard" element={<ProtectedRoute><UserHerbsDashboard /></ProtectedRoute>} />
             <Route path="*" element={<Navigate to="/" />} />
           </Routes>
         </main>

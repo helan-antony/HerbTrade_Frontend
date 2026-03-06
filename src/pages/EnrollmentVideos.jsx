@@ -365,23 +365,29 @@ const EnrollmentVideos = () => {
     return (
         <Box sx={{
             minHeight: '100vh',
-            bgcolor: '#f4f9f4',
+            bgcolor: '#fafafa',
             pb: 8
         }}>
             {/* Success Banner */}
             <Box sx={{
-                bgcolor: '#2E7D32',
-                color: 'white',
-                py: 4,
+                bgcolor: 'white',
+                borderBottom: '1px solid #e0e0e0',
+                py: 3,
                 px: 2,
-                mb: 4,
-                background: 'linear-gradient(135deg, #2E7D32 0%, #558b2f 100%)',
-                boxShadow: '0 4px 20px rgba(46, 125, 50, 0.2)'
+                mb: 4
             }}>
                 <Container maxWidth="lg">
                     <Button
                         startIcon={<FaArrowLeft />}
-                        sx={{ color: 'rgba(255,255,255,0.8)', mb: 2, '&:hover': { color: 'white' } }}
+                        sx={{ 
+                            color: '#666', 
+                            mb: 2, 
+                            fontWeight: 500,
+                            '&:hover': { 
+                                color: '#333',
+                                backgroundColor: '#f5f5f5'
+                            } 
+                        }}
                         onClick={() => navigate('/newsletter')}
                     >
                         Back to Tips
@@ -389,26 +395,27 @@ const EnrollmentVideos = () => {
                     
                     {/* Progress Indicator */}
                     {userProgress.overallProgress > 0 && (
-                        <Box sx={{ mb: 3 }}>
+                        <Box sx={{ mb: 3, p: 2, bgcolor: '#f8f9fa', borderRadius: '8px', border: '1px solid #e9ecef' }}>
                             <Box display="flex" justifyContent="space-between" alignItems="center" mb={1}>
-                                <Typography variant="subtitle1" sx={{ color: 'rgba(255,255,255,0.9)', fontWeight: 600 }}>
+                                <Typography variant="subtitle2" sx={{ color: '#495057', fontWeight: 600 }}>
                                     Your Progress
                                 </Typography>
-                                <Typography variant="subtitle1" sx={{ color: 'white', fontWeight: 700 }}>
+                                <Typography variant="subtitle2" sx={{ color: '#0d6efd', fontWeight: 700 }}>
                                     {userProgress.overallProgress}% Complete
                                 </Typography>
                             </Box>
                             <Box sx={{
-                                height: 8,
-                                bgcolor: 'rgba(255,255,255,0.3)',
-                                borderRadius: 4,
+                                height: 6,
+                                bgcolor: '#e9ecef',
+                                borderRadius: 3,
                                 overflow: 'hidden'
                             }}>
                                 <Box sx={{
                                     height: '100%',
                                     width: `${userProgress.overallProgress}%`,
-                                    bgcolor: 'white',
-                                    transition: 'width 0.3s ease'
+                                    bgcolor: '#0d6efd',
+                                    transition: 'width 0.3s ease',
+                                    borderRadius: 3
                                 }} />
                             </Box>
                         </Box>
@@ -416,20 +423,19 @@ const EnrollmentVideos = () => {
                     <Box display="flex" alignItems="center" gap={2}>
                         <Fade in={mounted} timeout={1000}>
                             <Box sx={{
-                                bgcolor: 'white',
+                                bgcolor: '#e8f5e9',
                                 borderRadius: '50%',
-                                p: 1.5,
-                                display: 'flex',
-                                boxShadow: '0 0 0 8px rgba(255,255,255,0.2)'
+                                p: 1,
+                                display: 'flex'
                             }}>
-                                <FaCheckCircle color="#2E7D32" size={32} />
+                                <FaCheckCircle color="#28a745" size={24} />
                             </Box>
                         </Fade>
                         <Box>
-                            <Typography variant="h4" sx={{ fontFamily: 'Playfair Display, serif', fontWeight: 700 }}>
+                            <Typography variant="h5" sx={{ fontWeight: 600, color: '#212529' }}>
                                 Successfully Enrolled!
                             </Typography>
-                            <Typography variant="subtitle1" sx={{ opacity: 0.9 }}>
+                            <Typography variant="body1" sx={{ color: '#6c757d' }}>
                                 Welcome to your journey in {enrollmentTitle}
                             </Typography>
                         </Box>
@@ -440,12 +446,12 @@ const EnrollmentVideos = () => {
             <Container maxWidth="lg">
                 {loading && (
                     <Box display="flex" justifyContent="center" py={10}>
-                        <CircularProgress sx={{ color: '#2E7D32' }} />
+                        <CircularProgress sx={{ color: '#0d6efd' }} />
                     </Box>
                 )}
                 
                 {error && (
-                    <Alert severity="error" sx={{ mb: 4, borderRadius: '12px' }}>{error}</Alert>
+                    <Alert severity="error" sx={{ mb: 4, borderRadius: '8px', border: '1px solid #f5c6cb' }}>{error}</Alert>
                 )}
                 
                 {!loading && (
@@ -453,10 +459,10 @@ const EnrollmentVideos = () => {
                         {/* Main Content Player */}
                         <Grid size={{ xs: 12, md: 8 }}>
                             <Card sx={{
-                                borderRadius: '24px',
+                                borderRadius: '12px',
                                 overflow: 'hidden',
-                                boxShadow: '0 20px 40px rgba(0,0,0,0.1)',
-                                border: '1px solid rgba(255,255,255,0.5)'
+                                boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
+                                border: '1px solid #e0e0e0'
                             }}>
                                 <Box sx={{
                                     position: 'relative',
@@ -529,30 +535,30 @@ const EnrollmentVideos = () => {
                                 </Box>
                                 <CardContent sx={{ p: 3 }}>
                                     <Box display="flex" justifyContent="space-between" alignItems="start" mb={2}>
-                                        <Box>
-                                            <Typography variant="h5" sx={{ fontFamily: 'Playfair Display, serif', fontWeight: 700, mb: 1, color: '#1a330a' }}>
+                                        <Box sx={{ flex: 1 }}>
+                                            <Typography variant="h5" sx={{ fontWeight: 600, mb: 2, color: '#212529' }}>
                                                 {videos[activeVideo]?.title}
                                             </Typography>
-                                            <Box display="flex" gap={1} flexWrap="wrap">
-                                                <Chip label={videos[activeVideo]?.type} size="small" sx={{ bgcolor: '#e8f5e9', color: '#2E7D32', fontWeight: 600 }} />
-                                                <Chip label={videos[activeVideo]?.duration} size="small" variant="outlined" />
-                                                <Chip label={videos[activeVideo]?.difficulty} size="small" sx={{ bgcolor: '#fff3e0', color: '#f57c00', fontWeight: 600 }} />
+                                            <Box display="flex" gap={1} flexWrap="wrap" mb={1}>
+                                                <Chip label={videos[activeVideo]?.type} size="small" sx={{ bgcolor: '#e9ecef', color: '#495057', fontWeight: 500 }} />
+                                                <Chip label={videos[activeVideo]?.duration} size="small" variant="outlined" sx={{ borderColor: '#ced4da' }} />
+                                                <Chip label={videos[activeVideo]?.difficulty} size="small" sx={{ bgcolor: '#e7f1ff', color: '#0d6efd', fontWeight: 500 }} />
                                             </Box>
-                                            <Box display="flex" gap={1} mt={1} flexWrap="wrap">
+                                            <Box display="flex" gap={1} flexWrap="wrap">
                                                 {videos[activeVideo]?.tags?.map((tag, idx) => (
-                                                    <Chip key={idx} label={tag} size="small" variant="outlined" />
+                                                    <Chip key={idx} label={tag} size="small" variant="outlined" sx={{ borderColor: '#ced4da', color: '#6c757d' }} />
                                                 ))}
                                             </Box>
                                         </Box>
                                         <Box>
-                                            <IconButton size="small"><FaHeart /></IconButton>
-                                            <IconButton size="small"><FaShareAlt /></IconButton>
+                                            <IconButton size="small" sx={{ color: '#6c757d' }}><FaHeart /></IconButton>
+                                            <IconButton size="small" sx={{ color: '#6c757d' }}><FaShareAlt /></IconButton>
                                         </Box>
                                     </Box>
-                                    <Typography variant="body1" color="text.secondary" paragraph>
+                                    <Typography variant="body1" sx={{ color: '#495057', lineHeight: 1.6, mb: 2 }}>
                                         {videos[activeVideo]?.content}
                                     </Typography>
-                                    <Typography variant="body2" color="text.secondary">
+                                    <Typography variant="body2" sx={{ color: '#6c757d', fontStyle: 'italic' }}>
                                         Master the art of {enrollmentTitle.toLowerCase()} with this comprehensive guide.
                                         Watch carefully and take notes as we explore the fundamental principles.
                                     </Typography>
@@ -564,12 +570,13 @@ const EnrollmentVideos = () => {
                         <Grid size={{ xs: 12, md: 4 }}>
                             <Paper elevation={0} sx={{
                                 p: 3,
-                                borderRadius: '24px',
+                                borderRadius: '12px',
                                 bgcolor: 'white',
-                                boxShadow: '0 10px 30px rgba(0,0,0,0.05)',
+                                boxShadow: '0 1px 3px rgba(0,0,0,0.1)',
+                                border: '1px solid #e0e0e0',
                                 height: '100%'
                             }}>
-                                <Typography variant="h6" sx={{ mb: 3, fontWeight: 700, color: '#1a330a' }}>
+                                <Typography variant="h6" sx={{ mb: 3, fontWeight: 600, color: '#212529' }}>
                                     Course Content ({videos.length} items)
                                 </Typography>
                                 <List sx={{ width: '100%' }}>
@@ -582,13 +589,13 @@ const EnrollmentVideos = () => {
                                                 saveProgress(video.id, 5, false);
                                             }}
                                             sx={{
-                                                borderRadius: '16px',
+                                                borderRadius: '8px',
                                                 mb: 1,
-                                                bgcolor: activeVideo === index ? '#f1f8e9' : 'transparent',
-                                                border: activeVideo === index ? '1px solid #c8e6c9' : '1px solid transparent',
-                                                '&:hover': { bgcolor: '#f1f8e9' },
-                                                position: 'relative',
-                                                overflow: 'hidden'
+                                                bgcolor: activeVideo === index ? '#e7f1ff' : 'transparent',
+                                                border: activeVideo === index ? '1px solid #0d6efd' : '1px solid #e0e0e0',
+                                                '&:hover': { bgcolor: '#f8f9fa', borderColor: activeVideo === index ? '#0d6efd' : '#ced4da' },
+                                                cursor: 'pointer',
+                                                transition: 'all 0.2s ease'
                                             }}
                                         >
                                             <ListItemAvatar>
@@ -604,22 +611,22 @@ const EnrollmentVideos = () => {
                                             </ListItemAvatar>
                                             <ListItemText
                                                 primary={
-                                                    <Typography variant="subtitle2" sx={{ fontWeight: 600, color: activeVideo === index ? '#2E7D32' : 'inherit' }}>
+                                                    <Typography variant="subtitle2" sx={{ fontWeight: 500, color: activeVideo === index ? '#0d6efd' : '#212529' }}>
                                                         {video.title}
                                                     </Typography>
                                                 }
                                                 secondary={
                                                     <Box component="span" display="flex" alignItems="center" gap={1} mt={0.5}>
                                                         {getIconForType(video.type)}
-                                                        <Typography variant="caption" color="text.secondary" component="span">{video.duration}</Typography>
+                                                        <Typography variant="caption" sx={{ color: '#6c757d' }} component="span">{video.duration}</Typography>
                                                     </Box>
                                                 }
                                             />
                                             <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                                                {video.completed && <FaCheckCircle size={14} color="#4CAF50" />}
-                                                {activeVideo === index && <FaPlay size={12} color="#2E7D32" />}
+                                                {video.completed && <FaCheckCircle size={14} color="#28a745" />}
+                                                {activeVideo === index && <FaPlay size={12} color="#0d6efd" />}
                                                 {video.progress > 0 && !video.completed && (
-                                                    <Typography variant="caption" color="text.secondary">
+                                                    <Typography variant="caption" sx={{ color: '#6c757d', fontWeight: 500 }}>
                                                         {video.progress}%
                                                     </Typography>
                                                 )}
@@ -628,11 +635,11 @@ const EnrollmentVideos = () => {
                                     ))}
                                 </List>
 
-                                <Box mt={4} p={3} sx={{ bgcolor: '#FFF8E1', borderRadius: '16px' }}>
-                                    <Typography variant="subtitle2" sx={{ color: '#F57F17', fontWeight: 700, mb: 1, display: 'flex', alignItems: 'center', gap: 1 }}>
-                                        <FaLeaf /> Pro Tip
+                                <Box mt={4} p={3} sx={{ bgcolor: '#f8f9fa', borderRadius: '8px', border: '1px solid #e9ecef' }}>
+                                    <Typography variant="subtitle2" sx={{ color: '#0d6efd', fontWeight: 600, mb: 1, display: 'flex', alignItems: 'center', gap: 1 }}>
+                                        <FaLeaf size={14} /> Pro Tip
                                     </Typography>
-                                    <Typography variant="caption" color="text.secondary">
+                                    <Typography variant="body2" sx={{ color: '#495057', fontSize: '0.875rem' }}>
                                         Complete all content items to enhance your wellness journey!
                                     </Typography>
                                 </Box>
