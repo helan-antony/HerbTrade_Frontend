@@ -37,6 +37,10 @@ import {
 } from 'react-icons/fa';
 import { motion, AnimatePresence } from 'framer-motion';
 import axios from 'axios';
+import {
+  LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, ResponsiveContainer,
+  AreaChart, Area, Legend, BarChart, Bar, Cell
+} from 'recharts';
 import API_ENDPOINTS, { getAuthHeaders } from '../config/api';
 import HerbQualityChecker from '../components/HerbQualityChecker';
 
@@ -84,6 +88,7 @@ const UserHerbsDashboard = ({ user = {} }) => {
   const [qualityAssessments, setQualityAssessments] = useState([]);
   const [demandForecasts, setDemandForecasts] = useState([]);
   const [mlSystemStatus, setMlSystemStatus] = useState(null);
+  const [seasonalViewMode, setSeasonalViewMode] = useState('cards'); // 'cards' | 'graph'
   const scannerRef = useRef(null);
 
   const scrollToScanner = () => {
@@ -128,14 +133,10 @@ const UserHerbsDashboard = ({ user = {} }) => {
 
       // Fetch ML system status
       try {
-        const statusResponse = await axios.get(API_ENDPOINTS.ML_SERVICE.SYSTEM_STATUS);
+        const statusResponse = await axios.get('http://localhost:5001/api/ml/system-status', { headers });
         setMlSystemStatus(statusResponse.data);
       } catch (statusError) {
         console.error('Error fetching ML system status:', statusError);
-        setMlSystemStatus({
-          system_status: 'operational_with_fallback',
-          advanced_algorithms: ['HerbAuth-Net AI', 'HealthRec-X Engine', 'DemandProphet-X', 'QualityGuard-AI']
-        });
       }
 
       // Fetch advanced health recommendations using HealthRec-X
@@ -163,7 +164,14 @@ const UserHerbsDashboard = ({ user = {} }) => {
         );
 
         if (healthRecResponse.data && healthRecResponse.data.recommendations) {
-          setAdvancedRecommendations(healthRecResponse.data.recommendations);
+          setAdvancedRecommendations(healthRecResponse.data.recommendations.slice(0, 2));
+          if (healthRecResponse.data.explanations) {
+            setHealthInsights(prev => ({
+              ...prev,
+              recommendations: healthRecResponse.data.explanations,
+              wellnessScore: Math.round(healthRecResponse.data.profile_match_score * 100)
+            }));
+          }
         }
       } catch (healthRecError) {
         setAdvancedRecommendations([
@@ -202,6 +210,14 @@ const UserHerbsDashboard = ({ user = {} }) => {
 
         if (forecastResponse.data && forecastResponse.data.forecast) {
           setDemandForecasts(forecastResponse.data.forecast);
+          // Set trending based on forecast
+          const topTrending = forecastResponse.data.forecast.slice(0, 3).map((item, index) => ({
+            name: ['Ashwagandha', 'Turmeric', 'Tulsi'][index],
+            growth: 15 + index * 5,
+            trend: 70 + index * 10,
+            image: `/assets/${['ashwagandha', 'turmeric', 'tulsi'][index]}.png`
+          }));
+          setTrendingHerbs(topTrending);
         }
       } catch (forecastError) {
         setDemandForecasts([
@@ -273,28 +289,6 @@ const UserHerbsDashboard = ({ user = {} }) => {
           }
         ]);
       }
-
-      // Set Mock Data for Demo
-      setTrendingHerbs([
-        { name: 'Holy Basil (Tulsi)', growth: 45, trend: 85, image: '/assets/tulsi.png' },
-        { name: 'Neem Extract', growth: 32, trend: 70, image: '/assets/neem.png' },
-        { name: 'Brahmi Leaves', growth: 28, trend: 65, image: '/assets/brahmi.png' }
-      ]);
-
-      setHealthInsights({
-        wellnessScore: 88,
-        riskLevel: 'low',
-        recommendations: [
-          'Add Brahmi to your morning tea for cognitive focus',
-          'Practice 10 mins of mindful breathing today',
-          'Consider Shatavari for balanced hormonal health'
-        ],
-        predictedImprovements: {
-          energy: 18,
-          sleep: 25,
-          stress: -22
-        }
-      });
 
       setSeasonalPredictions([
         { season: 'Spring', category: 'Detox Rituals', demand: 92, herbs: ['Neem', 'Amla', 'Dandelion'] },
@@ -548,8 +542,39 @@ const UserHerbsDashboard = ({ user = {} }) => {
             </Box>
           </Box>
 
+          <Paper sx={{ ...glassStyle, p: 4, mb: 4 }}>
+            <Typography variant="h6" fontWeight={800} color="#1a330a" mb={3}>30-Day Market Equilibrium Forecast</Typography>
+            <Box sx={{ height: 350, width: '100%' }}>
+              <ResponsiveContainer width="100%" height="100%">
+                <AreaChart data={demandForecasts}>
+                  <defs>
+                    <linearGradient id="colorSales" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="5%" stopColor="#3b82f6" stopOpacity={0.1} />
+                      <stop offset="95%" stopColor="#3b82f6" stopOpacity={0} />
+                    </linearGradient>
+                  </defs>
+                  <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
+                  <XAxis dataKey="date" tick={{ fontSize: 11, fill: '#94a3b8' }} />
+                  <YAxis tick={{ fontSize: 11, fill: '#94a3b8' }} />
+                  <RechartsTooltip
+                    contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }}
+                  />
+                  <Area
+                    type="monotone"
+                    dataKey="predicted_sales"
+                    stroke="#3b82f6"
+                    fillOpacity={1}
+                    fill="url(#colorSales)"
+                    strokeWidth={3}
+                    name="Predicted Demand"
+                  />
+                </AreaChart>
+              </ResponsiveContainer>
+            </Box>
+          </Paper>
+
           <Grid container spacing={3}>
-            {demandForecasts.map((f, i) => (
+            {demandForecasts.slice(0, 3).map((f, i) => (
               <Grid size={{ xs: 12, md: 4 }} key={i}>
                 <Paper sx={{ ...glassStyle, p: 3, textAlign: 'center', border: '1px solid #eff6ff' }}>
                   <Typography variant="caption" sx={{ fontWeight: 700, color: '#64748b' }}>
@@ -680,42 +705,135 @@ const UserHerbsDashboard = ({ user = {} }) => {
 
         {/* Seasonal Guide */}
         <Box>
-          <Typography variant="h4" sx={{
-            fontFamily: 'Playfair Display, serif',
-            fontWeight: 800,
-            color: '#1a330a',
-            mb: 5,
-            textAlign: 'center'
-          }}>
-            Seasonal <span style={{ color: '#2E7D32' }}>Harmony Grid</span>
-          </Typography>
-          <Grid container spacing={4}>
-            {seasonalPredictions.map((s, i) => (
-              <Grid size={{ xs: 12, md: 4 }} key={i}>
-                <Paper sx={{
-                  ...glassStyle,
-                  p: 5,
-                  textAlign: 'center',
-                  bgcolor: 'white',
-                  border: '1px solid #f1f5f9',
-                  background: s.season === 'Spring' ? 'linear-gradient(180deg, #f0fdf4 0%, #ffffff 100%)' :
-                    s.season === 'Summer' ? 'linear-gradient(180deg, #fffbeb 0%, #ffffff 100%)' : 'linear-gradient(180deg, #f8fafc 0%, #ffffff 100%)'
-                }}>
-                  <Typography variant="h6" fontWeight={800} color="#334155" gutterBottom>{s.season}</Typography>
-                  <Typography variant="caption" sx={{ display: 'block', mb: 3, color: '#64748b', fontWeight: 700, letterSpacing: 0.5 }}>{s.category.toUpperCase()}</Typography>
-                  <Box sx={{ position: 'relative', display: 'inline-flex', mb: 4 }}>
-                    <CircularProgress variant="determinate" value={s.demand} size={90} thickness={3} sx={{ color: '#10b981' }} />
-                    <Box sx={{ top: 0, left: 0, bottom: 0, right: 0, position: 'absolute', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                      <Typography variant="h6" fontWeight={900} color="#1e293b">{s.demand}%</Typography>
+          <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 5 }}>
+            <Typography variant="h4" sx={{
+              fontFamily: 'Playfair Display, serif',
+              fontWeight: 800,
+              color: '#1a330a',
+              textAlign: 'center',
+              flex: 1,
+            }}>
+              Seasonal <span style={{ color: '#2E7D32' }}>Harmony Grid</span>
+            </Typography>
+            <Box sx={{ display: 'flex', gap: 1, ml: 2 }}>
+              <Button
+                size="small"
+                variant={seasonalViewMode === 'cards' ? 'contained' : 'outlined'}
+                onClick={() => setSeasonalViewMode('cards')}
+                sx={{
+                  borderRadius: '20px',
+                  textTransform: 'none',
+                  fontWeight: 700,
+                  borderColor: '#10b981',
+                  color: seasonalViewMode === 'cards' ? 'white' : '#10b981',
+                  bgcolor: seasonalViewMode === 'cards' ? '#10b981' : 'transparent',
+                  '&:hover': { bgcolor: seasonalViewMode === 'cards' ? '#059669' : '#f0fdf4' }
+                }}
+              >
+                Cards
+              </Button>
+              <Button
+                size="small"
+                variant={seasonalViewMode === 'graph' ? 'contained' : 'outlined'}
+                onClick={() => setSeasonalViewMode('graph')}
+                sx={{
+                  borderRadius: '20px',
+                  textTransform: 'none',
+                  fontWeight: 700,
+                  borderColor: '#10b981',
+                  color: seasonalViewMode === 'graph' ? 'white' : '#10b981',
+                  bgcolor: seasonalViewMode === 'graph' ? '#10b981' : 'transparent',
+                  '&:hover': { bgcolor: seasonalViewMode === 'graph' ? '#059669' : '#f0fdf4' }
+                }}
+              >
+                View as Graph
+              </Button>
+            </Box>
+          </Box>
+
+          {seasonalViewMode === 'cards' ? (
+            <Grid container spacing={4}>
+              {seasonalPredictions.map((s, i) => (
+                <Grid size={{ xs: 12, md: 4 }} key={i}>
+                  <Paper sx={{
+                    ...glassStyle,
+                    p: 5,
+                    textAlign: 'center',
+                    bgcolor: 'white',
+                    border: '1px solid #f1f5f9',
+                    background: s.season === 'Spring' ? 'linear-gradient(180deg, #f0fdf4 0%, #ffffff 100%)' :
+                      s.season === 'Summer' ? 'linear-gradient(180deg, #fffbeb 0%, #ffffff 100%)' : 'linear-gradient(180deg, #f8fafc 0%, #ffffff 100%)'
+                  }}>
+                    <Typography variant="h6" fontWeight={800} color="#334155" gutterBottom>{s.season}</Typography>
+                    <Typography variant="caption" sx={{ display: 'block', mb: 3, color: '#64748b', fontWeight: 700, letterSpacing: 0.5 }}>{s.category.toUpperCase()}</Typography>
+                    <Box sx={{ position: 'relative', display: 'inline-flex', mb: 4 }}>
+                      <CircularProgress variant="determinate" value={s.demand} size={90} thickness={3} sx={{ color: '#10b981' }} />
+                      <Box sx={{ top: 0, left: 0, bottom: 0, right: 0, position: 'absolute', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                        <Typography variant="h6" fontWeight={900} color="#1e293b">{s.demand}%</Typography>
+                      </Box>
+                    </Box>
+                    <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1.5, justifyContent: 'center' }}>
+                      {s.herbs.map(h => <Chip key={h} label={h} size="small" variant="outlined" sx={{ borderColor: '#dcfce7', color: '#166534', fontWeight: 600, bgcolor: 'rgba(255,255,255,0.8)' }} />)}
+                    </Box>
+                  </Paper>
+                </Grid>
+              ))}
+            </Grid>
+          ) : (
+            <Paper sx={{ ...glassStyle, p: 4, bgcolor: 'white' }}>
+              <Typography variant="subtitle2" color="#64748b" fontWeight={700} mb={1}>Seasonal Demand Index (%)</Typography>
+              <Box sx={{ height: 320 }}>
+                <ResponsiveContainer width="100%" height="100%">
+                  <BarChart data={seasonalPredictions} margin={{ top: 10, right: 30, left: 0, bottom: 30 }}>
+                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
+                    <XAxis
+                      dataKey="season"
+                      tick={{ fill: '#334155', fontWeight: 700, fontSize: 14 }}
+                      axisLine={false}
+                      tickLine={false}
+                    />
+                    <YAxis
+                      domain={[0, 100]}
+                      tick={{ fill: '#94a3b8', fontSize: 12 }}
+                      axisLine={false}
+                      tickLine={false}
+                      unit="%"
+                    />
+                    <RechartsTooltip
+                      contentStyle={{ borderRadius: '16px', border: 'none', boxShadow: '0 8px 24px rgba(0,0,0,0.08)' }}
+                      formatter={(value, name) => [`${value}%`, 'Demand Index']}
+                      labelFormatter={(label) => {
+                        const item = seasonalPredictions.find(s => s.season === label);
+                        return `${label} — ${item?.category || ''}`;
+                      }}
+                    />
+                    <Bar dataKey="demand" radius={[12, 12, 0, 0]} maxBarSize={80}>
+                      {seasonalPredictions.map((s, index) => (
+                        <Cell
+                          key={`cell-${index}`}
+                          fill={s.season === 'Spring' ? '#10b981' : s.season === 'Summer' ? '#f59e0b' : '#6366f1'}
+                        />
+                      ))}
+                    </Bar>
+                  </BarChart>
+                </ResponsiveContainer>
+              </Box>
+              <Box sx={{ display: 'flex', gap: 3, justifyContent: 'center', mt: 3, flexWrap: 'wrap' }}>
+                {seasonalPredictions.map((s) => (
+                  <Box key={s.season} sx={{ textAlign: 'center' }}>
+                    <Typography variant="caption" sx={{ fontWeight: 700, color: '#64748b', display: 'block', mb: 1 }}>
+                      {s.season}
+                    </Typography>
+                    <Box sx={{ display: 'flex', gap: 0.5, flexWrap: 'wrap', justifyContent: 'center' }}>
+                      {s.herbs.map(h => (
+                        <Chip key={h} label={h} size="small" variant="outlined" sx={{ borderColor: '#dcfce7', color: '#166534', fontWeight: 600, fontSize: '0.65rem' }} />
+                      ))}
                     </Box>
                   </Box>
-                  <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1.5, justifyContent: 'center' }}>
-                    {s.herbs.map(h => <Chip key={h} label={h} size="small" variant="outlined" sx={{ borderColor: '#dcfce7', color: '#166534', fontWeight: 600, bgcolor: 'rgba(255,255,255,0.8)' }} />)}
-                  </Box>
-                </Paper>
-              </Grid>
-            ))}
-          </Grid>
+                ))}
+              </Box>
+            </Paper>
+          )}
         </Box>
 
       </Container>

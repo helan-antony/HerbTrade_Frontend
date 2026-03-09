@@ -1,14 +1,18 @@
 ﻿// MLHerbInsights Component
 import { useState, useEffect } from 'react';
-import { 
-  Box, Typography, Grid, LinearProgress, 
+import {
+  Box, Typography, Grid, LinearProgress,
   Chip, CircularProgress, Alert
 } from '@mui/material';
 import {
   FaBrain, FaChartLine, FaLeaf, FaCalendarAlt, FaLightbulb,
-  FaTachometerAlt, FaHistory, FaSearch, FaBolt
+  FaTachometerAlt, FaHistory, FaSearch, FaBolt, FaShieldAlt, FaExclamationTriangle
 } from 'react-icons/fa';
 import axios from 'axios';
+import {
+  LineChart, Line, AreaChart, Area, XAxis, YAxis, CartesianGrid,
+  Tooltip, ResponsiveContainer, BarChart, Bar, Cell, Legend
+} from 'recharts';
 import API_ENDPOINTS, { getAuthHeaders } from '../config/api';
 
 const MLHerbInsights = ({ user, selectedHerb = null }) => {
@@ -19,6 +23,9 @@ const MLHerbInsights = ({ user, selectedHerb = null }) => {
   const [trendingHerbs, setTrendingHerbs] = useState([]);
   const [healthInsights, setHealthInsights] = useState(null);
   const [seasonalPredictions, setSeasonalPredictions] = useState([]);
+  const [forecastChartData, setForecastChartData] = useState([]);
+  const [qualityRiskData, setQualityRiskData] = useState([]);
+  const [mlSystemStatus, setMlSystemStatus] = useState(null);
   const [activeTab, setActiveTab] = useState(0);
 
   useEffect(() => {
@@ -29,7 +36,7 @@ const MLHerbInsights = ({ user, selectedHerb = null }) => {
     try {
       setLoading(true);
       setError(null);
-      
+
       const token = localStorage.getItem('token');
       const headers = { ...getAuthHeaders() };
 
@@ -40,7 +47,7 @@ const MLHerbInsights = ({ user, selectedHerb = null }) => {
           { user_id: user?.id || 1 },
           { headers }
         );
-        
+
         if (recommendationsResponse.data?.recommendations) {
           setRecommendedHerbs(recommendationsResponse.data.recommendations);
         }
@@ -48,32 +55,41 @@ const MLHerbInsights = ({ user, selectedHerb = null }) => {
         console.error('Error fetching recommendations:', error);
       }
 
-      // Fetch demand forecasts
+      // Fetch demand forecasts and system status
       try {
-        const forecastResponse = await axios.post(
-          API_ENDPOINTS.ML.FORECAST,
-          { product_id: selectedHerb?._id || 'any' },
-          { headers }
-        );
-        
-        if (forecastResponse.data?.forecast) {
-          // Process forecast data for trending herbs
-          const forecastData = forecastResponse.data.forecast;
-          const topTrending = forecastData.slice(0, 3).map((item, index) => ({
-            name: ['Neem', 'Brahmi', 'Ashwagandha'][index],
+        const forecastUrl = 'http://localhost:5001/api/ml/demand-forecast';
+        const statusUrl = 'http://localhost:5001/api/ml/system-status';
+
+        const [forecastRes, statusRes] = await Promise.all([
+          axios.post(forecastUrl, {
+            historical_data: [],
+            forecast_horizon: 30,
+            product_info: { product_name: selectedHerb?.name || 'turmeric' }
+          }, { headers }),
+          axios.get(statusUrl, { headers })
+        ]);
+
+        if (forecastRes.data?.forecast) {
+          setForecastChartData(forecastRes.data.forecast);
+          const topTrending = forecastRes.data.forecast.slice(0, 3).map((item, index) => ({
+            name: selectedHerb?.name || ['Neem', 'Brahmi', 'Ashwagandha'][index],
             trend: Math.min(95, 45 + index * 8),
             predictedGrowth: 12 + index * 3,
             image: `/assets/${['neem', 'brahmi', 'ashwagandha'][index]}.png`,
             date: item.date,
-            demand: item.predicted_demand
+            demand: item.predicted_sales
           }));
           setTrendingHerbs(topTrending);
         }
+
+        if (statusRes.data) {
+          setMlSystemStatus(statusRes.data);
+        }
       } catch (error) {
-        console.error('Error fetching forecasts:', error);
+        console.error('Error fetching advanced ML data:', error);
       }
 
-      // Set mock health insights
+      // Set mock health insights (HealthRec-X mapping can be added here)
       setHealthInsights({
         wellnessScore: Math.floor(Math.random() * 20) + 80,
         riskLevel: ['low', 'medium', 'high'][Math.floor(Math.random() * 3)],
@@ -89,7 +105,6 @@ const MLHerbInsights = ({ user, selectedHerb = null }) => {
         }
       });
 
-      // Set seasonal predictions
       setSeasonalPredictions([
         { season: 'Winter', category: 'Immunity Boosters', expectedDemand: 65, herbs: ['Ashwagandha', 'Tulsi', 'Giloy'] },
         { season: 'Summer', category: 'Cooling Herbs', expectedDemand: 72, herbs: ['Neem', 'Amla', 'Coriander'] },
@@ -166,48 +181,45 @@ const MLHerbInsights = ({ user, selectedHerb = null }) => {
         <div className="flex space-x-1 border-b border-slate-200/50 pb-2">
           <button
             onClick={() => setActiveTab(0)}
-            className={`px-6 py-3 rounded-2xl font-semibold transition-all duration-300 flex items-center space-x-2 ${
-              activeTab === 0
-                ? 'bg-emerald-100 text-emerald-700 shadow-sm'
-                : 'text-slate-600 hover:bg-slate-100'
-            }`}
+            className={`px-6 py-3 rounded-2xl font-semibold transition-all duration-300 flex items-center space-x-2 ${activeTab === 0
+              ? 'bg-emerald-100 text-emerald-700 shadow-sm'
+              : 'text-slate-600 hover:bg-slate-100'
+              }`}
           >
             <FaLeaf />
             <span>Recommendations</span>
           </button>
           <button
             onClick={() => setActiveTab(1)}
-            className={`px-6 py-3 rounded-2xl font-semibold transition-all duration-300 flex items-center space-x-2 ${
-              activeTab === 1
-                ? 'bg-emerald-100 text-emerald-700 shadow-sm'
-                : 'text-slate-600 hover:bg-slate-100'
-            }`}
+            className={`px-6 py-3 rounded-2xl font-semibold transition-all duration-300 flex items-center space-x-2 ${activeTab === 1
+              ? 'bg-emerald-100 text-emerald-700 shadow-sm'
+              : 'text-slate-600 hover:bg-slate-100'
+              }`}
           >
             <FaChartLine />
             <span>Market Trends</span>
           </button>
           <button
             onClick={() => setActiveTab(2)}
-            className={`px-6 py-3 rounded-2xl font-semibold transition-all duration-300 flex items-center space-x-2 ${
-              activeTab === 2
-                ? 'bg-emerald-100 text-emerald-700 shadow-sm'
-                : 'text-slate-600 hover:bg-slate-100'
-            }`}
+            className={`px-6 py-3 rounded-2xl font-semibold transition-all duration-300 flex items-center space-x-2 ${activeTab === 2
+              ? 'bg-emerald-100 text-emerald-700 shadow-sm'
+              : 'text-slate-600 hover:bg-slate-100'
+              }`}
           >
             <FaLightbulb />
             <span>Health Insights</span>
           </button>
           <button
             onClick={() => setActiveTab(3)}
-            className={`px-6 py-3 rounded-2xl font-semibold transition-all duration-300 flex items-center space-x-2 ${
-              activeTab === 3
-                ? 'bg-emerald-100 text-emerald-700 shadow-sm'
-                : 'text-slate-600 hover:bg-slate-100'
-            }`}
+            className={`px-6 py-3 rounded-2xl font-semibold transition-all duration-300 flex items-center space-x-2 ${activeTab === 3
+              ? 'bg-emerald-100 text-emerald-700 shadow-sm'
+              : 'text-slate-600 hover:bg-slate-100'
+              }`}
           >
             <FaCalendarAlt />
             <span>Seasonal Predictions</span>
           </button>
+
         </div>
       </div>
 
@@ -239,12 +251,12 @@ const MLHerbInsights = ({ user, selectedHerb = null }) => {
                                 {herb.category}
                               </span>
                             </div>
-                            <Chip 
+                            <Chip
                               label={`${herb.confidence}% match`}
                               className="bg-green-100 text-green-700 text-sm font-bold"
                             />
                           </div>
-                          
+
                           <div className="mb-3">
                             <span className="inline-block px-3 py-1 bg-emerald-100 text-emerald-700 text-xs font-medium rounded-full border border-emerald-200 mb-2">
                               {herb.category}
@@ -255,11 +267,11 @@ const MLHerbInsights = ({ user, selectedHerb = null }) => {
                               </span>
                             )}
                           </div>
-                          
+
                           <p className="text-slate-600 text-sm mb-4 flex-grow">
                             {herb.benefits?.join(', ') || 'Multiple health benefits'}
                           </p>
-                          
+
                           {herb.price && (
                             <div className="flex justify-between items-center">
                               <span className="text-xl font-bold text-emerald-600">
@@ -284,78 +296,105 @@ const MLHerbInsights = ({ user, selectedHerb = null }) => {
         )}
 
         {activeTab === 1 && (
-          <div className="bg-white/90 backdrop-blur-sm rounded-3xl shadow-lg border border-white/50 mb-6">
-            <div className="p-6">
-              <div className="flex items-center mb-6">
-                <div className="w-10 h-10 rounded-full bg-blue-500 flex items-center justify-center text-white mr-3">
-                  <FaChartLine size={20} />
+          <div className="space-y-6">
+            <div className="bg-white/90 backdrop-blur-sm rounded-3xl shadow-lg border border-white/50 p-6">
+              <div className="flex items-center justify-between mb-6">
+                <div className="flex items-center">
+                  <div className="w-10 h-10 rounded-full bg-blue-500 flex items-center justify-center text-white mr-3">
+                    <FaChartLine size={20} />
+                  </div>
+                  <h3 className="text-2xl font-bold text-slate-900">
+                    DemandProphet-X: 30-Day Demand Forecast
+                  </h3>
                 </div>
-                <h3 className="text-2xl font-bold text-slate-900">
-                  Market Demand Trends
-                </h3>
               </div>
-              {trendingHerbs.length > 0 ? (
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                  {trendingHerbs.map((herb, index) => (
-                    <div key={index} className="bg-white/90 backdrop-blur-sm rounded-2xl shadow-md border border-white/50 h-full">
-                      <div className="p-4 h-full">
-                        <div className="flex justify-between items-center mb-3">
-                          <h4 className="text-lg font-semibold text-slate-900">
-                            {herb.name}
-                          </h4>
-                          <Chip 
-                            label={`+${herb.predictedGrowth}% growth`}
-                            className="bg-green-100 text-green-700 text-sm"
-                          />
-                        </div>
-                        
-                        {herb.image && (
-                          <div className="mb-3 text-center">
-                            <img 
-                              src={herb.image} 
-                              alt={herb.name}
-                              className="w-16 h-16 object-contain rounded-lg mx-auto"
-                            />
-                          </div>
-                        )}
-                        
-                        <div className="mb-3">
-                          <p className="text-slate-600 text-sm mb-2">
-                            Demand Trend Strength
-                          </p>
-                          <LinearProgress 
-                            variant="determinate" 
-                            value={herb.trend} 
-                            className="h-2 rounded-full overflow-hidden"
-                            sx={{ 
-                              '& .MuiLinearProgress-bar': {
-                                bgcolor: '#4caf50',
-                                borderRadius: 2,
-                              }
-                            }} 
-                          />
-                          <div className="text-right text-xs text-slate-500 mt-1">
-                            {herb.trend}%
-                          </div>
-                        </div>
-                        
-                        <p className="text-slate-600 text-sm">
-                          {selectedHerb 
-                            ? `Based on current market analysis for ${selectedHerb.name}`
-                            : 'Predicted high demand in upcoming months'
-                          }
-                        </p>
-                      </div>
-                    </div>
+
+              <div className="h-[400px] w-full bg-slate-50/50 rounded-2xl p-4 border border-slate-100">
+                <ResponsiveContainer width="100%" height="100%">
+                  <LineChart data={forecastChartData}>
+                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e2e8f0" />
+                    <XAxis
+                      dataKey="date"
+                      tick={{ fill: '#64748b', fontSize: 12 }}
+                      axisLine={{ stroke: '#cbd5e1' }}
+                    />
+                    <YAxis
+                      tick={{ fill: '#64748b', fontSize: 12 }}
+                      axisLine={{ stroke: '#cbd5e1' }}
+                    />
+                    <Tooltip
+                      contentStyle={{
+                        backgroundColor: 'rgba(255, 255, 255, 0.95)',
+                        borderRadius: '12px',
+                        border: 'none',
+                        boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)'
+                      }}
+                    />
+                    <Legend />
+                    <Line
+                      type="monotone"
+                      dataKey="predicted_sales"
+                      name="Predicted Demand"
+                      stroke="#10b981"
+                      strokeWidth={3}
+                      dot={{ r: 4, fill: '#10b981' }}
+                      activeDot={{ r: 6, strokeWidth: 0 }}
+                    />
+                    <Line
+                      type="monotone"
+                      dataKey="confidence_upper"
+                      name="Upper Bound"
+                      stroke="#94a3b8"
+                      strokeDasharray="5 5"
+                      dot={false}
+                    />
+                    <Line
+                      type="monotone"
+                      dataKey="confidence_lower"
+                      name="Lower Bound"
+                      stroke="#94a3b8"
+                      strokeDasharray="5 5"
+                      dot={false}
+                    />
+                  </LineChart>
+                </ResponsiveContainer>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div className="bg-white/90 backdrop-blur-sm rounded-3xl shadow-lg border border-white/50 p-6">
+                <h4 className="text-lg font-bold text-slate-900 mb-4 flex items-center gap-2">
+                  <FaHistory className="text-blue-500" />
+                  Peak Demand Insights
+                </h4>
+                <ul className="space-y-3">
+                  {forecastChartData.filter(d => d.predicted_sales > 120).slice(0, 3).map((d, i) => (
+                    <li key={i} className="flex items-center justify-between p-3 bg-emerald-50 rounded-xl border border-emerald-100">
+                      <span className="text-emerald-800 font-medium">{d.date}</span>
+                      <span className="bg-emerald-600 text-white px-3 py-1 rounded-lg text-xs font-bold">
+                        High Demand: {d.predicted_sales} units
+                      </span>
+                    </li>
                   ))}
+                  {forecastChartData.filter(d => d.predicted_sales > 120).length === 0 && (
+                    <p className="text-slate-500 italic">No significant demand surges predicted in this horizon.</p>
+                  )}
+                </ul>
+              </div>
+              <div className="bg-white/90 backdrop-blur-sm rounded-3xl shadow-lg border border-white/50 p-6">
+                <h4 className="text-lg font-bold text-slate-900 mb-4 flex items-center gap-2">
+                  <FaLightbulb className="text-amber-500" />
+                  AI Recommendations
+                </h4>
+                <div className="space-y-2">
+                  <Alert severity="info" className="rounded-xl border-none bg-blue-50 text-blue-800">
+                    Optimize inventory levels for early next month to avoid stockouts.
+                  </Alert>
+                  <Alert severity="success" className="rounded-xl border-none bg-emerald-50 text-emerald-800">
+                    Current demand signals are stable with 92% confidence.
+                  </Alert>
                 </div>
-              ) : (
-                <div className="text-center py-12">
-                  <p className="text-slate-600 text-lg">
-                    No trending data available at this time.
-                  </p>
-                </div>
-              )}
+              </div>
             </div>
           </div>
         )}
@@ -371,7 +410,7 @@ const MLHerbInsights = ({ user, selectedHerb = null }) => {
                   AI Health Recommendations
                 </h3>
               </div>
-              
+
               {healthInsights && (
                 <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
                   <div className="lg:col-span-8">
@@ -395,7 +434,7 @@ const MLHerbInsights = ({ user, selectedHerb = null }) => {
                       ))}
                     </div>
                   </div>
-                  
+
                   <div className="lg:col-span-4">
                     <div className="bg-white/90 backdrop-blur-sm rounded-2xl shadow-md border border-white/50 h-full">
                       <div className="p-4 h-full flex flex-col">
@@ -429,13 +468,12 @@ const MLHerbInsights = ({ user, selectedHerb = null }) => {
                         <div className="mt-auto">
                           <div className="mb-2">
                             <span className="text-sm font-medium text-slate-700">Risk Level: </span>
-                            <span className={`inline-block px-2 py-1 rounded-full text-xs font-semibold ${
-                              healthInsights.riskLevel === 'low' 
-                                ? 'bg-green-100 text-green-700' 
-                                : healthInsights.riskLevel === 'medium' 
-                                  ? 'bg-amber-100 text-amber-700' 
-                                  : 'bg-red-100 text-red-700'
-                            }`}>
+                            <span className={`inline-block px-2 py-1 rounded-full text-xs font-semibold ${healthInsights.riskLevel === 'low'
+                              ? 'bg-green-100 text-green-700'
+                              : healthInsights.riskLevel === 'medium'
+                                ? 'bg-amber-100 text-amber-700'
+                                : 'bg-red-100 text-red-700'
+                              }`}>
                               {healthInsights.riskLevel}
                             </span>
                           </div>
@@ -463,7 +501,7 @@ const MLHerbInsights = ({ user, selectedHerb = null }) => {
                   Seasonal Herb Predictions
                 </h3>
               </div>
-              
+
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
                 {seasonalPredictions.map((prediction, index) => (
                   <div key={index} className="card-product group">
@@ -477,27 +515,27 @@ const MLHerbInsights = ({ user, selectedHerb = null }) => {
                             {prediction.category}
                           </span>
                         </div>
-                        
+
                         <div className="mb-4">
                           <p className="text-slate-600 text-sm mb-2">
                             Expected Demand
                           </p>
-                          <LinearProgress 
-                            variant="determinate" 
-                            value={prediction.expectedDemand} 
+                          <LinearProgress
+                            variant="determinate"
+                            value={prediction.expectedDemand}
                             className="h-2 rounded-full overflow-hidden mb-1"
-                            sx={{ 
+                            sx={{
                               '& .MuiLinearProgress-bar': {
                                 bgcolor: '#9c27b0',
                                 borderRadius: 2,
                               }
-                            }} 
+                            }}
                           />
                           <div className="text-right text-xs text-slate-500">
                             {prediction.expectedDemand}%
                           </div>
                         </div>
-                        
+
                         <div>
                           <p className="text-slate-700 text-sm font-medium mb-2">
                             Recommended Herbs:
@@ -518,7 +556,7 @@ const MLHerbInsights = ({ user, selectedHerb = null }) => {
                   </div>
                 ))}
               </div>
-              
+
               <div className="mt-6 p-4 bg-white/80 backdrop-blur-sm rounded-2xl shadow-lg border-l-4 border-l-purple-500">
                 <div className="p-4">
                   <div className="flex items-center mb-2">
@@ -530,8 +568,8 @@ const MLHerbInsights = ({ user, selectedHerb = null }) => {
                     </h4>
                   </div>
                   <p className="text-slate-700 leading-relaxed pl-1">
-                    Our AI analyzes seasonal patterns, climate data, and market trends to predict which herbs 
-                    will be in highest demand. This helps you make informed decisions about which herbs to 
+                    Our AI analyzes seasonal patterns, climate data, and market trends to predict which herbs
+                    will be in highest demand. This helps you make informed decisions about which herbs to
                     stock or purchase for optimal health benefits during different seasons.
                   </p>
                 </div>
