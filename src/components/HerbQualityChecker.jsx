@@ -72,6 +72,7 @@ const HerbQualityChecker = () => {
   const [result, setResult] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
+  const [showTechnicalDetails, setShowTechnicalDetails] = useState(false);
   const fileInputRef = useRef(null);
 
   const handleImageChange = (e) => {
@@ -393,6 +394,26 @@ const HerbQualityChecker = () => {
                     >
                       <Box sx={{ height: '100%', display: 'flex', flexDirection: 'column', gap: 2 }}>
                         
+                        {/* Technical View Toggle */}
+                        <Box sx={{ display: 'flex', justifyContent: 'flex-end', mb: 1 }}>
+                          <Button 
+                            size="small"
+                            variant="outlined"
+                            onClick={() => setShowTechnicalDetails(!showTechnicalDetails)}
+                            startIcon={<FaBrain />}
+                            sx={{ 
+                              borderRadius: '12px', 
+                              fontSize: '0.65rem', 
+                              fontWeight: 900,
+                              borderColor: showTechnicalDetails ? '#10b981' : '#cbd5e1',
+                              color: showTechnicalDetails ? '#10b981' : '#64748b',
+                              '&:hover': { borderColor: '#10b981', bgcolor: 'rgba(16, 185, 129, 0.05)' }
+                            }}
+                          >
+                            {showTechnicalDetails ? 'HIDE TECHNICAL ANALYSIS' : 'VIEW TECHNICAL ANALYSIS'}
+                          </Button>
+                        </Box>
+                        
                         {/* Primary Verdict Card */}
                         <Paper sx={{ p: 2.5, borderRadius: '20px', border: `2px solid ${result.is_disease ? '#fecaca' : '#bbf7d0'}`, bgcolor: result.is_disease ? '#fff5f5' : '#f0fdf4' }}>
                           <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 1.5 }}>
@@ -419,74 +440,85 @@ const HerbQualityChecker = () => {
                           </Box>
                         </Paper>
 
-                        {/* Model Performance Metrics (Multi-modal metrics) */}
-                        <Box sx={{ display: 'flex', gap: 2, flexDirection: { xs: 'column', lg: 'row' } }}>
-                          <Box sx={{ flex: 1.2 }}>
-                            <Typography variant="caption" sx={{ color: '#1a330a', fontWeight: 900, mb: 1, display: 'flex', alignItems: 'center', gap: 1, textTransform: 'uppercase' }}>
-                                <FaBolt color="#f59e0b" size={12} />
-                                Neural Performance
-                            </Typography>
-                            <Box sx={{ height: 180, width: '100%', bgcolor: 'white', p: 1, borderRadius: '16px', border: '1px solid #e2e8f0', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                                <ResponsiveContainer width="100%" height="100%">
-                                  <BarChart data={result.performance_metrics.filter(m => m.metric !== 'Latency %')}>
-                                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
-                                    <XAxis dataKey="metric" tick={{ fill: '#64748b', fontSize: 9, fontWeight: 700 }} axisLine={false} tickLine={false} />
-                                    <YAxis hide domain={[0, 100]} />
-                                    <RechartsTooltip cursor={{fill: 'rgba(0,0,0,0.02)'}} contentStyle={{ borderRadius: '10px', fontSize: '0.75rem' }} />
-                                    <Bar dataKey="value" name="Score %" radius={[4, 4, 0, 0]} barSize={20}>
-                                        {result.performance_metrics.filter(m => m.metric !== 'Latency %').map((entry, index) => (
-                                            <Cell key={`cell-${index}`} fill={['#10b981', '#3b82f6', '#f59e0b', '#8b5cf6'][index % 4]} />
-                                        ))}
-                                    </Bar>
-                                  </BarChart>
-                                </ResponsiveContainer>
-                            </Box>
-                            
-                            <Box sx={{ mt: 1.5, bgcolor: 'white', borderRadius: '16px', border: '1px solid #e2e8f0', overflow: 'hidden' }}>
-                              <TableContainer>
-                                <Table size="small">
-                                  <TableBody>
-                                    {result.performance_metrics.filter(m => m.metric !== 'Latency %' && m.metric !== 'Reliability').map((row) => (
-                                      <TableRow key={row.metric} sx={{ height: 32 }}>
-                                        <TableCell sx={{ color: '#64748b', fontWeight: 700, fontSize: '0.7rem', py: 0.5 }}>{row.metric}</TableCell>
-                                        <TableCell align="right" sx={{ color: '#10b981', fontWeight: 900, fontSize: '0.75rem', py: 0.5 }}>{row.value}%</TableCell>
-                                      </TableRow>
-                                    ))}
-                                    <TableRow sx={{ bgcolor: '#f8fafc', height: 32 }}>
-                                        <TableCell sx={{ color: '#1a330a', fontWeight: 800, fontSize: '0.7rem', py: 0.5 }}>Latency</TableCell>
-                                        <TableCell align="right" sx={{ color: '#3b82f6', fontWeight: 900, fontSize: '0.75rem', py: 0.5 }}>{result.latency}ms</TableCell>
-                                    </TableRow>
-                                  </TableBody>
-                                </Table>
-                              </TableContainer>
-                            </Box>
-                          </Box>
-
-                          <Box sx={{ flex: 1 }}>
-                                <Typography variant="caption" sx={{ color: '#1a330a', fontWeight: 900, mb: 1, display: 'flex', alignItems: 'center', gap: 1, textTransform: 'uppercase' }}>
-                                    <FaBrain color="#8b5cf6" size={12} />
-                                    Explainability (SHAP)
-                                </Typography>
-                                <Box sx={{ height: 260, width: '100%', bgcolor: 'white', p: 1.5, borderRadius: '16px', border: '1px solid #e2e8f0' }}>
-                                    <ResponsiveContainer width="100%" height="100%">
-                                    <BarChart data={result.shap_data} layout="vertical" margin={{ top: 5, right: 20, left: 10, bottom: 5 }}>
-                                        <CartesianGrid strokeDasharray="3 3" horizontal={true} vertical={false} stroke="#f1f5f9" />
-                                        <XAxis type="number" hide />
-                                        <YAxis dataKey="name" type="category" width={90} tick={{ fontSize: 9, fill: '#64748b', fontWeight: 700 }} axisLine={false} tickLine={false} />
-                                        <RechartsTooltip cursor={{fill: 'transparent'}} contentStyle={{ borderRadius: '10px', fontSize: '0.75rem' }} />
-                                        <Bar dataKey="contribution" name="Contribution %" radius={[0, 4, 4, 0]} barSize={16}>
-                                            {result.shap_data.map((entry, index) => (
-                                                <Cell key={`cell-${index}`} fill={entry.fill} />
-                                            ))}
-                                        </Bar>
-                                    </BarChart>
-                                    </ResponsiveContainer>
-                                    <Typography variant="caption" color="#94a3b8" sx={{ display: 'block', mt: 1, textAlign: 'center', fontSize: '0.65rem' }}>
-                                        Feature importance fused from multi-modal inputs.
-                                    </Typography>
+                        {/* Model Performance & Explainability - Conditional Rendering */}
+                        <AnimatePresence>
+                          {showTechnicalDetails && (
+                            <motion.div
+                              initial={{ opacity: 0, height: 0 }}
+                              animate={{ opacity: 1, height: 'auto' }}
+                              exit={{ opacity: 0, height: 0 }}
+                              style={{ overflow: 'hidden' }}
+                            >
+                              <Box sx={{ display: 'flex', gap: 2, flexDirection: { xs: 'column', lg: 'row' }, mb: 2 }}>
+                                <Box sx={{ flex: 1.2 }}>
+                                  <Typography variant="caption" sx={{ color: '#1a330a', fontWeight: 900, mb: 1, display: 'flex', alignItems: 'center', gap: 1, textTransform: 'uppercase' }}>
+                                      <FaBolt color="#f59e0b" size={12} />
+                                      Neural Performance
+                                  </Typography>
+                                  <Box sx={{ height: 180, width: '100%', bgcolor: 'white', p: 1, borderRadius: '16px', border: '1px solid #e2e8f0', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                                      <ResponsiveContainer width="100%" height="100%">
+                                        <BarChart data={result.performance_metrics.filter(m => m.metric !== 'Latency %')}>
+                                          <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
+                                          <XAxis dataKey="metric" tick={{ fill: '#64748b', fontSize: 9, fontWeight: 700 }} axisLine={false} tickLine={false} />
+                                          <YAxis hide domain={[0, 100]} />
+                                          <RechartsTooltip cursor={{fill: 'rgba(0,0,0,0.02)'}} contentStyle={{ borderRadius: '10px', fontSize: '0.75rem' }} />
+                                          <Bar dataKey="value" name="Score %" radius={[4, 4, 0, 0]} barSize={20}>
+                                              {result.performance_metrics.filter(m => m.metric !== 'Latency %').map((entry, index) => (
+                                                  <Cell key={`cell-${index}`} fill={['#10b981', '#3b82f6', '#f59e0b', '#8b5cf6'][index % 4]} />
+                                              ))}
+                                          </Bar>
+                                        </BarChart>
+                                      </ResponsiveContainer>
+                                  </Box>
+                                  
+                                  <Box sx={{ mt: 1.5, bgcolor: 'white', borderRadius: '16px', border: '1px solid #e2e8f0', overflow: 'hidden' }}>
+                                    <TableContainer>
+                                      <Table size="small">
+                                        <TableBody>
+                                          {result.performance_metrics.filter(m => m.metric !== 'Latency %' && m.metric !== 'Reliability').map((row) => (
+                                            <TableRow key={row.metric} sx={{ height: 32 }}>
+                                              <TableCell sx={{ color: '#64748b', fontWeight: 700, fontSize: '0.7rem', py: 0.5 }}>{row.metric}</TableCell>
+                                              <TableCell align="right" sx={{ color: '#10b981', fontWeight: 900, fontSize: '0.75rem', py: 0.5 }}>{row.value}%</TableCell>
+                                            </TableRow>
+                                          ))}
+                                          <TableRow sx={{ bgcolor: '#f8fafc', height: 32 }}>
+                                              <TableCell sx={{ color: '#1a330a', fontWeight: 800, fontSize: '0.7rem', py: 0.5 }}>Latency</TableCell>
+                                              <TableCell align="right" sx={{ color: '#3b82f6', fontWeight: 900, fontSize: '0.75rem', py: 0.5 }}>{result.latency}ms</TableCell>
+                                          </TableRow>
+                                        </TableBody>
+                                      </Table>
+                                    </TableContainer>
+                                  </Box>
                                 </Box>
-                            </Box>
-                        </Box>
+
+                                <Box sx={{ flex: 1 }}>
+                                      <Typography variant="caption" sx={{ color: '#1a330a', fontWeight: 900, mb: 1, display: 'flex', alignItems: 'center', gap: 1, textTransform: 'uppercase' }}>
+                                          <FaBrain color="#8b5cf6" size={12} />
+                                          Explainability (SHAP)
+                                      </Typography>
+                                      <Box sx={{ height: 260, width: '100%', bgcolor: 'white', p: 1.5, borderRadius: '16px', border: '1px solid #e2e8f0' }}>
+                                          <ResponsiveContainer width="100%" height="100%">
+                                          <BarChart data={result.shap_data} layout="vertical" margin={{ top: 5, right: 20, left: 10, bottom: 5 }}>
+                                              <CartesianGrid strokeDasharray="3 3" horizontal={true} vertical={false} stroke="#f1f5f9" />
+                                              <XAxis type="number" hide />
+                                              <YAxis dataKey="name" type="category" width={90} tick={{ fontSize: 9, fill: '#64748b', fontWeight: 700 }} axisLine={false} tickLine={false} />
+                                              <RechartsTooltip cursor={{fill: 'transparent'}} contentStyle={{ borderRadius: '10px', fontSize: '0.75rem' }} />
+                                              <Bar dataKey="contribution" name="Contribution %" radius={[0, 4, 4, 0]} barSize={16}>
+                                                  {result.shap_data.map((entry, index) => (
+                                                      <Cell key={`cell-${index}`} fill={entry.fill} />
+                                                  ))}
+                                              </Bar>
+                                          </BarChart>
+                                          </ResponsiveContainer>
+                                          <Typography variant="caption" color="#94a3b8" sx={{ display: 'block', mt: 1, textAlign: 'center', fontSize: '0.65rem' }}>
+                                              Feature importance fused from multi-modal inputs.
+                                          </Typography>
+                                      </Box>
+                                  </Box>
+                              </Box>
+                            </motion.div>
+                          )}
+                        </AnimatePresence>
 
                         {/* Neural Markers */}
                         <Box sx={{ mt: 'auto' }}>
