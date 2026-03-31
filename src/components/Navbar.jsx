@@ -320,19 +320,7 @@ function Navbar() {
                               <span>Orders</span>
                             </button>
 
-                            <button
-                              onClick={(e) => {
-                                e.preventDefault();
-                                e.stopPropagation();
-                                closeMenu();
-                                navigate('/admin-newsletter');
-                              }}
-                              className="w-full px-6 py-4 text-left text-slate-700 hover:bg-emerald-50/80 hover:text-emerald-700 transition-all duration-300 flex items-center space-x-3 font-medium cursor-pointer group"
-                              type="button"
-                            >
-                              <BookOpen className="w-5 h-5 text-emerald-600 mr-1 group-hover:scale-110 transition-transform duration-300" />
-                              <span>Health Tips</span>
-                            </button>
+
 
                             <hr className="my-2 border-slate-200/50 mx-4" />
 
@@ -471,10 +459,12 @@ function Navbar() {
                             {user.name?.charAt(0) || 'A'}
                           </div>
                         )}
-                        <span className="text-sm">Admin Panel</span>
+                        <span className="text-sm">
+                          {user.role.charAt(0).toUpperCase() + user.role.slice(1)} Panel
+                        </span>
                         <ChevronDown className={`w-5 h-5 transition-transform duration-500 ${isMenuOpen ? 'rotate-180' : ''}`} />
                       </button>
-
+ 
                       {isMenuOpen && (
                         <div
                           className="absolute right-0 mt-4 w-72 bg-white/95 backdrop-blur-xl rounded-3xl py-4 shadow-2xl border border-emerald-100/50 animate-fade-in-scale"
@@ -492,26 +482,30 @@ function Navbar() {
                               )}
                               <div>
                                 <p className="text-sm font-semibold text-slate-900">{user.name}</p>
-                                <p className="text-xs text-slate-500 font-medium">Administrator</p>
+                                <p className="text-xs text-slate-500 font-medium">
+                                  {user.role.charAt(0).toUpperCase() + user.role.slice(1)}
+                                </p>
                               </div>
                             </div>
                           </div>
-
+ 
                           <div className="py-2">
                             <Link
-                              to="/admin-dashboard"
+                              to={user.role === 'seller' ? "/seller-dashboard" : "/admin-dashboard"}
                               onClick={(e) => {
                                 e.preventDefault();
                                 e.stopPropagation();
                                 closeMenu();
-                                navigate('/admin-dashboard');
+                                navigate(user.role === 'seller' ? '/seller-dashboard' : '/admin-dashboard');
                               }}
                               className="w-full px-6 py-4 text-left text-slate-700 hover:bg-emerald-50/80 hover:text-emerald-700 transition-all duration-300 flex items-center space-x-3 no-underline cursor-pointer group"
                             >
                               <Shield className="w-5 h-5 text-emerald-600 group-hover:scale-110 transition-transform duration-300" />
-                              <span className="font-medium">Admin Dashboard</span>
+                              <span className="font-medium">
+                                {user.role.charAt(0).toUpperCase() + user.role.slice(1)} Dashboard
+                              </span>
                             </Link>
-
+ 
                             <button
                               onClick={(e) => {
                                 e.preventDefault();
@@ -525,23 +519,9 @@ function Navbar() {
                               <Package className="w-5 h-5 text-emerald-600 mr-1 group-hover:scale-110 transition-transform duration-300" />
                               <span>Orders</span>
                             </button>
-
-                            <button
-                              onClick={(e) => {
-                                e.preventDefault();
-                                e.stopPropagation();
-                                closeMenu();
-                                navigate('/admin-newsletter');
-                              }}
-                              className="w-full px-6 py-4 text-left text-slate-700 hover:bg-emerald-50/80 hover:text-emerald-700 transition-all duration-300 flex items-center space-x-3 font-medium cursor-pointer group"
-                              type="button"
-                            >
-                              <BookOpen className="w-5 h-5 text-emerald-600 mr-1 group-hover:scale-110 transition-transform duration-300" />
-                              <span>Health Tips</span>
-                            </button>
-
+ 
                             <hr className="my-2 border-slate-200/50 mx-4" />
-
+ 
                             <button
                               onClick={(e) => {
                                 e.preventDefault();
@@ -554,130 +534,6 @@ function Navbar() {
                             >
                               <LogOut className="w-5 h-5 group-hover:scale-110 transition-transform duration-300" />
                               <span>Logout</span>
-                            </button>
-                          </div>
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                ) : ['seller', 'employee', 'manager', 'supervisor'].includes(user.role) ? (
-                  <div className="flex items-center space-x-4">
-                    <div className="relative user-dropdown">
-                      <button
-                        onClick={toggleMenu}
-                        className={`flex items-center space-x-4 px-6 py-3 rounded-2xl backdrop-blur-sm transition-all duration-500 font-semibold shadow-lg hover:shadow-2xl interactive-hover border-2 ${isMenuOpen
-                          ? 'bg-gradient-to-r from-orange-200/90 to-amber-200/90 text-orange-800 border-orange-300/50 shadow-orange-200/50'
-                          : 'bg-gradient-to-r from-orange-100/80 to-amber-100/80 hover:from-orange-200/80 hover:to-amber-200/80 text-orange-700 border-orange-200/30 hover:border-orange-300/50'
-                          }`}
-                        style={{ zIndex: 1000 }}
-                        type="button"
-                        aria-expanded={isMenuOpen}
-                        aria-haspopup="true"
-                      >
-                        {user.profilePic ? (
-                          <img src={user.profilePic} alt={user.name || 'User'} className="w-10 h-10 rounded-full object-cover shadow-lg" />
-                        ) : (
-                          <div className="w-10 h-10 rounded-full bg-gradient-to-br from-orange-500 via-amber-500 to-yellow-500 flex items-center justify-center text-white font-bold text-sm shadow-lg glow-orange">
-                            {user.name?.charAt(0) || 'S'}
-                          </div>
-                        )}
-                        <span className="text-sm">Seller Panel</span>
-                        <ChevronDown className={`w-5 h-5 transition-transform duration-500 ${isMenuOpen ? 'rotate-180' : ''}`} />
-                      </button>
-
-                      {isMenuOpen && (
-                        <div
-                          className="absolute right-0 mt-4 w-72 bg-white/95 backdrop-blur-xl rounded-3xl py-4 shadow-2xl border border-orange-100/50 animate-fade-in-scale"
-                          style={{ zIndex: 9999 }}
-                          onClick={(e) => e.stopPropagation()}
-                        >
-                          <div className="px-6 py-4 border-b border-slate-200/50 bg-gradient-to-r from-orange-50/50 to-amber-50/50 rounded-t-3xl">
-                            <div className="flex items-center space-x-3">
-                              {user.profilePic ? (
-                                <img src={user.profilePic} alt={user.name || 'User'} className="w-12 h-12 rounded-full object-cover shadow-lg" />
-                              ) : (
-                                <div className="w-12 h-12 rounded-full bg-gradient-to-br from-orange-500 via-amber-500 to-yellow-500 flex items-center justify-center text-white font-bold shadow-lg animate-glow-pulse">
-                                  {user.name?.charAt(0) || 'S'}
-                                </div>
-                              )}
-                              <div>
-                                <p className="text-sm font-semibold text-slate-900">{user.name}</p>
-                                <p className="text-xs text-slate-500 font-medium">
-                                  {user.role.charAt(0).toUpperCase() + user.role.slice(1)}
-                                </p>
-                              </div>
-                            </div>
-                          </div>
-
-                          <div className="py-2">
-                            <button
-                              onClick={(e) => {
-                                e.preventDefault();
-                                e.stopPropagation();
-                                closeMenu();
-                                navigate('/seller-dashboard');
-                              }}
-                              className="w-full flex items-center px-6 py-4 text-slate-700 hover:bg-orange-50/80 hover:text-orange-700 transition-all duration-300 cursor-pointer group"
-                              type="button"
-                            >
-                              <Package className="w-5 h-5 text-orange-600 mr-3 group-hover:scale-110 transition-transform duration-300" />
-                              <div className="text-left">
-                                <div className="font-medium">Seller Dashboard</div>
-                                <div className="text-xs text-slate-500">Manage products & orders</div>
-                              </div>
-                            </button>
-
-                            <button
-                              onClick={(e) => {
-                                e.preventDefault();
-                                e.stopPropagation();
-                                closeMenu();
-                                navigate('/seller-dashboard?tab=profile');
-                              }}
-                              className="w-full flex items-center px-6 py-4 text-slate-700 hover:bg-emerald-50/80 hover:text-emerald-700 transition-all duration-300 cursor-pointer group"
-                              type="button"
-                            >
-                              <User className="w-5 h-5 text-emerald-600 mr-3 group-hover:scale-110 transition-transform duration-300" />
-                              <div className="text-left">
-                                <div className="font-medium">My Profile</div>
-                                <div className="text-xs text-slate-500">View profile information</div>
-                              </div>
-                            </button>
-
-                            <button
-                              onClick={(e) => {
-                                e.preventDefault();
-                                e.stopPropagation();
-                                closeMenu();
-                                navigate('/edit-profile');
-                              }}
-                              className="w-full flex items-center px-6 py-4 text-slate-700 hover:bg-purple-50/80 hover:text-purple-700 transition-all duration-300 cursor-pointer group"
-                              type="button"
-                            >
-                              <Settings className="w-5 h-5 text-purple-600 mr-3 group-hover:scale-110 transition-transform duration-300" />
-                              <div className="text-left">
-                                <div className="font-medium">Edit Profile</div>
-                                <div className="text-xs text-slate-500">Update information & password</div>
-                              </div>
-                            </button>
-
-                            <hr className="my-2 border-slate-200/50 mx-4" />
-
-                            <button
-                              onClick={(e) => {
-                                e.preventDefault();
-                                e.stopPropagation();
-                                closeMenu();
-                                handleLogout();
-                              }}
-                              className="w-full flex items-center px-6 py-4 text-red-600 hover:bg-red-50/80 transition-all duration-300 cursor-pointer group"
-                              type="button"
-                            >
-                              <LogOut className="w-5 h-5 text-red-600 mr-3 group-hover:scale-110 transition-transform duration-300" />
-                              <div className="text-left">
-                                <div className="font-medium">Logout</div>
-                                <div className="text-xs text-red-400">Sign out of your account</div>
-                              </div>
                             </button>
                           </div>
                         </div>
