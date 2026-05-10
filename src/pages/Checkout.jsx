@@ -327,9 +327,6 @@ function Checkout() {
             // Remove ordered items from cart
             await removeOrderedItemsFromCart(cartItems);
 
-            // Download invoice automatically
-            downloadInvoiceAutomatically(orderRes.data.order);
-
             // Navigate to order confirmation page with the order ID
             // Using backend Order ID for our internal routing, not value returned by Razorpay hook
             setTimeout(() => navigate(`/order-confirmation/${orderId}`), 1500);
@@ -347,13 +344,16 @@ function Checkout() {
             }
           }
         };
-        const rzp = new window.Razorpay(options);
-        rzp.on('payment.failed', function (response) {
-          console.error("Payment Failed:", response.error);
-          toast.error(`Payment Failed: ${response.error.description}`);
-          // Don't auto-navigate on failure, let user try again or choose COD
-          setSubmitting(false);
-        });
+        const RazorpayClass = razorpayKey.includes('dummy') ? window.MockRazorpay : window.Razorpay;
+        const rzp = new RazorpayClass(options);
+        if (rzp.on) {
+          rzp.on('payment.failed', function (response) {
+            console.error("Payment Failed:", response.error);
+            toast.error(`Payment Failed: ${response.error.description}`);
+            // Don't auto-navigate on failure, let user try again or choose COD
+            setSubmitting(false);
+          });
+        }
         rzp.open();
         // Do not setSubmitting(false) here, wait for handler or dismiss
       } else {
@@ -381,9 +381,6 @@ function Checkout() {
 
         // Remove ordered items from cart
         await removeOrderedItemsFromCart(cartItems);
-
-        // Download invoice automatically
-        downloadInvoiceAutomatically(orderRes.data.order);
 
         // Navigate to order confirmation page with the order ID
         const orderId = orderRes.data.orderId || orderRes.data.order?._id;
@@ -431,25 +428,6 @@ function Checkout() {
       localStorage.removeItem('cartItems');
       setCartItems([]);
       window.dispatchEvent(new Event('cartUpdated'));
-    }
-  }
-
-  // Function to automatically download invoice after order placement
-  function downloadInvoiceAutomatically(orderData) {
-    try {
-      import('../utils/invoiceGenerator').then(({ generateInvoice, downloadInvoice }) => {
-        const user = JSON.parse(localStorage.getItem('user'));
-        const doc = generateInvoice(orderData, user);
-        const filename = `invoice-${orderData._id.slice(-8).toUpperCase()}.pdf`;
-        downloadInvoice(doc, filename);
-        toast.success('Invoice downloaded successfully!');
-      }).catch(error => {
-        console.error('Error importing invoice generator:', error);
-        toast.info('Your order was placed successfully! You can download the invoice from the order confirmation page.');
-      });
-    } catch (error) {
-      console.error('Error auto-downloading invoice:', error);
-      toast.info('Your order was placed successfully! You can download the invoice from the order confirmation page.');
     }
   }
 
@@ -783,36 +761,25 @@ function Checkout() {
                     </div>
                   </div>
                 </div>
-                {/* Mock Payment / UPI Option */}
+                {/* Razorpay Option */}
                 <div
-                  className={`p-4 border-2 rounded-xl cursor-pointer transition-all duration-300 ${paymentMethod === 'mock_online'
+                  className={`p-4 border-2 rounded-xl cursor-pointer transition-all duration-300 ${paymentMethod === 'razorpay'
                     ? 'border-emerald-500 bg-emerald-50'
                     : 'border-slate-200 hover:border-emerald-300'
                     }`}
-                  onClick={() => setPaymentMethod('mock_online')}
+                  onClick={() => setPaymentMethod('razorpay')}
                 >
                   <div className="flex items-center mb-2">
-                    <div className={`w-5 h-5 rounded-full border-2 mr-3 flex items-center justify-center ${paymentMethod === 'mock_online' ? 'border-emerald-500 bg-emerald-500' : 'border-slate-300'
+                    <div className={`w-5 h-5 rounded-full border-2 mr-3 flex items-center justify-center ${paymentMethod === 'razorpay' ? 'border-emerald-500 bg-emerald-500' : 'border-slate-300'
                       }`}>
-                      {paymentMethod === 'mock_online' && <FaCheck className="text-white text-xs" />}
+                      {paymentMethod === 'razorpay' && <FaCheck className="text-white text-xs" />}
                     </div>
                     <FaCreditCard className="text-emerald-600 mr-3" />
                     <div>
-                      <h3 className="font-semibold text-slate-900">UPI Payment</h3>
-                      <p className="text-sm text-slate-600">Pay securely using UPI</p>
+                      <h3 className="font-semibold text-slate-900">Razorpay</h3>
+                      <p className="text-sm text-slate-600">Pay securely via Cards, UPI, NetBanking</p>
                     </div>
                   </div>
-                  {paymentMethod === 'mock_online' && (
-                    <div className="ml-8 mt-2 animate-fadeIn">
-                      <input
-                        type="text"
-                        placeholder="Enter UPI ID (e.g. user@oksbi)"
-                        className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:border-emerald-500 focus:outline-none"
-                        onClick={(e) => e.stopPropagation()}
-                      />
-                      <p className="text-xs text-emerald-600 mt-1">Simulated payment mechanism</p>
-                    </div>
-                  )}
                 </div>
               </div>
             </div>

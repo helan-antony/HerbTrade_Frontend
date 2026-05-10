@@ -202,7 +202,7 @@ function OrderConfirmation() {
           <div className="mt-4 p-4 bg-emerald-50 rounded-2xl border border-emerald-200 max-w-2xl mx-auto">
             <p className="text-emerald-700 flex items-center justify-center">
               <FaDownload className="mr-2" />
-              Your invoice has been automatically downloaded. Check your downloads folder!
+              You can download your invoice using the button below.
             </p>
           </div>
         </div>

@@ -127,20 +127,75 @@ const HerbQualityChecker = () => {
                 { name: 'Temperature Profile', contribution: 10, fill: '#f59e0b' }
             ];
 
+            const diseases = [
+              {
+                name: 'Late Blight (Phytophthora infestans)',
+                remedy: 'Immediate action required: Apply organic copper-based fungicide. Improve air circulation by pruning dense foliage. Reduce ambient humidity if in a greenhouse.',
+                defects: ['Water-soaked spots', 'White fungal growth on leaf undersides', 'Rapid necrotic expansion']
+              },
+              {
+                name: 'Powdery Mildew',
+                remedy: 'Spray with a mixture of baking soda and water or neem oil. Ensure adequate sunlight and reduce crowding among plants.',
+                defects: ['White powdery spots on leaves', 'Distorted leaf growth', 'Premature leaf drop']
+              },
+              {
+                name: 'Downy Mildew',
+                remedy: 'Apply preventive fungicides. Remove infected debris and water plants at the base to keep leaves dry.',
+                defects: ['Yellowish patches on upper leaf surface', 'Purplish mold on undersides', 'Curling leaves']
+              },
+              {
+                name: 'Fusarium Wilt',
+                remedy: 'Remove and destroy infected plants. Solarize the soil or use resistant plant varieties for future planting.',
+                defects: ['Wilting of leaves, often on one side', 'Yellowing of lower leaves', 'Brown vascular discoloration']
+              },
+              {
+                name: 'Verticillium Wilt',
+                remedy: 'Ensure proper soil drainage and avoid high nitrogen fertilizers. Crop rotation with non-susceptible plants is highly recommended.',
+                defects: ['V-shaped yellowing on leaf margins', 'Stunted growth', 'Wilting during hot parts of the day']
+              },
+              {
+                name: 'Bacterial Spot',
+                remedy: 'Use copper fungicides early in the season. Avoid overhead watering and handle plants only when they are dry.',
+                defects: ['Small, water-soaked spots on leaves', 'Dark, raised spots on fruit', 'Yellowing around spots']
+              },
+              {
+                name: 'Botrytis Blight (Gray Mold)',
+                remedy: 'Improve ventilation and reduce humidity. Prune out dead or dying tissue and space plants adequately.',
+                defects: ['Gray, fuzzy mold on leaves or fruit', 'Brownish rotted spots', 'Flower spotting and drop']
+              },
+              {
+                name: 'Rust Fungi',
+                remedy: 'Remove infected leaves immediately. Apply sulfur-based fungicides and ensure good air circulation.',
+                defects: ['Rust-colored pustules on leaf undersides', 'Yellow spots on upper leaf surfaces', 'Premature defoliation']
+              },
+              {
+                name: 'Leaf Curl Virus',
+                remedy: 'Control insect vectors like whiteflies. Remove severely infected plants to prevent the virus from spreading.',
+                defects: ['Upward curling of leaves', 'Stunted plant growth', 'Yellowing of leaf edges']
+              },
+              {
+                name: 'Anthracnose',
+                remedy: 'Apply neem oil or appropriate fungicides. Practice crop rotation and avoid planting in poorly drained soil.',
+                defects: ['Dark, sunken lesions on stems and fruit', 'Irregular brown spots on leaves', 'Dieback of twigs']
+              }
+            ];
+
+            const randomDisease = diseases[Math.floor(Math.random() * diseases.length)];
+
             mockResult = {
                 is_disease: true,
-                disease_name: 'Late Blight (Phytophthora infestans)',
-                confidence: 0.96,
-                remedy: 'Immediate action required: Apply organic copper-based fungicide. Improve air circulation by pruning dense foliage. Reduce ambient humidity if in a greenhouse.',
-                defects: ['Water-soaked spots', 'White fungal growth on leaf undersides', 'Rapid necrotic expansion'],
+                disease_name: randomDisease.name,
+                confidence: parseFloat((0.90 + Math.random() * 0.08).toFixed(2)),
+                remedy: randomDisease.remedy,
+                defects: randomDisease.defects,
                 performance_metrics: [
-                  { metric: 'Accuracy', value: 97.2, fullMark: 100 },
-                  { metric: 'Precision', value: 95.8, fullMark: 100 },
-                  { metric: 'Recall', value: 98.4, fullMark: 100 },
-                  { metric: 'Reliability', value: 96.5, fullMark: 100 },
-                  { metric: 'Latency %', value: 85, fullMark: 100 } // Normalized for chart
+                  { metric: 'Accuracy', value: parseFloat((96.0 + Math.random() * 3).toFixed(1)), fullMark: 100 },
+                  { metric: 'Precision', value: parseFloat((94.0 + Math.random() * 4).toFixed(1)), fullMark: 100 },
+                  { metric: 'Recall', value: parseFloat((97.0 + Math.random() * 2).toFixed(1)), fullMark: 100 },
+                  { metric: 'Reliability', value: parseFloat((95.0 + Math.random() * 4).toFixed(1)), fullMark: 100 },
+                  { metric: 'Latency %', value: Math.floor(80 + Math.random() * 15), fullMark: 100 } // Normalized for chart
                 ],
-                latency: 184,
+                latency: Math.floor(150 + Math.random() * 50),
                 botanical_match: 'Tomato Target Plant',
                 spectral_data: mockSpectral,
                 shap_data: shapFeatures,

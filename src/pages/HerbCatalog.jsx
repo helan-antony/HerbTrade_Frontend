@@ -166,7 +166,7 @@ function HerbCatalog() {
     }
   };
 
-  const addToCart = async (product, quantity = 1) => {
+  const addToCart = async (product, quantity = null) => {
     try {
       const token = localStorage.getItem('token');
       if (!token) {
@@ -174,12 +174,16 @@ function HerbCatalog() {
         return;
       }
 
-      console.log('Adding to cart:', { productId: product._id, quantity });
+      // Determine default quantity based on category
+      const isHerb = product.category !== 'Medicines';
+      const finalQuantity = quantity !== null ? quantity : (isHerb ? 50 : 1);
+
+      console.log('Adding to cart:', { productId: product._id, quantity: finalQuantity });
 
       // Add to backend (use centralized API helper)
       const response = await apiCall(API_ENDPOINTS.CART.ADD, {
         method: 'POST',
-        body: JSON.stringify({ productId: product._id, quantity })
+        body: JSON.stringify({ productId: product._id, quantity: finalQuantity })
       });
 
       let responseData = null;
@@ -197,11 +201,11 @@ function HerbCatalog() {
         if (existingItem) {
           newCart = cart.map(item =>
             item.product._id === product._id
-              ? { ...item, quantity: item.quantity + quantity }
+              ? { ...item, quantity: item.quantity + finalQuantity }
               : item
           );
         } else {
-          newCart = [...cart, { product, quantity }];
+          newCart = [...cart, { product, quantity: finalQuantity }];
         }
 
         console.log('Updating local cart:', newCart);
@@ -561,7 +565,7 @@ function HerbCatalog() {
                     <div className="mt-3 text-xs text-red-600 font-medium bg-red-50 px-3 py-2 rounded-lg border border-red-200">
                       ⚠️ Only {product.category === 'Medicines' 
                         ? `${product.inStock} ${product.dosageForm || 'units'}` 
-                        : (product.inStock < 1000 ? `${product.inStock}g` : `${(product.inStock/1000).toFixed(1)}kg`)
+                        : `${product.inStock}g`
                       } left in stock!
                     </div>
                   )}
@@ -786,7 +790,7 @@ function HerbCatalog() {
                 <div className="text-sm text-slate-600 bg-slate-50 p-4 rounded-xl">
                   📦 Stock: {selectedProduct.category === 'Medicines' 
                     ? `${selectedProduct.inStock} ${selectedProduct.dosageForm || 'units'}` 
-                    : (selectedProduct.inStock < 1000 ? `${selectedProduct.inStock}g` : `${(selectedProduct.inStock/1000).toFixed(1)}kg`)
+                    : `${selectedProduct.inStock}g`
                   } available
                 </div>
               </div>
@@ -878,16 +882,41 @@ function HerbCatalog() {
                         </p>
                         <div className="flex items-center mt-2 space-x-2">
                           <button
-                            onClick={() => updateCartQuantity(item.product._id, item.quantity - 1)}
+                            onClick={() => {
+                              let nextQty;
+                              if (item.product.category !== 'Medicines') {
+                                // Realistic herb increments
+                                if (item.quantity <= 50) nextQty = 50;
+                                else if (item.quantity <= 250) nextQty = item.quantity - 50;
+                                else if (item.quantity <= 1000) nextQty = item.quantity - 250;
+                                else nextQty = item.quantity - 500;
+                              } else {
+                                nextQty = Math.max(1, item.quantity - 1);
+                              }
+                              updateCartQuantity(item.product._id, nextQty);
+                            }}
                             className="w-8 h-8 rounded-full bg-emerald-100 hover:bg-emerald-200 flex items-center justify-center transition-colors duration-200"
                           >
                             <FaMinus className="text-xs text-emerald-600" />
                           </button>
                           <span className="w-12 text-center font-semibold text-slate-900 text-xs">
-                            {item.quantity < 1000 ? `${item.quantity}g` : `${(item.quantity/1000).toFixed(1)}kg`}
+                            {item.product.category !== 'Medicines' 
+                              ? `${item.quantity}g`
+                              : `${item.quantity}`}
                           </span>
                           <button
-                            onClick={() => updateCartQuantity(item.product._id, item.quantity + 1)}
+                            onClick={() => {
+                              let nextQty;
+                              if (item.product.category !== 'Medicines') {
+                                // Realistic herb increments
+                                if (item.quantity < 250) nextQty = item.quantity + 50;
+                                else if (item.quantity < 1000) nextQty = item.quantity + 250;
+                                else nextQty = item.quantity + 500;
+                              } else {
+                                nextQty = item.quantity + 1;
+                              }
+                              updateCartQuantity(item.product._id, nextQty);
+                            }}
                             className="w-8 h-8 rounded-full bg-emerald-100 hover:bg-emerald-200 flex items-center justify-center transition-colors duration-200"
                           >
                             <FaPlus className="text-xs text-emerald-600" />

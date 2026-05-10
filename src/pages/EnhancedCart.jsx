@@ -627,15 +627,23 @@ function EnhancedCart() {
                             const atMax = Number.isFinite(maxQty) && maxQty !== null && displayQty >= maxQty;
                             const helper = Number.isFinite(maxQty) && maxQty !== null
                               ? (isHerb
-                                  ? `Max ${(maxQty < 1000 ? `${maxQty}g` : `${(maxQty/1000).toFixed(1)}kg`)}`
+                                  ? `Max ${maxQty}g`
                                   : `Max ${maxQty}`)
-                              : (isHerb ? 'Step 50g' : 'Step 1');
+                              : (isHerb ? 'Realistic increments' : 'Step 1');
                             return (
                               <>
                                 <button 
                                   onClick={() => {
-                                    const decrement = step;
-                                    updateQuantity(productId, Math.max(1, item.quantity - decrement));
+                                    let nextQty;
+                                    if (isHerb) {
+                                      if (item.quantity <= 50) nextQty = 50;
+                                      else if (item.quantity <= 250) nextQty = item.quantity - 50;
+                                      else if (item.quantity <= 1000) nextQty = item.quantity - 250;
+                                      else nextQty = item.quantity - 500;
+                                    } else {
+                                      nextQty = item.quantity - 1;
+                                    }
+                                    updateQuantity(productId, Math.max(1, nextQty));
                                   }}
                                   className="w-12 h-12 bg-white hover:bg-slate-100 rounded-xl flex items-center justify-center transition-all duration-300 shadow-md hover:shadow-lg group/btn"
                                 >
@@ -670,12 +678,18 @@ function EnhancedCart() {
                                 </div>
                                 <button 
                                   onClick={() => {
-                                    const increment = step;
-                                    let next = item.quantity + increment;
-                                    if (Number.isFinite(maxQty) && maxQty !== null) {
-                                      next = Math.min(next, maxQty);
+                                    let nextQty;
+                                    if (isHerb) {
+                                      if (item.quantity < 250) nextQty = item.quantity + 50;
+                                      else if (item.quantity < 1000) nextQty = item.quantity + 250;
+                                      else nextQty = item.quantity + 500;
+                                    } else {
+                                      nextQty = item.quantity + 1;
                                     }
-                                    updateQuantity(productId, next);
+                                    if (Number.isFinite(maxQty) && maxQty !== null) {
+                                      nextQty = Math.min(nextQty, maxQty);
+                                    }
+                                    updateQuantity(productId, nextQty);
                                   }}
                                   disabled={atMax}
                                   className={`w-12 h-12 ${atMax ? 'bg-emerald-300 cursor-not-allowed' : 'bg-emerald-500 hover:bg-emerald-600'} rounded-xl flex items-center justify-center transition-all duration-300 shadow-md hover:shadow-lg group/btn`}
